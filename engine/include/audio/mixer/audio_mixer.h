@@ -88,6 +88,12 @@ struct ActiveSound {
     bool fading_in = false;
     float fade_duration = 0.0f;
     float fade_elapsed = 0.0f;
+    float duck_volume = 1.0f;      // Ducking volume multiplier
+    float duck_target = 1.0f;      // Target ducking volume
+    float duck_attack_time = 0.0f; // Ducking attack time
+    float duck_release_time = 0.0f; // Ducking release time
+    float duck_elapsed = 0.0f;     // Ducking elapsed time
+    bool is_ducking = false;       // Currently ducking
 };
 
 /**
@@ -265,6 +271,19 @@ public:
      */
     void SetSoundFinishedCallback(std::function<void(uint32_t sound_id)> callback);
 
+    /**
+     * @brief Trigger ducking for a category
+     * @param category Category to duck
+     * @param trigger_category Category that triggered the ducking
+     */
+    void TriggerDucking(AudioCategory category, AudioCategory trigger_category);
+
+    /**
+     * @brief Release ducking for a category
+     * @param category Category to release ducking
+     */
+    void ReleaseDucking(AudioCategory category);
+
 private:
     bool m_initialized;
     AudioConfig m_config;
@@ -295,12 +314,16 @@ private:
     glm::vec3 m_listener_forward;
     glm::vec3 m_listener_up;
     
+    // Ducking state
+    std::unordered_map<AudioCategory, AudioCategory> m_ducking_triggers; // category -> trigger category
+    std::unordered_map<AudioCategory, bool> m_category_ducking_state; // category -> is_ducking
+    
     ALuint GetAvailableSource();
     void ReleaseSource(ALuint source);
     void StealLowPriorityChannel(uint32_t sample_id, float priority);
     void UpdateFades(float delta_time);
     void UpdateSpatialAudio();
-    void ApplyVolume(float instance_volume, AudioCategory category, float fade_volume);
+    void UpdateDucking(float delta_time);
     float GetEffectiveVolume(AudioCategory category) const;
     void CleanupFinishedSounds();
     bool IsSoundFinished(const ActiveSound& sound) const;

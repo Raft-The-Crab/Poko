@@ -38,6 +38,7 @@ enum class ConnectionState {
  * @brief WebSocket message callback type
  */
 using MessageCallback = std::function<void(const std::string& message)>;
+using BinaryMessageCallback = std::function<void(const std::vector<uint8_t>& data)>;
 using ConnectionCallback = std::function<void(ConnectionState state)>;
 using ErrorCallback = std::function<void(const std::string& error)>;
 
@@ -52,6 +53,9 @@ struct WebSocketConfig {
     int max_reconnect_attempts = 5;
     bool auto_reconnect = true;
     size_t max_queue_size = 1000;
+    bool enable_compression = false;
+    int heartbeat_interval_ms = 30000; // 30 seconds
+    int connection_timeout_ms = 10000; // 10 seconds
 };
 
 /**
@@ -101,10 +105,31 @@ public:
     bool SendMessage(const std::string& message, int priority);
 
     /**
+     * @brief Send binary data
+     * @param data Binary data to send
+     * @return true if data queued for sending
+     */
+    bool SendBinary(const std::vector<uint8_t>& data);
+
+    /**
+     * @brief Send binary data with priority
+     * @param data Binary data to send
+     * @param priority Message priority (higher = sent first)
+     * @return true if data queued for sending
+     */
+    bool SendBinary(const std::vector<uint8_t>& data, int priority);
+
+    /**
      * @brief Set message callback
      * @param callback Function to call when message received
      */
     void SetMessageCallback(MessageCallback callback);
+
+    /**
+     * @brief Set binary message callback
+     * @param callback Function to call when binary data received
+     */
+    void SetBinaryMessageCallback(BinaryMessageCallback callback);
 
     /**
      * @brief Set connection state callback
@@ -147,6 +172,18 @@ public:
      */
     void ClearQueuedMessages();
 
+    /**
+     * @brief Send heartbeat/ping message
+     * @return true if heartbeat sent
+     */
+    bool SendHeartbeat();
+
+    /**
+     * @brief Get connection statistics
+     * @return Connection statistics as string
+     */
+    std::string GetConnectionStats() const;
+
 private:
     void ReconnectThread();
     bool PerformConnection();
@@ -158,6 +195,7 @@ private:
     // libwebsockets callback handlers
     void OnConnectionEstablished();
     void OnMessageReceived(const std::string& message);
+    void OnBinaryMessageReceived(const std::vector<uint8_t>& data);
     void OnConnectionClosed();
     void OnConnectionError(const std::string& error);
     void OnWritable();
@@ -169,6 +207,7 @@ private:
     
     // Callbacks (thread-safe)
     MessageCallback m_message_callback;
+    BinaryMessageCallback m_binary_message_callback;
     ConnectionCallback m_connection_callback;
     ErrorCallback m_error_callback;
     mutable std::mutex m_callback_mutex;
@@ -180,6 +219,8 @@ private:
     // Message queue
     struct QueuedMessage {
         std::string data;
+        std::vector<uint8_t> binary_data;
+        bool is_binary;
         int priority;
         bool operator<(const QueuedMessage& other) const {
             return priority < other.priority;
@@ -199,6 +240,14 @@ private:
     int32_t m_current_port;
     std::string m_current_path;
     bool m_use_ssl;
+
+    // Heartbeat
+    std::chrono::steady_clock::time_point m_last_heartbeat;
+    std::chrono::steady_clock::time_point m_last_pong;
+    std::atomic<uint64_t> m_messages_sent;
+    std::atomic<uint64_t> m_messages_received;
+    std::atomic<uint64_t> m_bytes_sent;
+    std::atomic<uint64_t> m_bytes_received;
 
     // Allow callback to access private members
     friend int websocket_callback(struct lws* wsi, enum lws_callback_reasons reason,

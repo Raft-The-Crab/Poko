@@ -12,6 +12,8 @@
 #include <memory>
 #include <chrono>
 #include <string>
+#include <vector>
+#include <functional>
 #include "core/window/window.h"
 #include "input/input.h"
 
@@ -30,6 +32,11 @@ struct EngineConfig {
     bool vsync = true;
     double target_fps = 60.0;
     double frame_budget_ms = 1.5;
+    bool enable_profiling = true;
+    bool enable_logging = true;
+    int max_fps_samples = 60; // For FPS averaging
+    double min_delta_time = 0.001; // 1ms minimum
+    double max_delta_time = 0.1; // 100ms maximum (spiral of death prevention)
 };
 
 /**
@@ -136,6 +143,73 @@ public:
      */
     // MuteEngine* get_scripting() const { return scripting_.get(); }
 
+    /**
+     * @brief Get average FPS over recent frames
+     * @return Average FPS
+     */
+    double get_average_fps() const { return average_fps_; }
+
+    /**
+     * @brief Get frame time average (milliseconds)
+     * @return Average frame time in ms
+     */
+    double get_average_frame_time_ms() const { return average_frame_time_ms_; }
+
+    /**
+     * @brief Get memory usage statistics
+     * @return Memory usage string
+     */
+    std::string get_memory_stats() const;
+
+    /**
+     * @brief Pause/unpause engine
+     * @param paused Whether to pause
+     */
+    void set_paused(bool paused) { paused_ = paused; }
+
+    /**
+     * @brief Check if engine is paused
+     * @return true if paused
+     */
+    bool is_paused() const { return paused_; }
+
+    /**
+     * @brief Set time scale (slow motion, fast forward)
+     * @param scale Time scale multiplier (1.0 = normal, 0.5 = half speed, 2.0 = double speed)
+     */
+    void set_time_scale(double scale) { time_scale_ = scale; }
+
+    /**
+     * @brief Get current time scale
+     * @return Time scale multiplier
+     */
+    double get_time_scale() const { return time_scale_; }
+
+    /**
+     * @brief Register frame callback
+     * @param callback Function to call each frame
+     */
+    void set_frame_callback(std::function<void(double)> callback) { frame_callback_ = callback; }
+
+    /**
+     * @brief Engine state statistics
+     */
+    struct EngineStats {
+        double fps;
+        double average_fps;
+        double delta_time;
+        double total_time;
+        uint64_t frame_count;
+        double cpu_usage_percent;
+        size_t memory_usage_mb;
+    };
+
+    /**
+     * @brief Get engine statistics
+     * @return Current engine statistics
+     */
+    EngineStats get_stats() const;
+
 private:
     /**
      * @brief Update engine subsystems
@@ -171,6 +245,22 @@ private:
     std::unique_ptr<Window> window_;
     std::unique_ptr<Input> input_;
     // std::unique_ptr<MuteEngine> scripting_;
+
+    // Engine state
+    bool paused_ = false;
+    double time_scale_ = 1.0;
+    uint64_t frame_count_ = 0;
+
+    // FPS averaging
+    double average_fps_ = 0.0;
+    double average_frame_time_ms_ = 0.0;
+    std::vector<double> fps_samples_;
+
+    // Frame callback
+    std::function<void(double)> frame_callback_;
+
+    // Memory tracking
+    size_t initial_memory_usage_ = 0;
 };
 
 } // namespace poko

@@ -11,6 +11,9 @@
 
 #include <unordered_map>
 #include <utility>
+#include <string>
+#include <vector>
+#include <array>
 
 namespace Poko {
 
@@ -51,14 +54,46 @@ enum class MouseButton {
 };
 
 /**
+ * @brief Gamepad buttons
+ */
+enum class GamepadButton {
+    A = 0,
+    B = 1,
+    X = 2,
+    Y = 3,
+    LEFT_BUMPER = 4,
+    RIGHT_BUMPER = 5,
+    BACK = 6,
+    START = 7,
+    LEFT_STICK = 8,
+    RIGHT_STICK = 9,
+    DPAD_UP = 10,
+    DPAD_DOWN = 11,
+    DPAD_LEFT = 12,
+    DPAD_RIGHT = 13
+};
+
+/**
+ * @brief Gamepad axes
+ */
+enum class GamepadAxis {
+    LEFT_X = 0,
+    LEFT_Y = 1,
+    RIGHT_X = 2,
+    RIGHT_Y = 3,
+    LEFT_TRIGGER = 4,
+    RIGHT_TRIGGER = 5
+};
+
+/**
  * @brief Input system
  * 
  * Manages keyboard, mouse, and gamepad input.
  */
 class Input {
 public:
-    Input() = default;
-    ~Input() = default;
+    Input();
+    ~Input();
 
     /**
      * @brief Check if a key is currently down
@@ -121,6 +156,101 @@ public:
     std::pair<int, int> get_mouse_scroll() const;
 
     /**
+     * @brief Check if a gamepad button is currently down
+     * @param gamepad_index Gamepad index (0-3)
+     * @param button Gamepad button to check
+     * @return true if button is down, false otherwise
+     */
+    bool is_gamepad_button_down(int gamepad_index, GamepadButton button) const;
+
+    /**
+     * @brief Check if a gamepad button was pressed this frame
+     * @param gamepad_index Gamepad index (0-3)
+     * @param button Gamepad button to check
+     * @return true if button was pressed this frame, false otherwise
+     */
+    bool is_gamepad_button_pressed(int gamepad_index, GamepadButton button) const;
+
+    /**
+     * @brief Check if a gamepad button was released this frame
+     * @param gamepad_index Gamepad index (0-3)
+     * @param button Gamepad button to check
+     * @return true if button was released this frame, false otherwise
+     */
+    bool is_gamepad_button_released(int gamepad_index, GamepadButton button) const;
+
+    /**
+     * @brief Get gamepad axis value
+     * @param gamepad_index Gamepad index (0-3)
+     * @param axis Gamepad axis to get
+     * @return Axis value (-1.0 to 1.0 for sticks, 0.0 to 1.0 for triggers)
+     */
+    float get_gamepad_axis(int gamepad_index, GamepadAxis axis) const;
+
+    /**
+     * @brief Check if a gamepad is connected
+     * @param gamepad_index Gamepad index (0-3)
+     * @return true if gamepad is connected, false otherwise
+     */
+    bool is_gamepad_connected(int gamepad_index) const;
+
+    /**
+     * @brief Get text input from keyboard (for text fields)
+     * @return Text input since last frame
+     */
+    std::string get_text_input() const;
+
+    /**
+     * @brief Check if any key is currently down
+     * @return true if any key is down, false otherwise
+     */
+    bool is_any_key_down() const;
+
+    /**
+     * @brief Check if any mouse button is currently down
+     * @return true if any mouse button is down, false otherwise
+     */
+    bool is_any_mouse_down() const;
+
+    /**
+     * @brief Set mouse position (for cursor warping)
+     * @param x X coordinate
+     * @param y Y coordinate
+     */
+    void set_mouse_position(int x, int y);
+
+    /**
+     * @brief Lock mouse cursor to window
+     * @param locked Whether to lock cursor
+     */
+    void set_mouse_locked(bool locked);
+
+    /**
+     * @brief Check if mouse cursor is locked
+     * @return true if cursor is locked, false otherwise
+     */
+    bool is_mouse_locked() const;
+
+    /**
+     * @brief Get touch points (for mobile/touch devices)
+     * @return Vector of touch point data
+     */
+    struct TouchPoint {
+        int id;
+        int x;
+        int y;
+        bool pressed;
+        bool released;
+    };
+    std::vector<TouchPoint> get_touch_points() const;
+
+    /**
+     * @brief Check if touch input is available
+     * @return true if touch input is available, false otherwise
+     */
+    bool is_touch_available() const;
+
+    /**
      * @brief Update input state (call once per frame)
      */
     void update();
@@ -148,6 +278,25 @@ private:
     int mouse_dy_ = 0;
     int mouse_scroll_x_ = 0;
     int mouse_scroll_y_ = 0;
+    bool mouse_locked_ = false;
+
+    // Gamepad states (4 gamepads max)
+    static constexpr int MAX_GAMEPADS = 4;
+    struct GamepadState {
+        bool connected = false;
+        std::unordered_map<GamepadButton, bool> buttons_down;
+        std::unordered_map<GamepadButton, bool> buttons_pressed;
+        std::unordered_map<GamepadButton, bool> buttons_released;
+        std::unordered_map<GamepadAxis, float> axes;
+    };
+    std::array<GamepadState, MAX_GAMEPADS> gamepads_;
+
+    // Text input
+    std::string text_input_;
+
+    // Touch input
+    std::vector<TouchPoint> touch_points_;
+    bool touch_available_ = false;
 };
 
 } // namespace Poko

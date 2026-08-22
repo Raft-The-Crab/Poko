@@ -115,6 +115,14 @@ bool AudioMixer::Initialize(const AudioConfig& config, const MixerConfig& mixer_
 
     LOG_INFO("AudioMixer initialized successfully with " + 
             std::to_string(std::count(m_source_available.begin(), m_source_available.end(), true)) + " sources");
+
+    // Initialize ducking state
+    m_category_ducking_state[AudioCategory::SFX] = false;
+    m_category_ducking_state[AudioCategory::Music] = false;
+    m_category_ducking_state[AudioCategory::Voice] = false;
+    m_category_ducking_state[AudioCategory::Ambient] = false;
+    m_category_ducking_state[AudioCategory::UI] = false;
+
     m_initialized = true;
     return true;
 }
@@ -376,7 +384,7 @@ uint32_t AudioMixer::PlaySample(uint32_t sample_id, float volume, float pan, flo
 
     // Apply volume
     float final_volume = GetEffectiveVolume(it->second.category);
-    final_volume = std::clamp(volume * final_volume, 0.0f, 1.0f);
+    final_volume = std::clamp(volume * final_volume * 1.0f * 1.0f, 0.0f, 1.0f); // duck_volume defaults to 1.0
     alSourcef(source, AL_GAIN, final_volume);
 
     // Apply spatial audio
@@ -418,6 +426,12 @@ uint32_t AudioMixer::PlaySample(uint32_t sample_id, float volume, float pan, flo
     sound.fade_volume = 1.0f;
     sound.fading_out = false;
     sound.fading_in = false;
+    sound.duck_volume = 1.0f;
+    sound.duck_target = 1.0f;
+    sound.duck_attack_time = m_mixer_config.ducking_attack_time;
+    sound.duck_release_time = m_mixer_config.ducking_release_time;
+    sound.duck_elapsed = 0.0f;
+    sound.is_ducking = false;
     
     m_active_sounds.push_back(sound);
 
@@ -515,7 +529,7 @@ void AudioMixer::SetSoundVolume(uint32_t sound_id, float volume, uint32_t fade_m
             } else {
                 sound.instance_volume = volume;
                 float final_volume = GetEffectiveVolume(sound.category);
-                final_volume = std::clamp(volume * final_volume * sound.fade_volume, 0.0f, 1.0f);
+                final_volume = std::clamp(volume * final_volume * sound.fade_volume * sound.duck_volume, 0.0f, 1.0f);
                 alSourcef(sound.source, AL_GAIN, final_volume);
             }
             return;
@@ -586,7 +600,7 @@ void AudioMixer::SetCategoryVolume(AudioCategory category, float volume)
     for (auto& sound : m_active_sounds) {
         if (sound.category == category && sound.playing) {
             float final_volume = GetEffectiveVolume(category);
-            final_volume = std::clamp(sound.instance_volume * final_volume * sound.fade_volume, 0.0f, 1.0f);
+            final_volume = std::clamp(sound.instance_volume * final_volume * sound.fade_volume * sound.duck_volume, 0.0f, 1.0f);
             alSourcef(sound.source, AL_GAIN, final_volume);
         }
     }
@@ -620,7 +634,7 @@ void AudioMixer::SetMasterVolume(float volume, uint32_t fade_ms)
         for (auto& sound : m_active_sounds) {
             if (sound.playing) {
                 float final_volume = GetEffectiveVolume(sound.category);
-                final_volume = std::clamp(sound.instance_volume * final_volume * sound.fade_volume, 0.0f, 1.0f);
+                final_volume = std::clamp(sound.instance_volume * final_volume * sound.fade_volume * sound.duck_volume, 0.0f, 1.0f);
                 alSourcef(sound.source, AL_GAIN, final_volume);
             }
         }
@@ -668,6 +682,57 @@ void AudioMixer::SetListenerOrientation(const glm::vec3& forward, const glm::vec
     alListenerfv(AL_ORIENTATION, orientation);
 }
 
+void AudioMixer::TriggerDucking(AudioCategory category, AudioCategory trigger_category)
+{
+    if (!m_initialized || !m_mixer_config.enable_ducking) {
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    // Mark this category as being ducked by the trigger category
+    m_ducking_triggers[category] = trigger_category;
+    m_category_ducking_state[category] = true;
+
+    // Start ducking all sounds in this category
+    for (auto& sound : m_active_sounds) {
+        if (sound.category == category && sound.playing && !sound.paused) {
+            sound.duck_target = m_mixer_config.ducking_volume;
+            sound.duck_attack_time = m_mixer_config.ducking_attack_time;
+            sound.duck_elapsed = 0.0f;
+            sound.is_ducking = true;
+        }
+    }
+
+    LOG_DEBUG("Ducking triggered for category " + std::to_string(static_cast<int>(category)) + 
+              " by " + std::to_string(static_cast<int>(trigger_category)));
+}
+
+void AudioMixer::ReleaseDucking(AudioCategory category)
+{
+    if (!m_initialized || !m_mixer_config.enable_ducking) {
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    // Release ducking for this category
+    m_ducking_triggers.erase(category);
+    m_category_ducking_state[category] = false;
+
+    // Release ducking for all sounds in this category
+    for (auto& sound : m_active_sounds) {
+        if (sound.category == category && sound.playing && !sound.paused) {
+            sound.duck_target = 1.0f;
+            sound.duck_release_time = m_mixer_config.ducking_release_time;
+            sound.duck_elapsed = 0.0f;
+            sound.is_ducking = true;
+        }
+    }
+
+    LOG_DEBUG("Ducking released for category " + std::to_string(static_cast<int>(category)));
+}
+
 void AudioMixer::Update(float delta_time)
 {
     if (!m_initialized) {
@@ -690,7 +755,7 @@ void AudioMixer::Update(float delta_time)
         for (auto& sound : m_active_sounds) {
             if (sound.playing) {
                 float final_volume = GetEffectiveVolume(sound.category);
-                final_volume = std::clamp(sound.instance_volume * final_volume * sound.fade_volume, 0.0f, 1.0f);
+                final_volume = std::clamp(sound.instance_volume * final_volume * sound.fade_volume * sound.duck_volume, 0.0f, 1.0f);
                 alSourcef(sound.source, AL_GAIN, final_volume);
             }
         }
@@ -698,6 +763,11 @@ void AudioMixer::Update(float delta_time)
 
     // Update fades
     UpdateFades(delta_time);
+
+    // Update ducking
+    if (m_mixer_config.enable_ducking) {
+        UpdateDucking(delta_time);
+    }
 
     // Update spatial audio
     if (m_mixer_config.enable_spatial_audio) {
@@ -734,7 +804,7 @@ void AudioMixer::UpdateFades(float delta_time)
                 continue;
             } else {
                 float final_volume = GetEffectiveVolume(it->category);
-                final_volume = std::clamp(it->instance_volume * final_volume * it->fade_volume, 0.0f, 1.0f);
+                final_volume = std::clamp(it->instance_volume * final_volume * it->fade_volume * it->duck_volume, 0.0f, 1.0f);
                 alSourcef(it->source, AL_GAIN, final_volume);
             }
         } else if (it->fading_in) {
@@ -747,10 +817,57 @@ void AudioMixer::UpdateFades(float delta_time)
             }
             
             float final_volume = GetEffectiveVolume(it->category);
-            final_volume = std::clamp(it->instance_volume * final_volume * it->fade_volume, 0.0f, 1.0f);
+            final_volume = std::clamp(it->instance_volume * final_volume * it->fade_volume * it->duck_volume, 0.0f, 1.0f);
             alSourcef(it->source, AL_GAIN, final_volume);
         }
         ++it;
+    }
+}
+
+void AudioMixer::UpdateDucking(float delta_time)
+{
+    for (auto& sound : m_active_sounds) {
+        if (!sound.playing || sound.paused || !sound.is_ducking) {
+            continue;
+        }
+
+        // Check if this category should be ducked
+        auto trigger_it = m_ducking_triggers.find(sound.category);
+        bool should_duck = (trigger_it != m_ducking_triggers.end());
+
+        // Determine target duck volume
+        float target_volume = should_duck ? m_mixer_config.ducking_volume : 1.0f;
+        float transition_time = should_duck ? sound.duck_attack_time : sound.duck_release_time;
+
+        // Update duck volume
+        if (transition_time > 0.0f) {
+            sound.duck_elapsed += delta_time;
+            float progress = std::min(sound.duck_elapsed / transition_time, 1.0f);
+            
+            if (should_duck) {
+                // Attack phase: volume goes from 1.0 to ducking_volume
+                sound.duck_volume = 1.0f - (1.0f - m_mixer_config.ducking_volume) * progress;
+            } else {
+                // Release phase: volume goes from ducking_volume to 1.0
+                sound.duck_volume = m_mixer_config.ducking_volume + (1.0f - m_mixer_config.ducking_volume) * progress;
+            }
+
+            // Check if transition is complete
+            if (progress >= 1.0f) {
+                sound.duck_volume = target_volume;
+                sound.is_ducking = false;
+                sound.duck_elapsed = 0.0f;
+            }
+        } else {
+            // Instant transition
+            sound.duck_volume = target_volume;
+            sound.is_ducking = false;
+        }
+
+        // Apply duck volume
+        float final_volume = GetEffectiveVolume(sound.category);
+        final_volume = std::clamp(sound.instance_volume * final_volume * sound.fade_volume * sound.duck_volume, 0.0f, 1.0f);
+        alSourcef(sound.source, AL_GAIN, final_volume);
     }
 }
 

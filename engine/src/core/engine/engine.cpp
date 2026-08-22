@@ -14,12 +14,31 @@
 // #include "scripting/engine_bindings.h"
 #include <SDL2/SDL.h>
 #include <thread>
+#include <fstream>
+#include <sstream>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <psapi.h>
+#elif __linux__
+#include <fstream>
+#elif __APPLE__
+#include <mach/mach.h>
+#include <mach/task_info.h>
+#endif
 
 namespace Poko {
 
 Engine::Engine(const EngineConfig& config)
     : config_(config)
+    , paused_(false)
+    , time_scale_(1.0)
+    , frame_count_(0)
+    , average_fps_(0.0)
+    , average_frame_time_ms_(0.0)
+    , initial_memory_usage_(0)
 {
+    fps_samples_.reserve(config.max_fps_samples);
 }
 
 Engine::~Engine() {
@@ -62,6 +81,15 @@ bool Engine::initialize() {
         return false;
     }
 
+    // Initialize FPS samples
+    fps_samples_.reserve(config_.max_fps_samples);
+    for (int i = 0; i < config_.max_fps_samples; ++i) {
+        fps_samples_.push_back(60.0); // Initialize with 60 FPS
+    }
+
+    // Track initial memory usage
+    initial_memory_usage_ = get_current_memory_usage();
+
     // Initialize scripting (commented out until Mute is properly integrated)
     // MuteEngine::Config script_config;
     // script_config.frame_budget_ms = config_.frame_budget_ms;
@@ -91,6 +119,32 @@ bool Engine::initialize() {
     return true;
 }
 
+size_t Engine::get_current_memory_usage() const {
+#ifdef _WIN32
+    PROCESS_MEMORY_COUNTERS pmc;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+        return pmc.WorkingSetSize / (1024 * 1024); // Convert to MB
+    }
+#elif __linux__
+    std::ifstream file("/proc/self/status");
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.find("VmRSS:") == 0) {
+            size_t value = 0;
+            sscanf(line.c_str(), "VmRSS: %zu kB", &value);
+            return value / 1024; // Convert to MB
+        }
+    }
+#elif __APPLE__
+    struct task_basic_info info;
+    mach_msg_type_number_t count = TASK_BASIC_INFO_COUNT;
+    if (task_info(mach_task_self(), TASK_BASIC_INFO, (task_info_t)&info, &count) == KERN_SUCCESS) {
+        return info.resident_size / (1024 * 1024); // Convert to MB
+    }
+#endif
+    return 0;
+}
+
 void Engine::run() {
     if (!initialized_) {
         LOG_ERROR("Engine not initialized!");
@@ -104,13 +158,30 @@ void Engine::run() {
     while (running_) {
         calculate_frame_timing();
         
+        // Apply time scale
+        double scaled_delta_time = delta_time_ * time_scale_;
+        
         // Cap delta time to prevent spiral of death
-        if (delta_time_ > 0.1) {
-            delta_time_ = 0.1;
+        if (scaled_delta_time > config_.max_delta_time) {
+            scaled_delta_time = config_.max_delta_time;
         }
         
-        update(delta_time_);
+        // Enforce minimum delta time
+        if (scaled_delta_time < config_.min_delta_time) {
+            scaled_delta_time = config_.min_delta_time;
+        }
+        
+        // Skip update if paused
+        if (!paused_) {
+            update(scaled_delta_time);
+        }
+        
         render();
+        
+        // Call frame callback if registered
+        if (frame_callback_) {
+            frame_callback_(scaled_delta_time);
+        }
         
         // Frame rate limiting
         if (target_frame_time > 0.0) {
@@ -122,9 +193,11 @@ void Engine::run() {
                 }
             }
         }
+        
+        frame_count_++;
     }
 
-    LOG_INFO("Game loop ended.");
+    LOG_INFO("Game loop ended. Total frames: " + std::to_string(frame_count_));
 }
 
 void Engine::shutdown() {
@@ -175,7 +248,13 @@ void Engine::update(double delta_time) {
     // - Script execution
     // - Audio mixing
     // - Network updates
-    (void)delta_time; // Suppress unused parameter warning
+    
+    // Logging frame info (every 60 frames to avoid spam)
+    if (frame_count_ % 60 == 0 && config_.enable_logging) {
+        LOG_DEBUG("Frame " + std::to_string(frame_count_) + 
+                  " | FPS: " + std::to_string(fps_) + 
+                  " | Delta: " + std::to_string(delta_time * 1000.0) + "ms");
+    }
 }
 
 void Engine::render() {
@@ -189,6 +268,14 @@ void Engine::render() {
     // Render frame (to be implemented)
     // - Clear buffers
     // - Render scene
+    
+    // Performance monitoring
+    if (config_.enable_profiling && frame_count_ % 120 == 0) {
+        // Log performance stats every 2 seconds at 60 FPS
+        LOG_INFO("Performance Stats | FPS: " + std::to_string(average_fps_) + 
+                " | Frame Time: " + std::to_string(average_frame_time_ms_) + "ms" +
+                " | Memory: " + std::to_string(get_current_memory_usage()) + "MB");
+    }
 }
 
 void Engine::calculate_frame_timing() {
@@ -205,10 +292,54 @@ void Engine::calculate_frame_timing() {
     if (delta_time_ > 0.0) {
         fps_ = 1.0 / delta_time_;
     }
+    
+    // Update FPS samples for averaging
+    fps_samples_.push_back(fps_);
+    if (fps_samples_.size() > static_cast<size_t>(config_.max_fps_samples)) {
+        fps_samples_.erase(fps_samples_.begin());
+    }
+    
+    // Calculate average FPS
+    double fps_sum = 0.0;
+    for (double sample : fps_samples_) {
+        fps_sum += sample;
+    }
+    average_fps_ = fps_sum / fps_samples_.size();
+    average_frame_time_ms_ = (1.0 / average_fps_) * 1000.0;
 }
 
 double Engine::get_total_time() const {
     return total_time_;
+}
+
+std::string Engine::get_memory_stats() const {
+    size_t current_memory = get_current_memory_usage();
+    size_t memory_delta = current_memory - initial_memory_usage_;
+    
+    std::ostringstream stats;
+    stats << "Memory Usage: " << current_memory << " MB\n";
+    stats << "Memory Delta: " << (memory_delta >= 0 ? "+" : "") << memory_delta << " MB\n";
+    stats << "Frame Count: " << frame_count_ << "\n";
+    stats << "Average FPS: " << average_fps_ << "\n";
+    stats << "Average Frame Time: " << average_frame_time_ms_ << " ms";
+    
+    return stats.str();
+}
+
+Engine::EngineStats Engine::get_stats() const {
+    EngineStats stats;
+    stats.fps = fps_;
+    stats.average_fps = average_fps_;
+    stats.delta_time = delta_time_;
+    stats.total_time = total_time_;
+    stats.frame_count = frame_count_;
+    stats.cpu_usage_percent = average_frame_time_ms_ / (1000.0 / config_.target_fps) * 100.0;
+    stats.memory_usage_mb = get_current_memory_usage();
+    return stats;
+}
+
+void Engine::set_frame_callback(std::function<void(double)> callback) {
+    frame_callback_ = std::move(callback);
 }
 
 } // namespace Poko

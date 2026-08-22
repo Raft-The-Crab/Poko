@@ -59,10 +59,18 @@ int websocket_callback(struct lws* wsi, enum lws_callback_reasons reason,
 
         case LWS_CALLBACK_CLIENT_RECEIVE:
             if (client && in && len > 0) {
-                // Process received data
-                char* data = static_cast<char*>(in);
-                std::string message(data, len);
-                client->OnMessageReceived(message);
+                // Check if binary or text
+                if (lws_frame_is_binary(wsi)) {
+                    // Process binary data
+                    uint8_t* data = static_cast<uint8_t*>(in);
+                    std::vector<uint8_t> binary_data(data, data + len);
+                    client->OnBinaryMessageReceived(binary_data);
+                } else {
+                    // Process text message
+                    char* data = static_cast<char*>(in);
+                    std::string message(data, len);
+                    client->OnMessageReceived(message);
+                }
             }
             break;
 
@@ -121,6 +129,12 @@ WebSocketClient::WebSocketClient()
     , m_current_port(80)
     , m_current_path("/")
     , m_use_ssl(false)
+    , m_last_heartbeat(std::chrono::steady_clock::now())
+    , m_last_pong(std::chrono::steady_clock::now())
+    , m_messages_sent(0)
+    , m_messages_received(0)
+    , m_bytes_sent(0)
+    , m_bytes_received(0)
 {
 }
 
@@ -201,6 +215,13 @@ void WebSocketClient::Shutdown()
 
     m_connection_state = ConnectionState::Disconnected;
     m_initialized = false;
+    
+    // Reset statistics
+    m_messages_sent = 0;
+    m_messages_received = 0;
+    m_bytes_sent = 0;
+    m_bytes_received = 0;
+    
     LOG_INFO("WebSocketClient shutdown complete");
 }
 
@@ -281,6 +302,7 @@ bool WebSocketClient::SendMessage(const std::string& message, int priority)
 
     QueuedMessage queued_msg;
     queued_msg.data = message;
+    queued_msg.is_binary = false;
     queued_msg.priority = priority;
     m_outgoing_queue.push(queued_msg);
 
@@ -293,10 +315,57 @@ bool WebSocketClient::SendMessage(const std::string& message, int priority)
     return true;
 }
 
+bool WebSocketClient::SendBinary(const std::vector<uint8_t>& data)
+{
+    return SendBinary(data, 0);
+}
+
+bool WebSocketClient::SendBinary(const std::vector<uint8_t>& data, int priority)
+{
+    if (!m_initialized) {
+        LOG_ERROR("WebSocketClient: Cannot send binary data - not initialized");
+        return false;
+    }
+
+    if (m_connection_state != ConnectionState::Connected) {
+        LOG_WARNING("WebSocketClient: Cannot send binary data - not connected");
+        return false;
+    }
+
+    std::lock_guard<std::mutex> lock(m_queue_mutex);
+
+    // Check queue size limit
+    if (m_outgoing_queue.size() >= m_config.max_queue_size) {
+        LOG_WARNING("WebSocketClient: Message queue full, dropping binary data");
+        return false;
+    }
+
+    QueuedMessage queued_msg;
+    queued_msg.binary_data = data;
+    queued_msg.is_binary = true;
+    queued_msg.priority = priority;
+    m_outgoing_queue.push(queued_msg);
+
+    // Request callback for writable event
+    if (m_wsi) {
+        lws_callback_on_writable(m_wsi);
+    }
+
+    LOG_DEBUG("WebSocket binary data queued (size: " + std::to_string(data.size()) + 
+              ", priority: " + std::to_string(priority) + ")");
+    return true;
+}
+
 void WebSocketClient::SetMessageCallback(MessageCallback callback)
 {
     std::lock_guard<std::mutex> lock(m_callback_mutex);
     m_message_callback = std::move(callback);
+}
+
+void WebSocketClient::SetBinaryMessageCallback(BinaryMessageCallback callback)
+{
+    std::lock_guard<std::mutex> lock(m_callback_mutex);
+    m_binary_message_callback = std::move(callback);
 }
 
 void WebSocketClient::SetConnectionCallback(ConnectionCallback callback)
@@ -321,6 +390,17 @@ void WebSocketClient::Update(float delta_time)
     if (m_context) {
         int timeout_ms = static_cast<int>(delta_time * 1000);
         lws_service(m_context, timeout_ms);
+    }
+
+    // Heartbeat check
+    if (m_connection_state == ConnectionState::Connected && m_config.heartbeat_interval_ms > 0) {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_heartbeat).count();
+        
+        if (elapsed >= m_config.heartbeat_interval_ms) {
+            SendHeartbeat();
+            m_last_heartbeat = now;
+        }
     }
 
     (void)delta_time;
@@ -419,20 +499,44 @@ void WebSocketClient::ProcessOutgoingMessages()
         QueuedMessage msg = m_outgoing_queue.top();
         m_outgoing_queue.pop();
 
-        // Send message using libwebsockets
-        unsigned char* buf = new unsigned char[LWS_PRE + msg.data.length()];
-        memcpy(buf + LWS_PRE, msg.data.c_str(), msg.data.length());
+        int result;
+        if (msg.is_binary) {
+            // Send binary data
+            unsigned char* buf = new unsigned char[LWS_PRE + msg.binary_data.size()];
+            memcpy(buf + LWS_PRE, msg.binary_data.data(), msg.binary_data.size());
 
-        int result = lws_write(m_wsi, buf + LWS_PRE, msg.data.length(), LWS_WRITE_TEXT);
-        delete[] buf;
+            result = lws_write(m_wsi, buf + LWS_PRE, msg.binary_data.size(), LWS_WRITE_BINARY);
+            delete[] buf;
 
-        if (result < 0) {
-            LOG_ERROR("WebSocket: Failed to send message");
-            HandleError("Failed to send message");
-            break;
+            if (result < 0) {
+                LOG_ERROR("WebSocket: Failed to send binary data");
+                HandleError("Failed to send binary data");
+                break;
+            }
+
+            m_messages_sent++;
+            m_bytes_sent += msg.binary_data.size();
+
+            LOG_DEBUG("WebSocket binary data sent successfully (size: " + std::to_string(msg.binary_data.size()) + ")");
+        } else {
+            // Send text message
+            unsigned char* buf = new unsigned char[LWS_PRE + msg.data.length()];
+            memcpy(buf + LWS_PRE, msg.data.c_str(), msg.data.length());
+
+            result = lws_write(m_wsi, buf + LWS_PRE, msg.data.length(), LWS_WRITE_TEXT);
+            delete[] buf;
+
+            if (result < 0) {
+                LOG_ERROR("WebSocket: Failed to send message");
+                HandleError("Failed to send message");
+                break;
+            }
+
+            m_messages_sent++;
+            m_bytes_sent += msg.data.length();
+
+            LOG_DEBUG("WebSocket message sent successfully");
         }
-
-        LOG_DEBUG("WebSocket message sent successfully");
     }
 }
 
@@ -518,15 +622,47 @@ void WebSocketClient::OnConnectionEstablished()
     LOG_INFO("WebSocket connection established");
     SetConnectionState(ConnectionState::Connected);
     m_reconnect_attempts = 0;
+    
+    // Reset heartbeat timers
+    m_last_heartbeat = std::chrono::steady_clock::now();
+    m_last_pong = std::chrono::steady_clock::now();
+    
+    // Reset statistics for new connection
+    m_messages_sent = 0;
+    m_messages_received = 0;
+    m_bytes_sent = 0;
+    m_bytes_received = 0;
 }
 
 void WebSocketClient::OnMessageReceived(const std::string& message)
 {
     LOG_DEBUG("WebSocket message received: " + message);
 
+    m_messages_received++;
+    m_bytes_received += message.length();
+
+    // Check for pong response
+    if (message.find("\"type\":\"pong\"") != std::string::npos) {
+        m_last_pong = std::chrono::steady_clock::now();
+        LOG_DEBUG("WebSocket pong received");
+    }
+
     std::lock_guard<std::mutex> lock(m_callback_mutex);
     if (m_message_callback) {
         m_message_callback(message);
+    }
+}
+
+void WebSocketClient::OnBinaryMessageReceived(const std::vector<uint8_t>& data)
+{
+    LOG_DEBUG("WebSocket binary data received (size: " + std::to_string(data.size()) + ")");
+
+    m_messages_received++;
+    m_bytes_received += data.size();
+
+    std::lock_guard<std::mutex> lock(m_callback_mutex);
+    if (m_binary_message_callback) {
+        m_binary_message_callback(data);
     }
 }
 
@@ -559,6 +695,34 @@ void WebSocketClient::OnConnectionError(const std::string& error)
 void WebSocketClient::OnWritable()
 {
     ProcessOutgoingMessages();
+}
+
+bool WebSocketClient::SendHeartbeat()
+{
+    if (!m_initialized || m_connection_state != ConnectionState::Connected) {
+        return false;
+    }
+
+    // Send a simple ping message
+    std::string ping_msg = "{\"type\":\"ping\",\"timestamp\":" + 
+                          std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(
+                              std::chrono::steady_clock::now().time_since_epoch()).count()) + "}";
+    
+    return SendMessage(ping_msg, 100); // High priority for heartbeat
+}
+
+std::string WebSocketClient::GetConnectionStats() const
+{
+    std::string stats = "WebSocket Connection Statistics:\n";
+    stats += "  State: " + std::to_string(static_cast<int>(m_connection_state.load())) + "\n";
+    stats += "  Messages Sent: " + std::to_string(m_messages_sent.load()) + "\n";
+    stats += "  Messages Received: " + std::to_string(m_messages_received.load()) + "\n";
+    stats += "  Bytes Sent: " + std::to_string(m_bytes_sent.load()) + "\n";
+    stats += "  Bytes Received: " + std::to_string(m_bytes_received.load()) + "\n";
+    stats += "  Queued Messages: " + std::to_string(GetQueuedMessageCount()) + "\n";
+    stats += "  Reconnect Attempts: " + std::to_string(m_reconnect_attempts.load()) + "\n";
+    
+    return stats;
 }
 
 } // namespace Networking
