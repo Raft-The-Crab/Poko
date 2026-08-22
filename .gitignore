@@ -74,6 +74,3 @@ node_modules/
 # Testing
 coverage/
 *.test
-
-# Separate repositories
-mute/
