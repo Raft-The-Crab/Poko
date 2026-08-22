@@ -1,0 +1,33 @@
+{
+  "name": "poko-engine",
+  "version": "1.0.0",
+  "description": "PokoX Game Engine - C++ game engine with Mute scripting",
+  "dependencies": [
+    {
+      "name": "sdl2",
+      "features": ["vulkan"]
+    },
+    {
+      "name": "glm"
+    },
+    {
+      "name": "openal-soft"
+    },
+    {
+      "name": "joltphysics"
+    },
+    {
+      "name": "websocketpp"
+    },
+    {
+      "name": "openssl"
+    },
+    {
+      "name": "zlib"
+    },
+    {
+      "name": "stb"
+    }
+  ],
+  "builtin-baseline": "2024-08-21"
+}
