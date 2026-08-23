@@ -81,6 +81,36 @@ bool Engine::initialize() {
         return false;
     }
 
+    // Initialize renderer
+    renderer_ = std::make_unique<Rendering::BgfxRenderer>();
+    Rendering::BgfxRenderer::RendererConfig renderer_config;
+    renderer_config.width = config_.window_width;
+    renderer_config.height = config_.window_height;
+    renderer_config.vsync = config_.vsync;
+    renderer_config.max_fps = static_cast<uint32_t>(config_.target_fps);
+    
+    if (!renderer_->Initialize(window_->get_native_handle(), renderer_config)) {
+        last_error_ = "Renderer initialization failed";
+        LOG_ERROR(last_error_);
+        input_->reset();
+        window_->shutdown();
+        window_.reset();
+        return false;
+    }
+
+    // Initialize render pipeline
+    render_pipeline_ = std::make_unique<Rendering::RenderPipeline>();
+    if (!render_pipeline_->Initialize(renderer_.get())) {
+        last_error_ = "Render pipeline initialization failed";
+        LOG_ERROR(last_error_);
+        renderer_->Shutdown();
+        renderer_.reset();
+        input_->reset();
+        window_->shutdown();
+        window_.reset();
+        return false;
+    }
+
     // Initialize FPS samples
     fps_samples_.reserve(config_.max_fps_samples);
     for (int i = 0; i < config_.max_fps_samples; ++i) {
@@ -206,14 +236,18 @@ void Engine::shutdown() {
     LOG_INFO("Shutting down engine...");
 
     // Shutdown subsystems in reverse order
-    // if (scripting_) {
-    //     scripting_->shutdown();
-    //     scripting_.reset();
-    // }
+    if (render_pipeline_) {
+        render_pipeline_->Shutdown();
+        render_pipeline_.reset();
+    }
+
+    if (renderer_) {
+        renderer_->Shutdown();
+        renderer_.reset();
+    }
 
     if (input_) {
         input_->reset();
-        input_.reset();
     }
 
     if (window_) {
@@ -241,6 +275,21 @@ void Engine::update(double delta_time) {
         if (window_->should_close()) {
             running_ = false;
         }
+        
+        // Handle window resize
+        int new_width = window_->get_width();
+        int new_height = window_->get_height();
+        if (new_width != static_cast<int>(config_.window_width) || 
+            new_height != static_cast<int>(config_.window_height)) {
+            config_.window_width = new_width;
+            config_.window_height = new_height;
+            
+            LOG_INFO("Window resized to: " + std::to_string(new_width) + "x" + std::to_string(new_height));
+            
+            if (renderer_) {
+                renderer_->Resize(new_width, new_height);
+            }
+        }
     }
 
     // Update subsystems (to be implemented)
@@ -260,15 +309,29 @@ void Engine::update(double delta_time) {
 void Engine::render() {
     PROFILE_SCOPE("Engine::render");
 
+    // Begin frame
+    if (renderer_) {
+        renderer_->BeginFrame();
+    }
+
+    // Execute render pipeline
+    if (render_pipeline_) {
+        render_pipeline_->Execute();
+    }
+
+    // End frame and present
+    if (renderer_) {
+        renderer_->EndFrame();
+        
+        // Update FPS for debug display
+        renderer_->UpdateFPS(fps_);
+    }
+
     // Present window (swap buffers)
     if (window_) {
         window_->present();
     }
 
-    // Render frame (to be implemented)
-    // - Clear buffers
-    // - Render scene
-    
     // Performance monitoring
     if (config_.enable_profiling && frame_count_ % 120 == 0) {
         // Log performance stats every 2 seconds at 60 FPS
@@ -314,7 +377,7 @@ double Engine::get_total_time() const {
 
 std::string Engine::get_memory_stats() const {
     size_t current_memory = get_current_memory_usage();
-    size_t memory_delta = current_memory - initial_memory_usage_;
+    int64_t memory_delta = static_cast<int64_t>(current_memory) - static_cast<int64_t>(initial_memory_usage_);
     
     std::ostringstream stats;
     stats << "Memory Usage: " << current_memory << " MB\n";
@@ -336,10 +399,6 @@ Engine::EngineStats Engine::get_stats() const {
     stats.cpu_usage_percent = average_frame_time_ms_ / (1000.0 / config_.target_fps) * 100.0;
     stats.memory_usage_mb = get_current_memory_usage();
     return stats;
-}
-
-void Engine::set_frame_callback(std::function<void(double)> callback) {
-    frame_callback_ = std::move(callback);
 }
 
 } // namespace Poko

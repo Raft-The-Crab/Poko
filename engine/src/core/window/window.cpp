@@ -31,13 +31,8 @@ bool Window::initialize() {
         return false;
     }
 
-    // Set OpenGL attributes
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-
-    // Create window flags
-    Uint32 window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN;
+    // Create window flags (bgfx doesn't need OpenGL context)
+    Uint32 window_flags = SDL_WINDOW_SHOWN;
     if (config_.fullscreen) {
         window_flags |= SDL_WINDOW_FULLSCREEN;
     }
@@ -61,21 +56,8 @@ bool Window::initialize() {
         return false;
     }
 
-    // Create OpenGL context
-    sdl_context_ = SDL_GL_CreateContext(static_cast<SDL_Window*>(sdl_window_));
-    if (!sdl_context_) {
-        LOG_ERROR("OpenGL context creation failed: " + std::string(SDL_GetError()));
-        SDL_DestroyWindow(static_cast<SDL_Window*>(sdl_window_));
-        SDL_Quit();
-        return false;
-    }
-
-    // Set VSync
-    if (config_.vsync) {
-        if (SDL_GL_SetSwapInterval(1) < 0) {
-            LOG_WARNING("VSync not supported");
-        }
-    }
+    // Don't create OpenGL context - bgfx will handle rendering
+    sdl_context_ = nullptr;
 
     initialized_ = true;
     should_close_ = false;
@@ -109,6 +91,7 @@ void Window::process_events()
                     case SDL_WINDOWEVENT_RESIZED:
                         config_.width = event.window.data1;
                         config_.height = event.window.data2;
+                        LOG_DEBUG("Window resize event: " + std::to_string(config_.width) + "x" + std::to_string(config_.height));
                         if (event_callback_) {
                             WindowEvent window_event;
                             window_event.type = WindowEventType::Resize;
@@ -176,16 +159,13 @@ void Window::set_event_callback(WindowEventCallback callback)
 void Window::present() {
     if (!initialized_) return;
 
-    SDL_GL_SwapWindow(static_cast<SDL_Window*>(sdl_window_));
+    // bgfx handles presentation, so this is just a placeholder
+    // The actual buffer swap happens in bgfx_renderer::EndFrame()
 }
 
 void Window::shutdown() {
     if (!initialized_) return;
 
-    if (sdl_context_) {
-        SDL_GL_DeleteContext(static_cast<SDL_GLContext>(sdl_context_));
-        sdl_context_ = nullptr;
-    }
     if (sdl_window_) {
         SDL_DestroyWindow(static_cast<SDL_Window*>(sdl_window_));
         sdl_window_ = nullptr;

@@ -135,6 +135,12 @@ public:
     void* get_native_handle() const { return sdl_window_; }
 
     /**
+     * @brief Get window configuration
+     * @return Current window configuration
+     */
+    const Config& get_config() const { return config_; }
+
+    /**
      * @brief Set window event callback
      * @param callback Function to call when window events occur
      */

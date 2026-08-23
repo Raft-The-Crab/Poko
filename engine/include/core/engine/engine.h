@@ -16,6 +16,8 @@
 #include <functional>
 #include "core/window/window.h"
 #include "input/input.h"
+#include "rendering/bgfx/bgfx_renderer.h"
+#include "rendering/pipelines/render_pipeline.h"
 
 namespace Poko {
 
@@ -138,6 +140,18 @@ public:
     Window* get_window() const { return window_.get(); }
 
     /**
+     * @brief Get renderer
+     * @return Pointer to bgfx renderer
+     */
+    Rendering::BgfxRenderer* get_renderer() const { return renderer_.get(); }
+
+    /**
+     * @brief Get render pipeline
+     * @return Pointer to render pipeline
+     */
+    Rendering::RenderPipeline* get_render_pipeline() const { return render_pipeline_.get(); }
+
+    /**
      * @brief Get scripting engine
      * @return Pointer to scripting engine
      */
@@ -160,6 +174,12 @@ public:
      * @return Memory usage string
      */
     std::string get_memory_stats() const;
+
+    /**
+     * @brief Get current memory usage in MB
+     * @return Memory usage in MB
+     */
+    size_t get_current_memory_usage() const;
 
     /**
      * @brief Pause/unpause engine
@@ -244,6 +264,8 @@ private:
     // Subsystems
     std::unique_ptr<Window> window_;
     std::unique_ptr<Input> input_;
+    std::unique_ptr<Rendering::BgfxRenderer> renderer_;
+    std::unique_ptr<Rendering::RenderPipeline> render_pipeline_;
     // std::unique_ptr<MuteEngine> scripting_;
 
     // Engine state

@@ -75,6 +75,10 @@ else()
     include_directories(/ucrt64/include/AL)
     include_directories(/ucrt64/include/libwebsockets)
     include_directories(/ucrt64/include/Jolt/Jolt)
+    # Comment out bgfx includes until it's properly installed
+    # include_directories(/ucrt64/include/bgfx)
+    # include_directories(/ucrt64/include/bx)
+    # include_directories(/ucrt64/include/bimg)
 
     # Link directories
     link_directories(/ucrt64/lib)
@@ -95,7 +99,7 @@ add_library(poko_core STATIC
     src/input/input.cpp
     src/rendering/bgfx/bgfx_renderer.cpp
     src/rendering/pipelines/render_pipeline.cpp
-    src/physics/jolt/physics_world.cpp
+    # src/physics/jolt/physics_world.cpp  # Only include if Jolt is available
     src/audio/mixer/audio_mixer.cpp
     src/networking/websocket/websocket_client.cpp
     # src/scripting/mute_engine.cpp
@@ -103,6 +107,21 @@ add_library(poko_core STATIC
 )
 
 target_link_libraries(poko_core PRIVATE Threads::Threads)
+
+# Only include physics if Jolt is available
+if(PKG_CONFIG_FOUND AND JOLT_FOUND)
+    target_sources(poko_core PRIVATE src/physics/jolt/physics_world.cpp)
+    target_link_libraries(poko_core PRIVATE ${JOLT_LIBRARIES})
+elseif(EXISTS "${CMAKE_SOURCE_DIR}/src/physics/jolt/physics_world.cpp")
+    # Try to check if Jolt library exists
+    find_library(JOLT_LIB NAMES Jolt Jolt.lib PATHS /ucrt64/lib)
+    if(JOLT_LIB)
+        target_sources(poko_core PRIVATE src/physics/jolt/physics_world.cpp)
+        target_link_libraries(poko_core PRIVATE Jolt Jolt.lib -lJolt Jolt.dll.a)
+    else()
+        message(WARNING "Jolt library not found, excluding physics from core library")
+    endif()
+endif()
 
 # Add SDL2 linking if available
 if(PKG_CONFIG_FOUND)
@@ -123,8 +142,16 @@ else()
     target_link_libraries(poko_core PRIVATE SDL2main SDL2)
     target_link_libraries(poko_core PRIVATE OpenAL32)
     target_link_libraries(poko_core PRIVATE websockets)
-    target_link_libraries(poko_core PRIVATE -lJolt)
+    # Only link Jolt if physics was included
+    if(EXISTS "${CMAKE_SOURCE_DIR}/src/physics/jolt/physics_world.cpp")
+        find_library(JOLT_LIB NAMES Jolt Jolt.lib PATHS /ucrt64/lib)
+        if(JOLT_LIB)
+            target_link_libraries(poko_core PRIVATE Jolt Jolt.lib -lJolt Jolt.dll.a)
+        endif()
+    endif()
     target_link_libraries(poko_core PRIVATE glm)
+    # Comment out bgfx until it's properly installed
+    # target_link_libraries(poko_core PRIVATE bgfx bx bimg)
 endif()
 
 # Main engine library (links all subsystems)
@@ -151,15 +178,6 @@ target_link_libraries(test_engine
     Threads::Threads
 )
 
-# Add Jolt linking for test_engine as well
-if(PKG_CONFIG_FOUND)
-    if(JOLT_FOUND)
-        target_link_libraries(test_engine PRIVATE ${JOLT_LIBRARIES})
-    endif()
-else()
-    target_link_libraries(test_engine PRIVATE -lJolt)
-endif()
-
 add_executable(test_config
     tests/core/test_config.cpp
 )
@@ -168,15 +186,6 @@ target_link_libraries(test_config
     PRIVATE
     poko_core
 )
-
-# Add Jolt linking for test_config as well
-if(PKG_CONFIG_FOUND)
-    if(JOLT_FOUND)
-        target_link_libraries(test_config PRIVATE ${JOLT_LIBRARIES})
-    endif()
-else()
-    target_link_libraries(test_config PRIVATE -lJolt)
-endif()
 
 add_executable(test_ecs
     tests/core/test_ecs.cpp
@@ -187,15 +196,6 @@ target_link_libraries(test_ecs
     poko_core
 )
 
-# Add Jolt linking for test_ecs as well
-if(PKG_CONFIG_FOUND)
-    if(JOLT_FOUND)
-        target_link_libraries(test_ecs PRIVATE ${JOLT_LIBRARIES})
-    endif()
-else()
-    target_link_libraries(test_ecs PRIVATE -lJolt)
-endif()
-
 add_executable(test_ecs_queries
     tests/core/test_ecs_queries.cpp
 )
@@ -204,15 +204,6 @@ target_link_libraries(test_ecs_queries
     PRIVATE
     poko_core
 )
-
-# Add Jolt linking for test_ecs_queries as well
-if(PKG_CONFIG_FOUND)
-    if(JOLT_FOUND)
-        target_link_libraries(test_ecs_queries PRIVATE ${JOLT_LIBRARIES})
-    endif()
-else()
-    target_link_libraries(test_ecs_queries PRIVATE -lJolt)
-endif()
 
 add_executable(test_jobs
     tests/core/test_jobs.cpp
@@ -224,15 +215,6 @@ target_link_libraries(test_jobs
     Threads::Threads
 )
 
-# Add Jolt linking for test_jobs as well
-if(PKG_CONFIG_FOUND)
-    if(JOLT_FOUND)
-        target_link_libraries(test_jobs PRIVATE ${JOLT_LIBRARIES})
-    endif()
-else()
-    target_link_libraries(test_jobs PRIVATE -lJolt)
-endif()
-
 add_executable(test_window
     tests/core/test_window.cpp
 )
@@ -241,15 +223,6 @@ target_link_libraries(test_window
     PRIVATE
     poko_core
 )
-
-# Add Jolt linking for test_window as well
-if(PKG_CONFIG_FOUND)
-    if(JOLT_FOUND)
-        target_link_libraries(test_window PRIVATE ${JOLT_LIBRARIES})
-    endif()
-else()
-    target_link_libraries(test_window PRIVATE -lJolt)
-endif()
 
 add_executable(test_window_events
     tests/core/test_window_events.cpp
@@ -260,31 +233,46 @@ target_link_libraries(test_window_events
     poko_core
 )
 
-# Add Jolt linking for test_window_events as well
-if(PKG_CONFIG_FOUND)
-    if(JOLT_FOUND)
-        target_link_libraries(test_window_events PRIVATE ${JOLT_LIBRARIES})
+# Physics tests (may fail if Jolt library isn't properly installed)
+# Only build these if Jolt linking succeeds
+if(DEFINED JOLT_FOUND AND JOLT_FOUND)
+    add_executable(test_physics
+        tests/core/test_physics.cpp
+    )
+
+    target_link_libraries(test_physics
+        PRIVATE
+        poko_core
+    )
+
+    # Add Jolt linking for test_physics as well
+    if(PKG_CONFIG_FOUND)
+        if(JOLT_FOUND)
+            target_link_libraries(test_physics PRIVATE ${JOLT_LIBRARIES})
+        endif()
+    else()
+        target_link_libraries(test_physics PRIVATE Jolt Jolt.lib -lJolt Jolt.dll.a)
+    endif()
+
+    add_executable(test_physics_advanced
+        tests/core/test_physics_advanced.cpp
+    )
+
+    target_link_libraries(test_physics_advanced
+        PRIVATE
+        poko_core
+    )
+
+    # Add Jolt linking for test_physics_advanced as well
+    if(PKG_CONFIG_FOUND)
+        if(JOLT_FOUND)
+            target_link_libraries(test_physics_advanced PRIVATE ${JOLT_LIBRARIES})
+        endif()
+    else()
+        target_link_libraries(test_physics_advanced PRIVATE Jolt Jolt.lib -lJolt Jolt.dll.a)
     endif()
 else()
-    target_link_libraries(test_window_events PRIVATE -lJolt)
-endif()
-
-add_executable(test_physics
-    tests/core/test_physics.cpp
-)
-
-target_link_libraries(test_physics
-    PRIVATE
-    poko_core
-)
-
-# Add Jolt linking for test_physics as well
-if(PKG_CONFIG_FOUND)
-    if(JOLT_FOUND)
-        target_link_libraries(test_physics PRIVATE ${JOLT_LIBRARIES})
-    endif()
-else()
-    target_link_libraries(test_physics PRIVATE -lJolt)
+    message(WARNING "Jolt physics library not found, skipping physics tests")
 endif()
 
 add_executable(test_audio
@@ -296,33 +284,6 @@ target_link_libraries(test_audio
     poko_core
 )
 
-# Add Jolt linking for test_audio as well
-if(PKG_CONFIG_FOUND)
-    if(JOLT_FOUND)
-        target_link_libraries(test_audio PRIVATE ${JOLT_LIBRARIES})
-    endif()
-else()
-    target_link_libraries(test_audio PRIVATE -lJolt)
-endif()
-
-add_executable(test_physics_advanced
-    tests/core/test_physics_advanced.cpp
-)
-
-target_link_libraries(test_physics_advanced
-    PRIVATE
-    poko_core
-)
-
-# Add Jolt linking for test_physics_advanced as well
-if(PKG_CONFIG_FOUND)
-    if(JOLT_FOUND)
-        target_link_libraries(test_physics_advanced PRIVATE ${JOLT_LIBRARIES})
-    endif()
-else()
-    target_link_libraries(test_physics_advanced PRIVATE Jolt.dll.a)
-endif()
-
 add_executable(test_websocket_advanced
     tests/core/test_websocket_advanced.cpp
 )
@@ -332,14 +293,14 @@ target_link_libraries(test_websocket_advanced
     poko_core
 )
 
-# Add Jolt linking for test_websocket_advanced as well
-if(PKG_CONFIG_FOUND)
-    if(JOLT_FOUND)
-        target_link_libraries(test_websocket_advanced PRIVATE ${JOLT_LIBRARIES})
-    endif()
-else()
-    target_link_libraries(test_websocket_advanced PRIVATE Jolt.dll.a)
-endif()
+add_executable(test_renderer
+    tests/core/test_renderer.cpp
+)
+
+target_link_libraries(test_renderer
+    PRIVATE
+    poko_core
+)
 
 # Installation
 install(TARGETS poko_core
