@@ -72,6 +72,17 @@ file(GLOB ENGINE_MEMORY_HEADERS
     "${ENGINE_INCLUDE_DIR}/core/memory/*.hpp"
 )
 
+# Source files - Runtime
+file(GLOB ENGINE_RUNTIME_SOURCES
+    "${ENGINE_SOURCE_DIR}/runtime/*.cpp"
+    "${ENGINE_SOURCE_DIR}/runtime/*.cc"
+)
+
+file(GLOB ENGINE_RUNTIME_HEADERS
+    "${ENGINE_INCLUDE_DIR}/runtime/*.h"
+    "${ENGINE_INCLUDE_DIR}/runtime/*.hpp"
+)
+
 # Source files - Core (other modules - placeholders for now)
 file(GLOB ENGINE_CORE_PLACEHOLDERS
     "${ENGINE_SOURCE_DIR}/core/*/placeholder.cpp"
@@ -100,6 +111,8 @@ add_library(poko_core STATIC
     ${ENGINE_HANDLES_HEADERS}
     ${ENGINE_MEMORY_SOURCES}
     ${ENGINE_MEMORY_HEADERS}
+    ${ENGINE_RUNTIME_SOURCES}
+    ${ENGINE_RUNTIME_HEADERS}
     ${ENGINE_CORE_PLACEHOLDERS}
 )
 
