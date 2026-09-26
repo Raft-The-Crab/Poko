@@ -110,6 +110,17 @@ file(GLOB ENGINE_PLATFORM_HEADERS
     "${ENGINE_INCLUDE_DIR}/platform/*.hpp"
 )
 
+# Source files - Renderer
+file(GLOB_RECURSE ENGINE_RENDERER_SOURCES
+    "${ENGINE_SOURCE_DIR}/renderer/*.cpp"
+    "${ENGINE_SOURCE_DIR}/renderer/*.cc"
+)
+
+file(GLOB_RECURSE ENGINE_RENDERER_HEADERS
+    "${ENGINE_INCLUDE_DIR}/renderer/*.h"
+    "${ENGINE_INCLUDE_DIR}/renderer/*.hpp"
+)
+
 # Core engine library
 add_library(poko_core STATIC
     ${ENGINE_LOGGING_SOURCES}
@@ -126,6 +137,8 @@ add_library(poko_core STATIC
     ${ENGINE_RUNTIME_HEADERS}
     ${ENGINE_BINDING_SOURCES}
     ${ENGINE_BINDING_HEADERS}
+    ${ENGINE_RENDERER_SOURCES}
+    ${ENGINE_RENDERER_HEADERS}
     ${ENGINE_CORE_PLACEHOLDERS}
 )
 
