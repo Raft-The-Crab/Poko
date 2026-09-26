@@ -1,0 +1,253 @@
+name: Linux build
+
+on: [push, pull_request]
+
+jobs:
+  precheks:
+    runs-on: ubuntu-24.04
+    name: Linux -> Pre-checks
+
+    steps:
+    - name: Clone repository
+      uses: actions/checkout@v6
+      with:
+        submodules: true # only need direct submodules
+
+    - name: DiligentCore format validation
+      working-directory: ${{github.workspace}}/DiligentCore/BuildTools/FormatValidation
+      shell: bash
+      run: ./validate_format_linux.sh
+
+    - name: DiligentTools format validation
+      working-directory: ${{github.workspace}}/DiligentTools/BuildTools/FormatValidation
+      shell: bash
+      run: ./validate_format_linux.sh
+
+    - name: DiligentFX format validation
+      working-directory: ${{github.workspace}}/DiligentFX/BuildTools/FormatValidation
+      shell: bash
+      run: ./validate_format_linux.sh
+
+    - name: DiligentSamples format validation
+      working-directory: ${{github.workspace}}/DiligentSamples/BuildTools/FormatValidation
+      shell: bash
+      run: ./validate_format_linux.sh
+
+    - name: Codespell
+      uses: codespell-project/actions-codespell@master
+      with:
+        check_filenames: true
+        ignore_words_list: lod,thirdparty
+        skip: ./.git,./DiligentCore,./DiligentTools,./DiligentFX,./DiligentSamples
+        path: .
+
+
+  build:
+    needs:   precheks
+    runs-on: ubuntu-24.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        name:       ["GCC", "Clang"]
+        build_type: ["Debug", "Release"]
+        cmake_args: ["-DDILIGENT_BUILD_TESTS=ON"]
+        include:
+          - name:            "GCC"
+            cmake_generator: "Unix Makefiles"
+            cc:              "gcc-14"
+            cxx:             "g++-14"
+
+          - name:            "Clang"
+            cmake_generator: "Ninja"
+            cc:              "clang-18"
+            cxx:             "clang++-18"
+
+          - name:            "Clang-ASAN"
+            build_type:      "RelWithDebInfo"
+            cmake_generator: "Ninja"
+            cmake_args:      "-DDILIGENT_BUILD_CORE_TESTS=ON -DDILIGENT_BUILD_TOOLS_TESTS=ON -DDILIGENT_BUILD_FX_TESTS=ON -DDILIGENT_BUILD_SAMPLES_TESTS=ON"
+            sanitizer:       "address"
+            cc:              "clang-18"
+            cxx:             "clang++-18"
+
+          - name:            "Clang-TSAN"
+            build_type:      "RelWithDebInfo"
+            cmake_generator: "Ninja"
+            cmake_args:      "-DDILIGENT_BUILD_CORE_TESTS=ON -DDILIGENT_BUILD_TOOLS_TESTS=ON -DDILIGENT_BUILD_FX_TESTS=ON -DDILIGENT_BUILD_SAMPLES_TESTS=ON"
+            sanitizer:       "thread"
+            cc:              "clang-18"
+            cxx:             "clang++-18"
+
+    name: Linux -> ${{ matrix.name }}-x64, ${{ matrix.build_type }}
+
+    steps:
+    - name: Clone repository
+      uses: actions/checkout@v6
+      with:
+        submodules: recursive
+
+    - name: Clone Test Data
+      if:   success()
+      uses: actions/checkout@v6
+      with:
+        repository: DiligentGraphics/DiligentTestData
+        path:       DiligentTestData
+
+    - name: Set up build environment
+      if:   success()
+      uses: DiligentGraphics/github-action/setup-build-env@v26
+      with:
+        platform:        Linux
+        cmake-generator: ${{ matrix.cmake_generator }}
+
+    - name: Configure CMake
+      if:   success()
+      uses: DiligentGraphics/github-action/configure-cmake@v26
+      with:
+        cc:         ${{ matrix.cc }}
+        cxx:        ${{ matrix.cxx }}
+        generator:  ${{ matrix.cmake_generator }}
+        build-type: ${{ matrix.build_type }}
+        cmake-args: ${{ matrix.cmake_args }}
+        sanitizer:  ${{ matrix.sanitizer }}
+
+    - name: Build
+      id:   build
+      if:   success()
+      uses: DiligentGraphics/github-action/build@v26
+
+      # Core tests
+    - name: DiligentCoreTest
+      if:   success()
+      uses: DiligentGraphics/github-action/run-core-tests@v26
+
+    - name: DiligentCoreAPITest VK
+      if:   ${{ success() || failure() && steps.build.outcome == 'success' }}
+      uses: DiligentGraphics/github-action/run-core-gpu-tests@v26
+      with:
+        mode: vk_sw
+
+    - name: DiligentCoreAPITest VK Compatibility
+      if: ${{ (success() || failure() && steps.build.outcome == 'success') && (matrix.name == 'Clang' || matrix.name == 'GCC') }}
+      uses: DiligentGraphics/github-action/run-core-gpu-tests@v26
+      with:
+        mode: vk_sw
+        vk-compatibility: true
+
+    - name: DiligentCoreAPITest GL
+      if: ${{ success() || failure() && steps.build.outcome == 'success' }}
+      uses: DiligentGraphics/github-action/run-core-gpu-tests@v26
+      with:
+        mode: gl
+
+    - name: DiligentCoreAPITest GL with Non-Separable Programs
+      if: ${{ success() || failure() && steps.build.outcome == 'success' }}
+      uses: DiligentGraphics/github-action/run-core-gpu-tests@v26
+      with:
+        mode: gl
+        non-separable-progs: true
+
+      # Tools tests
+    - name: DiligentToolsTest
+      if:   ${{ success() || failure() && steps.build.outcome == 'success' }}
+      uses: DiligentGraphics/github-action/run-tools-tests@v26
+
+    - name: DiligentToolsGPUTest VK
+      if:   ${{ success() || failure() && steps.build.outcome == 'success' }}
+      uses: DiligentGraphics/github-action/run-tools-gpu-tests@v26
+      with:
+        mode: vk_sw
+
+    - name: DiligentToolsGPUTest GL
+      if:   ${{ success() || failure() && steps.build.outcome == 'success' }}
+      uses: DiligentGraphics/github-action/run-tools-gpu-tests@v26
+      with:
+        mode: gl
+
+    - name: HLSL2GLSLConverterTest
+      if:   ${{ success() || failure() && steps.build.outcome == 'success' }}
+      uses: DiligentGraphics/github-action/run-hlsl2glsl-converter-test@v26
+
+      # FX tests
+    - name: RadientTest
+      if:   ${{ success() || failure() && steps.build.outcome == 'success' }}
+      uses: DiligentGraphics/github-action/run-radient-tests@v26
+
+    - name: DiligentFXGPUTest VK
+      if:   ${{ success() || failure() && steps.build.outcome == 'success' }}
+      uses: DiligentGraphics/github-action/run-fx-gpu-tests@v26
+      with:
+        mode: vk_sw
+
+    - name: DiligentFXGPUTest GL
+      if:   ${{ success() || failure() && steps.build.outcome == 'success' }}
+      uses: DiligentGraphics/github-action/run-fx-gpu-tests@v26
+      with:
+        mode: gl
+
+    - name: RadientGPUTest VK
+      if:   ${{ success() || failure() && steps.build.outcome == 'success' }}
+      uses: DiligentGraphics/github-action/run-radient-gpu-tests@v26
+      with:
+        mode: vk_sw
+
+    - name: RadientGPUTest GL
+      if:   ${{ success() || failure() && steps.build.outcome == 'success' }}
+      uses: DiligentGraphics/github-action/run-radient-gpu-tests@v26
+      with:
+        mode: gl
+
+    - name: Clone Radient Test Data
+      id: radient_test_data
+      if: ${{ (success() || failure()) && steps.build.outcome == 'success' }}
+      uses: actions/checkout@v6
+      with:
+        repository: DiligentGraphics/DiligentTestData
+        ref:        radient
+        path:       RadientTestData
+
+    - name: Clone glTF Sample Assets
+      id: gltf_sample_assets
+      if: ${{ (success() || failure()) && steps.build.outcome == 'success' }}
+      uses: actions/checkout@v6
+      with:
+        repository: KhronosGroup/glTF-Sample-Assets
+        ref:        ${{env.DILIGENT_GLTF_SAMPLE_ASSETS_COMMIT}}
+        path:       glTF-Sample-Assets
+
+    - name: RadientRenderTest VK
+      if: ${{ (success() || failure()) && steps.build.outcome == 'success' && steps.radient_test_data.outcome == 'success' && steps.gltf_sample_assets.outcome == 'success' }}
+      uses: DiligentGraphics/github-action/run-radient-render-tests@v26
+      with:
+        mode:        vk_sw
+        models-path: ${{github.workspace}}/glTF-Sample-Assets
+        assets-path: ${{github.workspace}}/RadientTestData
+
+
+      # Samples tests
+    - name: Sample Tests Vk
+      if:   ${{ success() || failure() && steps.build.outcome == 'success' }}
+      uses: DiligentGraphics/github-action/run-sample-tests@v26
+      with:
+        mode: "vk_sw"
+
+    - name: Sample Tests Vk Compatibility
+      if:   success()
+      uses: DiligentGraphics/github-action/run-sample-tests@v26
+      with:
+        mode:             "vk_sw"
+        vk-compatibility: "true"
+
+    - name: Sample Tests GL
+      if:    ${{ success() || failure() && steps.build.outcome == 'success' }}
+      uses: DiligentGraphics/github-action/run-sample-tests@v26
+      with:
+        mode: "gl"
+
+    - name: Sample Tests GL with Non-Separable Programs
+      if:    ${{ success() || failure() && steps.build.outcome == 'success' }}
+      uses: DiligentGraphics/github-action/run-sample-tests@v26
+      with:
+        mode:                "gl"
+        non-separable-progs: "true"

@@ -1,0 +1,471 @@
+/*
+ *  Copyright 2019-2026 Diligent Graphics LLC
+ *  Copyright 2015-2019 Egor Yusov
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  In no event and under no legal theory, whether in tort (including negligence),
+ *  contract, or otherwise, unless required by applicable law (such as deliberate
+ *  and grossly negligent acts) or agreed to in writing, shall any Contributor be
+ *  liable for any damages, including any direct, indirect, special, incidental,
+ *  or consequential damages of any character arising as a result of this License or
+ *  out of the use or inability to use the software (including but not limited to damages
+ *  for loss of goodwill, work stoppage, computer failure or malfunction, or any and
+ *  all other commercial damages or losses), even if such Contributor has been advised
+ *  of the possibility of such damages.
+ */
+#pragma once
+
+#include <cstring>
+#include <string>
+#include <vector>
+#include <unordered_map>
+
+#include "ObjectBase.hpp"
+#include "RefCntAutoPtr.hpp"
+#include "RenderDevice.h"
+#include "DeviceContext.h"
+#include "SwapChain.h"
+#include "Texture.h"
+#include "TextureView.h"
+#include "GraphicsAccessories.hpp"
+#include "GPUTestingEnvironment.hpp"
+
+namespace Diligent
+{
+
+namespace Testing
+{
+
+/// Image comparison settings.
+struct TestImageComparisonAttribs
+{
+    /// Maximum per-channel difference that is ignored.
+    Uint8 MaxChannelError = 0;
+
+    /// Maximum fraction of pixels with at least one channel exceeding
+    /// MaxChannelError. Must be in the [0, 1] range.
+    float MaxBadPixelRatio = 0;
+};
+
+void CompareTestImages(const Uint8*                          pReferencePixels,
+                       Uint64                                RefPixelsStride,
+                       const Uint8*                          pPixels,
+                       Uint64                                PixelsStride,
+                       Uint32                                Width,
+                       Uint32                                Height,
+                       TEXTURE_FORMAT                        Format,
+                       std::unordered_map<std::string, int>& DifferenceCounters,
+                       const TestImageComparisonAttribs&     ComparisonAttribs = {},
+                       bool                                  CompareAlpha      = true);
+
+/// Loads an RGBA8 reference image from a PNG file.
+bool LoadTestImage(const char*         FilePath,
+                   std::vector<Uint8>& Pixels,
+                   Uint32&             Width,
+                   Uint32&             Height);
+
+/// Returns the backend-qualified file name for a comparison difference image.
+std::string GetTestImageDifferenceFileName(bool   ComparisonPassed,
+                                           Uint32 DifferenceIndex = 0);
+
+/// Writes the image to a PNG file. Alpha is omitted by default.
+void DumpTestImage(const Uint8*   pPixels,
+                   Uint64         PixelsStride,
+                   Uint32         Width,
+                   Uint32         Height,
+                   TEXTURE_FORMAT Format,
+                   const char*    DumpName,
+                   bool           bIsOpenGL,
+                   bool           KeepAlpha = false);
+
+// {41BF4655-9B33-4E6C-9300-0CB45FBFE104}
+static constexpr INTERFACE_ID IID_TestingSwapChain =
+    {0x41bf4655, 0x9b33, 0x4e6c, {0x93, 0x0, 0xc, 0xb4, 0x5f, 0xbf, 0xe1, 0x4}};
+
+class ITestingSwapChain : public IObject
+{
+public:
+    virtual void TakeSnapshot(ITexture* pCopyFrom = nullptr) = 0;
+
+    /// Sets the reference image used by Present()/CompareWithSnapshot().
+    /// Data must contain rows matching the swap-chain dimensions and color format.
+    /// CompareAlpha controls whether the alpha channel participates in comparison.
+    virtual void SetReferenceData(const void* pData,
+                                  size_t      Stride       = 0,
+                                  bool        CompareAlpha = true) = 0;
+
+    /// Loads the RGB reference image used by Present()/CompareWithSnapshot() from a PNG file.
+    /// The alpha channel is ignored when comparing file-based references.
+    virtual bool LoadReferenceImage(const char* FilePath) = 0;
+
+    /// Sets image comparison settings. Exact comparison is used by default.
+    virtual void SetImageComparisonAttribs(const TestImageComparisonAttribs& Attribs) = 0;
+
+    virtual ITextureView* GetCurrentBackBufferUAV() = 0;
+
+    /// Writes the back buffer to a PNG file. Alpha is omitted by default.
+    virtual void DumpBackBuffer(const char* FileName, bool KeepAlpha = false) = 0;
+
+    virtual void CompareWithSnapshot(ITexture* pTexture) = 0;
+};
+
+template <typename SwapChainInterface>
+class SwapChainCombinedBaseInterface : public ITestingSwapChain, public SwapChainInterface
+{};
+
+template <class TSwapChainInterface>
+class TestingSwapChainBase : public RefCountedObject<SwapChainCombinedBaseInterface<TSwapChainInterface>>
+{
+public:
+    using TObjectBase = RefCountedObject<SwapChainCombinedBaseInterface<TSwapChainInterface>>;
+
+    TestingSwapChainBase(IReferenceCounters*  pRefCounters,
+                         IRenderDevice*       pDevice,
+                         IDeviceContext*      pContext,
+                         const SwapChainDesc& SCDesc) :
+        TObjectBase{pRefCounters},
+        m_SwapChainDesc{SCDesc},
+        m_pDevice{pDevice},
+        m_pContext{pContext}
+    {
+        VERIFY_EXPR(m_SwapChainDesc.ColorBufferFormat != TEX_FORMAT_UNKNOWN);
+        VERIFY_EXPR(m_SwapChainDesc.Width != 0);
+        VERIFY_EXPR(m_SwapChainDesc.Height != 0);
+        CreateResources();
+    }
+
+    virtual void DILIGENT_CALL_TYPE QueryInterface(const INTERFACE_ID& IID, IObject** ppInterface) override
+    {
+        if (ppInterface == nullptr)
+            return;
+
+        if (IID == IID_SwapChain || IID == IID_Unknown)
+        {
+            *ppInterface = static_cast<TSwapChainInterface*>(this);
+            (*ppInterface)->AddRef();
+        }
+        if (IID == IID_TestingSwapChain)
+        {
+            *ppInterface = static_cast<ITestingSwapChain*>(this);
+            (*ppInterface)->AddRef();
+        }
+    }
+
+    virtual void DILIGENT_CALL_TYPE Present(Uint32 SyncInterval = 1) override
+    {
+        CompareWithSnapshot(nullptr);
+    }
+
+    virtual void SetReferenceData(const void* pData,
+                                  size_t      Stride       = 0,
+                                  bool        CompareAlpha = true) override final
+    {
+        VERIFY_EXPR(pData != nullptr);
+
+        TextureDesc ReferenceDesc;
+        ReferenceDesc.Type   = RESOURCE_DIM_TEX_2D;
+        ReferenceDesc.Width  = m_SwapChainDesc.Width;
+        ReferenceDesc.Height = m_SwapChainDesc.Height;
+        ReferenceDesc.Format = m_SwapChainDesc.ColorBufferFormat;
+
+        const MipLevelProperties MipProps = GetMipLevelProperties(ReferenceDesc, 0);
+        VERIFY_EXPR(MipProps.RowSize != 0);
+        VERIFY_EXPR(MipProps.DepthSliceSize != 0);
+
+        const size_t RowSize        = static_cast<size_t>(MipProps.RowSize);
+        const size_t DepthSliceSize = static_cast<size_t>(MipProps.DepthSliceSize);
+        if (Stride == 0)
+            Stride = RowSize;
+        VERIFY_EXPR(Stride >= RowSize);
+
+        m_ReferenceDataPitch = static_cast<Uint32>(RowSize);
+        m_ReferenceData.resize(DepthSliceSize);
+
+        const Uint8* const pSrcData = static_cast<const Uint8*>(pData);
+        const size_t       RowCount = DepthSliceSize / RowSize;
+        for (size_t row = 0; row < RowCount; ++row)
+        {
+            std::memcpy(m_ReferenceData.data() + row * m_ReferenceDataPitch,
+                        pSrcData + row * Stride,
+                        RowSize);
+        }
+        m_CompareAlpha = CompareAlpha;
+    }
+
+    virtual bool LoadReferenceImage(const char* FilePath) override final
+    {
+        std::vector<Uint8> Pixels;
+        Uint32             Width  = 0;
+        Uint32             Height = 0;
+        if (!LoadTestImage(FilePath, Pixels, Width, Height))
+            return false;
+
+        if (m_SwapChainDesc.ColorBufferFormat != TEX_FORMAT_RGBA8_UNORM)
+        {
+            LOG_ERROR_MESSAGE("Loading reference images is only supported for TEX_FORMAT_RGBA8_UNORM testing swap chains");
+            return false;
+        }
+
+        if (Width != m_SwapChainDesc.Width || Height != m_SwapChainDesc.Height)
+            Resize(Width, Height, m_SwapChainDesc.PreTransform);
+
+        const size_t RowSize = static_cast<size_t>(Width) * 4;
+        if (m_pDevice->GetDeviceInfo().IsGLDevice())
+        {
+            std::vector<Uint8> TempRow(RowSize);
+            for (Uint32 TopRow = 0; TopRow < Height / 2; ++TopRow)
+            {
+                Uint8* const pTopRow    = Pixels.data() + static_cast<size_t>(TopRow) * RowSize;
+                Uint8* const pBottomRow = Pixels.data() + static_cast<size_t>(Height - 1 - TopRow) * RowSize;
+                std::memcpy(TempRow.data(), pTopRow, RowSize);
+                std::memcpy(pTopRow, pBottomRow, RowSize);
+                std::memcpy(pBottomRow, TempRow.data(), RowSize);
+            }
+        }
+
+        // Golden PNGs represent the visible framebuffer. DumpTestImage() omits
+        // alpha so image viewers display the complete rendered background.
+        SetReferenceData(Pixels.data(), RowSize, false);
+
+        return true;
+    }
+
+    virtual void SetImageComparisonAttribs(const TestImageComparisonAttribs& Attribs) override final
+    {
+        if (Attribs.MaxBadPixelRatio < 0 || Attribs.MaxBadPixelRatio > 1)
+        {
+            UNEXPECTED("MaxBadPixelRatio must be in the [0, 1] range");
+            return;
+        }
+
+        m_ImageComparisonAttribs = Attribs;
+    }
+
+    virtual void DILIGENT_CALL_TYPE Resize(Uint32 NewWidth, Uint32 NewHeight, SURFACE_TRANSFORM NewPreTransform) override final
+    {
+        if (NewWidth == 0 || NewHeight == 0 ||
+            (NewWidth == m_SwapChainDesc.Width &&
+             NewHeight == m_SwapChainDesc.Height &&
+             NewPreTransform == m_SwapChainDesc.PreTransform))
+        {
+            return;
+        }
+
+        m_pContext->SetRenderTargets(0, nullptr, nullptr, RESOURCE_STATE_TRANSITION_MODE_NONE);
+        m_pContext->WaitForIdle();
+
+        ReleaseResources();
+        m_SwapChainDesc.Width        = NewWidth;
+        m_SwapChainDesc.Height       = NewHeight;
+        m_SwapChainDesc.PreTransform = NewPreTransform;
+        CreateResources();
+        ResizeBackendResources();
+    }
+
+    virtual void DILIGENT_CALL_TYPE SetFullscreenMode(const DisplayModeAttribs& DisplayMode) override final
+    {
+        UNEXPECTED("Testing swap chain can't go into full screen mode");
+    }
+
+    virtual void DILIGENT_CALL_TYPE SetWindowedMode() override final
+    {
+        UNEXPECTED("Testing swap chain can't switch between windowed and full screen modes");
+    }
+
+    virtual void DILIGENT_CALL_TYPE SetMaximumFrameLatency(Uint32 MaxLatency) override final
+    {
+        UNEXPECTED("Testing swap chain can't set the maximum frame latency");
+    }
+
+    virtual ITextureView* DILIGENT_CALL_TYPE GetCurrentBackBufferRTV() override final
+    {
+        return m_pRTV;
+    }
+
+    virtual ITextureView* GetCurrentBackBufferUAV() override final
+    {
+        return m_pUAV;
+    }
+
+    virtual ITextureView* DILIGENT_CALL_TYPE GetDepthBufferDSV() override final
+    {
+        return m_pDSV;
+    }
+
+    virtual const SwapChainDesc& DILIGENT_CALL_TYPE GetDesc() const override final
+    {
+        return m_SwapChainDesc;
+    }
+
+    virtual void DumpBackBuffer(const char* FileName, bool KeepAlpha = false) override final
+    {
+        m_pContext->SetRenderTargets(0, nullptr, nullptr, RESOURCE_STATE_TRANSITION_MODE_NONE);
+
+        CopyTextureAttribs CopyInfo //
+            {
+                m_pRenderTarget,
+                RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
+                m_pStagingTexture,
+                RESOURCE_STATE_TRANSITION_MODE_TRANSITION //
+            };
+        m_pContext->CopyTexture(CopyInfo);
+        m_pContext->WaitForIdle();
+        MappedTextureSubresource MapData;
+
+        auto MapFlag = MAP_FLAG_DO_NOT_WAIT;
+        if (m_pDevice->GetDeviceInfo().Type == RENDER_DEVICE_TYPE_D3D11)
+        {
+            // As a matter of fact, we should be able to always use MAP_FLAG_DO_NOT_WAIT flag
+            // as we flush the context and idle the GPU before mapping the staging texture.
+            // Intel driver, however, still returns null unless we don't use D3D11_MAP_FLAG_DO_NOT_WAIT flag.
+            MapFlag = MAP_FLAG_NONE;
+        }
+
+        m_pContext->MapTextureSubresource(m_pStagingTexture, 0, 0, MAP_READ, MapFlag, nullptr, MapData);
+        DumpTestImage(static_cast<const Uint8*>(MapData.pData), MapData.Stride, m_SwapChainDesc.Width, m_SwapChainDesc.Height, m_SwapChainDesc.ColorBufferFormat, FileName, m_pDevice->GetDeviceInfo().IsGLDevice(), KeepAlpha);
+        m_pContext->UnmapTextureSubresource(m_pStagingTexture, 0, 0);
+    }
+
+    virtual void CompareWithSnapshot(ITexture* pTexture) override
+    {
+        if (pTexture == nullptr)
+            pTexture = m_pRenderTarget;
+
+        if (pTexture == m_pRenderTarget)
+        {
+            m_pContext->SetRenderTargets(0, nullptr, nullptr, RESOURCE_STATE_TRANSITION_MODE_NONE);
+        }
+
+        CopyTextureAttribs CopyInfo //
+            {
+                pTexture,
+                RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
+                m_pStagingTexture,
+                RESOURCE_STATE_TRANSITION_MODE_TRANSITION //
+            };
+        m_pContext->CopyTexture(CopyInfo);
+        m_pContext->WaitForIdle();
+        MappedTextureSubresource MapData;
+
+        auto MapFlag = MAP_FLAG_DO_NOT_WAIT;
+        if (m_pDevice->GetDeviceInfo().Type == RENDER_DEVICE_TYPE_D3D11)
+        {
+            // As a matter of fact, we should be able to always use MAP_FLAG_DO_NOT_WAIT flag
+            // as we flush the context and idle the GPU before mapping the staging texture.
+            // Intel driver, however, still returns null unless we don't use D3D11_MAP_FLAG_DO_NOT_WAIT flag.
+            MapFlag = MAP_FLAG_NONE;
+        }
+
+        m_pContext->MapTextureSubresource(m_pStagingTexture, 0, 0, MAP_READ, MapFlag, nullptr, MapData);
+        CompareTestImages(m_ReferenceData.data(), m_ReferenceDataPitch, static_cast<const Uint8*>(MapData.pData), MapData.Stride,
+                          m_SwapChainDesc.Width, m_SwapChainDesc.Height, m_SwapChainDesc.ColorBufferFormat, m_DifferenceCounters,
+                          m_ImageComparisonAttribs, m_CompareAlpha);
+
+        m_pContext->UnmapTextureSubresource(m_pStagingTexture, 0, 0);
+    }
+
+protected:
+    virtual void ResizeBackendResources() = 0;
+
+    void CreateResources()
+    {
+        {
+            TextureDesc RenderTargetDesc;
+            RenderTargetDesc.Name        = "Testing color buffer";
+            RenderTargetDesc.Type        = RESOURCE_DIM_TEX_2D;
+            RenderTargetDesc.Width       = m_SwapChainDesc.Width;
+            RenderTargetDesc.Height      = m_SwapChainDesc.Height;
+            RenderTargetDesc.Format      = m_SwapChainDesc.ColorBufferFormat;
+            RenderTargetDesc.SampleCount = 1;
+            RenderTargetDesc.Usage       = USAGE_DEFAULT;
+            RenderTargetDesc.BindFlags   = BIND_RENDER_TARGET;
+            if (m_pDevice->GetDeviceInfo().Features.ComputeShaders)
+                RenderTargetDesc.BindFlags |= BIND_UNORDERED_ACCESS;
+            m_pDevice->CreateTexture(RenderTargetDesc, nullptr, static_cast<ITexture**>(&m_pRenderTarget));
+            VERIFY_EXPR(m_pRenderTarget != nullptr);
+            m_pRTV = m_pRenderTarget->GetDefaultView(TEXTURE_VIEW_RENDER_TARGET);
+            VERIFY_EXPR(m_pRTV != nullptr);
+
+            if (m_pDevice->GetDeviceInfo().Features.ComputeShaders)
+            {
+                m_pUAV = m_pRenderTarget->GetDefaultView(TEXTURE_VIEW_UNORDERED_ACCESS);
+                VERIFY_EXPR(m_pUAV != nullptr);
+            }
+
+            RenderTargetDesc.Name           = "Staging color buffer copy";
+            RenderTargetDesc.Usage          = USAGE_STAGING;
+            RenderTargetDesc.CPUAccessFlags = CPU_ACCESS_READ;
+            RenderTargetDesc.BindFlags      = BIND_NONE;
+            m_pDevice->CreateTexture(RenderTargetDesc, nullptr, static_cast<ITexture**>(&m_pStagingTexture));
+            VERIFY_EXPR(m_pStagingTexture != nullptr);
+        }
+
+        if (m_SwapChainDesc.DepthBufferFormat != TEX_FORMAT_UNKNOWN)
+        {
+            TextureDesc DepthBufferDesc;
+            DepthBufferDesc.Name        = "Testing depth buffer";
+            DepthBufferDesc.Type        = RESOURCE_DIM_TEX_2D;
+            DepthBufferDesc.Width       = m_SwapChainDesc.Width;
+            DepthBufferDesc.Height      = m_SwapChainDesc.Height;
+            DepthBufferDesc.Format      = m_SwapChainDesc.DepthBufferFormat;
+            DepthBufferDesc.SampleCount = 1;
+            DepthBufferDesc.Usage       = USAGE_DEFAULT;
+            DepthBufferDesc.BindFlags   = BIND_DEPTH_STENCIL;
+
+            DepthBufferDesc.ClearValue.Format               = DepthBufferDesc.Format;
+            DepthBufferDesc.ClearValue.DepthStencil.Depth   = m_SwapChainDesc.DefaultDepthValue;
+            DepthBufferDesc.ClearValue.DepthStencil.Stencil = m_SwapChainDesc.DefaultStencilValue;
+
+            m_pDevice->CreateTexture(DepthBufferDesc, nullptr, &m_pDepthBuffer);
+            VERIFY_EXPR(m_pDepthBuffer != nullptr);
+            m_pDSV = m_pDepthBuffer->GetDefaultView(TEXTURE_VIEW_DEPTH_STENCIL);
+            VERIFY_EXPR(m_pDSV != nullptr);
+        }
+
+        m_ReferenceDataPitch = m_SwapChainDesc.Width * 4;
+        m_ReferenceData.resize(size_t{m_ReferenceDataPitch} * m_SwapChainDesc.Height);
+    }
+
+    void ReleaseResources()
+    {
+        m_pRTV.Release();
+        m_pUAV.Release();
+        m_pDSV.Release();
+        m_pRenderTarget.Release();
+        m_pDepthBuffer.Release();
+        m_pStagingTexture.Release();
+    }
+
+    SwapChainDesc                 m_SwapChainDesc;
+    RefCntAutoPtr<IRenderDevice>  m_pDevice;
+    RefCntAutoPtr<IDeviceContext> m_pContext;
+    RefCntAutoPtr<ITexture>       m_pRenderTarget;
+    RefCntAutoPtr<ITexture>       m_pDepthBuffer;
+    RefCntAutoPtr<ITextureView>   m_pRTV;
+    RefCntAutoPtr<ITextureView>   m_pUAV;
+    RefCntAutoPtr<ITextureView>   m_pDSV;
+    RefCntAutoPtr<ITexture>       m_pStagingTexture;
+
+    std::unordered_map<std::string, int> m_DifferenceCounters;
+
+    std::vector<Uint8> m_ReferenceData;
+    Uint32             m_ReferenceDataPitch = 0;
+    bool               m_CompareAlpha       = true;
+
+    TestImageComparisonAttribs m_ImageComparisonAttribs;
+};
+
+} // namespace Testing
+
+} // namespace Diligent

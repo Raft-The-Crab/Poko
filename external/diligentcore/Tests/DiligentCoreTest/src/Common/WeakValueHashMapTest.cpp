@@ -1,0 +1,422 @@
+/*
+ *  Copyright 2025-2026 Diligent Graphics LLC
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  In no event and under no legal theory, whether in tort (including negligence),
+ *  contract, or otherwise, unless required by applicable law (such as deliberate
+ *  and grossly negligent acts) or agreed to in writing, shall any Contributor be
+ *  liable for any damages, including any direct, indirect, special, incidental,
+ *  or consequential damages of any character arising as a result of this License or
+ *  out of the use or inability to use the software (including but not limited to damages
+ *  for loss of goodwill, work stoppage, computer failure or malfunction, or any and
+ *  all other commercial damages or losses), even if such Contributor has been advised
+ *  of the possibility of such damages.
+ */
+
+#include "WeakValueHashMap.hpp"
+
+#include "gtest/gtest.h"
+
+#include <algorithm>
+#include <atomic>
+#include <thread>
+#include <vector>
+
+#include "ThreadSignal.hpp"
+
+using namespace Diligent;
+
+namespace
+{
+
+TEST(Common_WeakValueHashMap, GetOrInsert)
+{
+    {
+        WeakValueHashMap<int, std::string> Map;
+
+        auto Handle1 = Map.GetOrInsert(1, "Value");
+        EXPECT_TRUE(Handle1);
+        EXPECT_STREQ(Handle1->c_str(), "Value");
+        EXPECT_EQ(*Handle1, std::string{"Value"});
+
+        auto Handle2 = Map.Get(2);
+        EXPECT_FALSE(Handle2);
+    }
+
+    {
+        WeakValueHashMap<int, std::string> Map;
+
+        auto Handle1 = Map.GetOrInsert(1, "Value");
+
+        // Release map while the handle is still alive
+        Map = WeakValueHashMap<int, std::string>{};
+
+        EXPECT_TRUE(Handle1);
+        EXPECT_STREQ(Handle1->c_str(), "Value");
+        EXPECT_EQ(*Handle1, std::string{"Value"});
+    }
+
+    {
+        WeakValueHashMap<int, std::string> Map;
+
+        auto Handle1 = Map.GetOrInsert(1, "Value");
+
+        // Release map while the handle is still alive
+        Map = WeakValueHashMap<int, std::string>{};
+
+        WeakValueHashMap<int, std::string>::ValueHandle Handle2{std::move(Handle1)};
+        EXPECT_FALSE(Handle1);
+        EXPECT_TRUE(Handle2);
+        EXPECT_STREQ(Handle2->c_str(), "Value");
+        EXPECT_EQ(*Handle2, std::string{"Value"});
+    }
+
+    {
+        WeakValueHashMap<int, std::string> Map;
+
+        auto Handle1 = Map.GetOrInsert(1, "Value");
+
+        // Release map while the handle is still alive
+        Map = WeakValueHashMap<int, std::string>{};
+
+        WeakValueHashMap<int, std::string>::ValueHandle Handle2;
+        Handle2 = std::move(Handle1);
+        EXPECT_FALSE(Handle1);
+        EXPECT_TRUE(Handle2);
+        EXPECT_STREQ(Handle2->c_str(), "Value");
+        EXPECT_EQ(*Handle2, std::string{"Value"});
+    }
+
+    {
+        WeakValueHashMap<int, std::string> Map;
+
+        auto Handle1 = Map.GetOrInsert(1, "Value1");
+        Handle1      = Map.GetOrInsert(2, "Value2");
+        EXPECT_TRUE(Handle1);
+        EXPECT_STREQ(Handle1->c_str(), "Value2");
+        EXPECT_EQ(*Handle1, std::string{"Value2"});
+
+        Handle1 = Map.Get(1);
+        EXPECT_FALSE(Handle1);
+        Handle1 = Map.Get(2);
+        EXPECT_FALSE(Handle1);
+    }
+
+    {
+        WeakValueHashMap<int, std::string> Map;
+
+        auto Handle1 = Map.GetOrInsert(1, "Value1");
+        auto Handle2 = Map.GetOrInsert(1, "Value2");
+        EXPECT_TRUE(Handle1);
+        EXPECT_TRUE(Handle2);
+        EXPECT_STREQ(Handle1->c_str(), "Value1");
+        EXPECT_STREQ(Handle1->c_str(), Handle2->c_str());
+        EXPECT_EQ(*Handle1, *Handle2);
+    }
+}
+
+
+TEST(Common_WeakValueHashMap, CustomHashKeyeq)
+{
+    struct Key
+    {
+        int Val = 0;
+
+        Key() = default;
+
+        explicit Key(int v) :
+            Val{v}
+        {}
+
+        struct Hasher
+        {
+            size_t operator()(const Key& k) const
+            {
+                return std::hash<int>()(k.Val);
+            }
+        };
+
+        bool operator==(const Key& rhs) const
+        {
+            return Val == rhs.Val;
+        }
+
+        struct KeyEq
+        {
+            bool operator()(const Key& lhs, const Key& rhs) const
+            {
+                return lhs.Val == rhs.Val;
+            }
+        };
+    };
+
+    {
+        WeakValueHashMap<Key, std::string, Key::Hasher> Map;
+
+        auto Handle1 = Map.GetOrInsert(Key{1}, "Value1");
+        auto Handle2 = Map.GetOrInsert(Key{2}, "Value2");
+        auto Handle3 = Map.Get(Key{2});
+        EXPECT_TRUE(Handle1);
+        EXPECT_TRUE(Handle2);
+        EXPECT_TRUE(Handle3);
+        EXPECT_STREQ(Handle1->c_str(), "Value1");
+        EXPECT_STREQ(Handle2->c_str(), "Value2");
+        EXPECT_EQ(*Handle2, *Handle3);
+    }
+
+    {
+        WeakValueHashMap<Key, std::string, Key::Hasher, Key::KeyEq> Map;
+
+        auto Handle1 = Map.GetOrInsert(Key{1}, "Value1");
+        auto Handle2 = Map.GetOrInsert(Key{2}, "Value2");
+        auto Handle3 = Map.Get(Key{2});
+        EXPECT_TRUE(Handle1);
+        EXPECT_TRUE(Handle2);
+        EXPECT_TRUE(Handle3);
+        EXPECT_STREQ(Handle1->c_str(), "Value1");
+        EXPECT_STREQ(Handle2->c_str(), "Value2");
+        EXPECT_EQ(*Handle2, *Handle3);
+    }
+}
+
+TEST(Common_WeakValueHashMap, DestroyMapBeforeMoveIntoLastHandle)
+{
+    WeakValueHashMap<int, std::string> Map;
+
+    auto Handle = Map.GetOrInsert(1, "x");
+    Map         = WeakValueHashMap<int, std::string>{};
+    Handle      = {};
+}
+
+TEST(Common_WeakValueHashMap, GetLiveValues)
+{
+    WeakValueHashMap<int, std::string> Map{4};
+
+    std::vector<WeakValueHashMap<int, std::string>::ValueHandle> Handles;
+    Handles.emplace_back(Map.GetOrInsert(1, "Value1"));
+    Handles.emplace_back(Map.GetOrInsert(2, "Value2"));
+    Handles.emplace_back(Map.GetOrInsert(3, "Value3"));
+
+    WeakValueHashMap<int, std::string>::ValueHandleArray LiveValues;
+    LiveValues.reserve(8);
+    auto* const pReservedData = LiveValues.data();
+    Map.GetLiveValues(LiveValues);
+
+    EXPECT_EQ(LiveValues.data(), pReservedData);
+
+    std::vector<std::string> Values;
+    for (const auto& Value : LiveValues)
+        Values.push_back(*Value);
+
+    std::sort(Values.begin(), Values.end());
+    EXPECT_EQ(Values, (std::vector<std::string>{"Value1", "Value2", "Value3"}));
+}
+
+TEST(Common_WeakValueHashMap, LiveValueHandlesRetainValues)
+{
+    WeakValueHashMap<int, std::string> Map;
+
+    auto                                                 Handle = Map.GetOrInsert(1, "Value1");
+    WeakValueHashMap<int, std::string>::ValueHandleArray LiveValues;
+    Map.GetLiveValues(LiveValues);
+
+    ASSERT_EQ(LiveValues.size(), 1u);
+    EXPECT_EQ(*LiveValues[0], "Value1");
+
+    Handle        = {};
+    auto Existing = Map.Get(1);
+    EXPECT_TRUE(Existing);
+    EXPECT_EQ(*Existing, "Value1");
+
+    // Accessing the map while the snapshot is alive does not depend on any
+    // mutex retained by GetLiveValues().
+    auto Inserted = Map.GetOrInsert(2, "Value2");
+    EXPECT_TRUE(Inserted);
+    EXPECT_EQ(*Inserted, "Value2");
+
+    Existing = {};
+    Inserted = {};
+    LiveValues.clear();
+
+    EXPECT_FALSE(Map.Get(1));
+    EXPECT_FALSE(Map.Get(2));
+}
+
+TEST(Common_WeakValueHashMap, LiveValueSnapshotRetainsValuesDuringConcurrentRelease)
+{
+    static constexpr int ValueCount = 32;
+
+    WeakValueHashMap<int, std::string>                           Map{4};
+    std::vector<WeakValueHashMap<int, std::string>::ValueHandle> Handles;
+    Handles.reserve(ValueCount);
+    for (int Key = 0; Key < ValueCount; ++Key)
+        Handles.emplace_back(Map.GetOrInsert(Key, "Value" + std::to_string(Key)));
+
+    Threading::Signal SnapshotReady;
+    Threading::Signal ReleaseSnapshot;
+    std::atomic_int   SnapshotValueCount{0};
+
+    std::thread SnapshotThread{
+        [&]() {
+            WeakValueHashMap<int, std::string>::ValueHandleArray LiveValues;
+            Map.GetLiveValues(LiveValues);
+            SnapshotValueCount.store(static_cast<int>(LiveValues.size()));
+            SnapshotReady.Trigger();
+            ReleaseSnapshot.Wait(true, 1);
+        }};
+
+    SnapshotReady.Wait(true, 1);
+    Handles.clear();
+
+    for (int Key = 0; Key < ValueCount; ++Key)
+        EXPECT_TRUE(Map.Get(Key));
+
+    ReleaseSnapshot.Trigger();
+    SnapshotThread.join();
+
+    EXPECT_EQ(SnapshotValueCount.load(), ValueCount);
+    for (int Key = 0; Key < ValueCount; ++Key)
+        EXPECT_FALSE(Map.Get(Key));
+}
+
+TEST(Common_WeakValueHashMap, GetLiveValuesRemovesExpiredValues)
+{
+    struct BlockingDestructionValue
+    {
+        BlockingDestructionValue(Threading::Signal& DestructionStarted,
+                                 Threading::Signal& ContinueDestruction) :
+            DestructionStarted{DestructionStarted},
+            ContinueDestruction{ContinueDestruction}
+        {}
+
+        ~BlockingDestructionValue()
+        {
+            DestructionStarted.Trigger();
+            ContinueDestruction.Wait(true, 1);
+        }
+
+        Threading::Signal& DestructionStarted;
+        Threading::Signal& ContinueDestruction;
+    };
+
+    WeakValueHashMap<int, BlockingDestructionValue> Map;
+    Threading::Signal                               DestructionStarted;
+    Threading::Signal                               ContinueDestruction;
+    auto                                            Handle = Map.GetOrInsert(1, DestructionStarted, ContinueDestruction);
+
+    std::thread ReleaseThread{
+        [&Handle]() {
+            Handle = {};
+        }};
+
+    DestructionStarted.Wait(true, 1);
+
+    WeakValueHashMap<int, BlockingDestructionValue>::ValueHandleArray LiveValues;
+    Map.GetLiveValues(LiveValues);
+    EXPECT_TRUE(LiveValues.empty());
+
+    ContinueDestruction.Trigger();
+    ReleaseThread.join();
+
+    auto Replacement = Map.GetOrInsert(1, DestructionStarted, ContinueDestruction);
+    EXPECT_TRUE(Replacement);
+    ContinueDestruction.Trigger();
+}
+
+static constexpr size_t kNumThreads = 8;
+#ifdef DILIGENT_DEBUG
+static constexpr int kNumParallelKeys = 1024;
+#else
+static constexpr int kNumParallelKeys = 16384;
+#endif
+
+// Test that multiple threads can concurrently get or insert values into the map
+TEST(Common_WeakValueHashMap, ParallelGetOrInsert1)
+{
+    for (size_t NumShards : {1, 2, 4})
+    {
+        std::vector<std::thread> Threads(kNumThreads);
+
+        Threading::Signal StartSignal;
+
+        WeakValueHashMap<int, std::string> Map{NumShards};
+        for (size_t t = 0; t < kNumThreads; ++t)
+        {
+            Threads[t] = std::thread{
+                [&Map, &StartSignal]() //
+                {
+                    StartSignal.Wait(true, kNumThreads);
+
+                    for (int k = 0; k < kNumParallelKeys; ++k)
+                    {
+                        std::string Value = "Value" + std::to_string(k);
+
+                        auto Handle = Map.GetOrInsert(k, Value);
+                        EXPECT_TRUE(Handle);
+                        EXPECT_EQ(*Handle, Value);
+                    }
+                }};
+        }
+
+        StartSignal.Trigger(true);
+        for (auto& Thread : Threads)
+        {
+            Thread.join();
+        }
+    }
+}
+
+// Similar to the previous test, but all values are kept alive
+TEST(Common_WeakValueHashMap, ParallelGetOrInsert2)
+{
+    for (size_t NumShards : {1, 2, 4})
+    {
+        std::vector<std::thread> Threads(kNumThreads);
+
+        Threading::Signal StartSignal;
+
+        std::vector<WeakValueHashMap<int, std::string>::ValueHandle> Handles(kNumThreads * kNumParallelKeys);
+
+        WeakValueHashMap<int, std::string> Map{NumShards};
+        for (size_t t = 0; t < kNumThreads; ++t)
+        {
+            Threads[t] = std::thread{
+                [&Map, &StartSignal, &Handles](size_t ThreadId) //
+                {
+                    StartSignal.Wait(true, kNumThreads);
+
+                    for (int k = 0; k < kNumParallelKeys; ++k)
+                    {
+                        std::string Value = "Value" + std::to_string(k);
+
+                        auto Handle = Map.GetOrInsert(k, Value);
+                        EXPECT_TRUE(Handle);
+                        EXPECT_EQ(*Handle, Value);
+
+                        Handles[ThreadId * kNumParallelKeys + k] = std::move(Handle);
+                    }
+                },
+                t,
+            };
+        }
+
+        StartSignal.Trigger(true);
+        for (auto& Thread : Threads)
+        {
+            Thread.join();
+        }
+    }
+}
+
+} // namespace
