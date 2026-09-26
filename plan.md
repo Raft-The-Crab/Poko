@@ -12119,3 +12119,610 @@ Do not advance a dependent phase merely because a demo works; its contract and t
 
 
 https://github.com/Raft-The-Crab/Poko.git
+https://github.com/Raft-The-Crab/Mute.git
+
+
+# Poko Services, Providers, Quotas, and Capacity Limits
+
+## 1. Purpose
+
+This section defines the external services used by Poko, their intended usage, current free-tier limits, important service restrictions, and the point at which Poko should move to paid or self-hosted infrastructure.
+
+These limits are provider limits, not Poko architecture limits.
+
+Provider quotas may change over time. The exact values below represent the provider documentation available during the September 2026 planning baseline.
+
+Poko must monitor usage and treat provider limits as configurable deployment constraints.
+
+---
+
+# 2. Service Summary
+
+| Provider / Service          | Poko Usage                                                   | Initial Tier                   | Current Free / Included Capacity                                                                             | Production Plan                                                                    |
+| --------------------------- | ------------------------------------------------------------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| Cloudflare Workers          | Edge APIs, routing, caching, auth preprocessing, signed URLs | Free initially                 | 100,000 requests/day, 10 ms CPU/request, 128 MB memory                                                       | Workers Paid when necessary                                                        |
+| Cloudflare Durable Objects  | Realtime chat rooms, ephemeral presence                      | Free initially                 | 100,000 requests/day, 13,000 GB-s/day, 5 GB total SQLite storage                                             | Workers Paid                                                                       |
+| Cloudflare R2               | PKX, assets, packages, project artifacts                     | Free initially                 | 10 GB-month storage, 1M Class A, 10M Class B/month, free internet egress                                     | Paid R2                                                                            |
+| Cloudflare D1               | Small edge-readable metadata/config                          | Free initially                 | 5 GB/account, 500 MB/database, 5M reads/day, 100K writes/day                                                 | Paid D1 or PostgreSQL                                                              |
+| Cloudinary                  | Images, thumbnails, videos, media transformations            | Free initially                 | 25 credits/month                                                                                             | Paid when media volume requires it                                                 |
+| Aiven PostgreSQL            | Managed primary relational database                          | Free for development           | 1 CPU, 1 GB RAM, 1 GB storage, 20 connections                                                                | Paid managed PostgreSQL                                                            |
+| Aiven Valkey                | Managed cache/session/rate-limit infrastructure              | Free for development           | 1 CPU, 1 GB RAM, maxmemory 50%                                                                               | Paid managed Valkey                                                                |
+| Layerbase PostgreSQL/Valkey | Development/staging/preview databases                        | Free                           | 2 databases, 5 GB storage, 20 connections                                                                    | Paid or Aiven/other production provider                                            |
+| Firebase Spark              | Android push, crash/performance tooling                      | Spark                          | FCM, Crashlytics, Performance Monitoring and App Check are no-cost products                                  | Keep Spark where sufficient; Blaze when paid Firebase/Google services are required |
+| Hugging Face Spaces CPU     | Background AI/ML workers                                     | Free CPU Basic where available | 2 vCPU, 16 GB RAM, 50 GB non-persistent disk                                                                 | Paid CPU/GPU or self-hosted workers                                                |
+| GitHub Free                 | Optional source control integration                          | Free                           | Unlimited public/private repositories, 2,000 Actions min/month, 500 MB Packages, 10 GB LFS storage/bandwidth | GitHub Pro/Team as development grows                                               |
+| Developer VPS               | Optional Game Authority hosting                              | Provider-dependent             | Depends entirely on VPS                                                                                      | Developer-paid/self-hosted capacity                                                |
+| Moby-owned Authority hosts  | Main Game Authority capacity                                 | Self-hosted/provider-dependent | Depends on host                                                                                              | Scale horizontally                                                                 |
+
+---
+
+# 3. Cloudflare Workers
+
+## Purpose
+
+Cloudflare Workers are the Poko edge application layer.
+
+Workers handle:
+
+* API routing
+* edge request handling
+* authentication preprocessing
+* rate limiting
+* caching
+* signed R2 URLs
+* small metadata operations
+* request batching
+* lightweight validation
+* service routing
+* health-aware routing
+* feature flags
+* lightweight abuse filtering
+
+Workers do not run Game Authority sessions.
+
+## Free Tier
+
+Current Workers Free limits:
+
+* 100,000 requests/day
+* 10 ms CPU time per invocation
+* 128 MB memory
+* 50 subrequests/request
+* 6 simultaneous outgoing connections/request
+* 64 environment variables/Worker
+* 5 KB per environment variable
+* 64 MiB Worker size
+* 100 Workers/account
+* 5 Cron Triggers/account
+* 20,000 static assets/Worker version
+* 25 MiB individual static asset size
+
+The free request quota resets daily at 00:00 UTC.
+
+## Paid Workers
+
+Workers Standard currently includes:
+
+* 10 million requests/month
+* 30 million CPU milliseconds/month
+* additional requests billed per million
+* additional CPU time billed per million CPU milliseconds
+* up to 5 minutes CPU/request when configured appropriately
+
+Current listed Standard rates are approximately:
+
+* $0.30 per additional million requests
+* $0.02 per additional million CPU milliseconds
+
+The exact invoice depends on the selected Cloudflare billing configuration.
+
+## Poko Rule
+
+Workers should remain lightweight.
+
+Do not move:
+
+* Game Authority
+* heavy Mute execution
+* continuous simulation
+* large asset processing
+* large file proxying
+* long-lived database jobs
+
+into Workers.
+
+---
+
+# 4. Cloudflare Durable Objects
+
+## Purpose
+
+Durable Objects are used for:
+
+* DM rooms
+* group chat rooms
+* community realtime rooms
+* typing indicators
+* ephemeral presence coordination
+* room-level WebSockets
+* chat synchronization
+
+They are not the Game Authority.
+
+## Free Tier
+
+Current Durable Objects Free limits include:
+
+* 100,000 requests/day
+* 13,000 GB-seconds/day
+* 5 GB total SQLite-backed Durable Object storage
+* 100 Durable Object classes/account on Free
+* up to 10 GB per SQLite-backed object
+* 32 MiB maximum received WebSocket message
+* 2 MiB combined key/value size
+* 30 seconds default CPU per invocation
+
+Durable Objects can scale horizontally across many objects, while an individual object is single-threaded and has a soft limit of approximately 1,000 requests/second.
+
+## Paid Tier
+
+Paid Durable Objects currently include:
+
+* 1 million requests/month
+* 400,000 GB-seconds/month
+
+with additional usage billed beyond the included amount.
+
+## Poko Rule
+
+Durable Object state should be treated as realtime operational state.
+
+Permanent records such as:
+
+* messages requiring durable retention
+* accounts
+* moderation records
+* ownership
+* transactions
+
+must ultimately exist in Poko's durable backend/database.
+
+---
+
+# 5. Cloudflare R2
+
+## Purpose
+
+R2 is Poko's object/blob storage system.
+
+Store:
+
+* `.pkxclient`
+* `.pkxserver`
+* game builds
+* game packages
+* project artifacts
+* meshes
+* textures
+* audio
+* animations
+* VFX
+* plugins
+* packages
+* Studio assets
+* conversion outputs
+* engine packages
+* Mute packages
+* PokoX updates
+
+## Free Tier
+
+Current R2 Standard storage free tier:
+
+* 10 GB-month storage
+* 1 million Class A operations/month
+* 10 million Class B operations/month
+* internet egress is free
+
+Current Standard pricing after the free allocation is:
+
+* $0.015/GB-month storage
+* $4.50/million Class A operations
+* $0.36/million Class B operations
+
+R2 Infrequent Access has different pricing and retrieval charges.
+
+## Poko Rule
+
+R2 is for large objects.
+
+Do not store:
+
+* account records
+* transactional economy data
+* permissions
+* active session state
+* relational metadata
+
+in R2.
+
+Large uploads/downloads should normally use signed direct URLs so Main Backend does not proxy the entire object.
+
+---
+
+# 6. Cloudflare D1
+
+## Purpose
+
+D1 is a small edge-readable database.
+
+Use for:
+
+* lightweight metadata
+* edge configuration
+* routing hints
+* feature flags
+* public catalog metadata
+* small lookup datasets
+
+D1 is not the Poko primary database.
+
+## Free Tier
+
+Current D1 Free limits:
+
+* 10 databases/account
+* 500 MB maximum per database
+* 5 GB total account storage
+* 5 million rows read/day
+* 100,000 rows written/day
+* 50 queries/Worker invocation
+* 50-bound query limitations on Free request behavior
+* 2 MB maximum row/string/BLOB size
+* 100 KB maximum SQL statement
+* 30 second maximum SQL query duration
+* 5 GB maximum `d1 execute` import
+
+Paid Workers plans increase these limits substantially.
+
+## Poko Rule
+
+D1 must always be reconstructable from the authoritative backend.
+
+PostgreSQL remains the source of truth for critical platform state.
+
+---
+
+# 7. Cloudinary
+
+## Purpose
+
+Cloudinary handles user-facing media.
+
+Use for:
+
+* game thumbnails
+* promotional images
+* profile media
+* avatar previews
+* short game videos
+* media transformations
+* optimized image variants
+* CDN delivery
+* thumbnail generation
+* format conversion
+
+Do not use Cloudinary as Poko's general-purpose game package storage.
+
+R2 remains the main blob/object store.
+
+## Free Tier
+
+Cloudinary Free currently provides:
+
+* $0/month
+* no credit card required
+* 25 credits/month
+* up to 3 users/account
+
+For the Free plan, one credit represents:
+
+* 1,000 transformations
+* OR 1 GB managed storage
+* OR 1 GB image bandwidth
+* OR 1 GB video bandwidth
+
+Cloudinary combines those resources into the same credit pool.
+
+Example:
+
+```text
+10 credits transformations
++
+5 credits storage
++
+10 credits image bandwidth
+=
+25 credits total
+```
+
+Cloudinary measures Free-plan transformations and bandwidth over a rolling 30-day window, while storage is the current stored amount.
+
+## Poko Rule
+
+Game runtime downloads must not depend on Cloudinary.
+
+If Cloudinary is unavailable:
+
+* existing R2 packages still work
+* game loading still works
+* cached media may continue displaying
+* nonessential media transformations may fail gracefully
+
+---
+
+# 8. Aiven PostgreSQL
+
+## Purpose
+
+Aiven can provide managed PostgreSQL infrastructure.
+
+Use for:
+
+* production relational database
+* account data
+* game metadata
+* social data
+* economy
+* marketplace
+* moderation
+* developer projects
+* publishing
+* achievements
+* ownership
+* audit records
+
+## Free Tier
+
+Current Aiven PostgreSQL Free tier:
+
+* 1 dedicated/single node
+* 1 CPU
+* 1 GB RAM
+* 1 GB disk storage
+* PostgreSQL extensions
+* monitoring
+* backups
+* maximum 20 database connections
+* no VPC
+* no static IP
+* no integrations
+* no connection pooling
+* not covered by Aiven's 99.99% SLA
+* one free service of that service type per organization
+
+The Free service has no fixed expiration, but Aiven may power off inactive services.
+
+## Poko Rule
+
+Aiven Free is appropriate for:
+
+* early development
+* prototypes
+* tests
+* tiny staging deployments
+
+It should not be considered adequate for a serious Poko production database once platform traffic becomes meaningful.
+
+Production should move to an appropriately sized managed PostgreSQL deployment.
+
+---
+
+# 9. Aiven Valkey
+
+## Purpose
+
+Valkey provides fast disposable state.
+
+Use for:
+
+* sessions
+* cache
+* rate limits
+* presence cache
+* server lists
+* scheduling state
+* locks
+* matchmaking data
+* temporary coordination
+* idempotency records
+
+## Free Tier
+
+Current Aiven Valkey Free tier:
+
+* 1 node
+* 1 CPU
+* 1 GB RAM
+* `maxmemory` set to 50%
+* monitoring
+* logs
+* backups
+* no VPC
+* no static IP
+* no integrations
+* no connection pooling
+* one free service of that service type per organization
+* no 99.99% SLA
+
+The Free service has no fixed expiration but may be powered off when unused.
+
+## Poko Rule
+
+Valkey is disposable.
+
+If it disappears:
+
+```text
+rebuild cache
+repopulate state
+continue
+```
+
+instead of losing authoritative platform data.
+
+---
+
+# 10. Layerbase
+
+## Purpose
+
+Layerbase is primarily development, testing, staging, and preview infrastructure.
+
+Use for:
+
+* development PostgreSQL
+* development Valkey
+* staging databases
+* feature branches
+* disposable preview databases
+* migration testing
+* CI database environments
+* database experimentation
+
+## Free Tier
+
+Current Layerbase Free tier:
+
+* $0/month
+* no credit card
+* 2 databases
+* 5 GB storage
+* 8 Standard engines
+* 20 concurrent connections
+* sleep on idle
+* wake on connection
+* no expiration
+
+Layerbase states that PostgreSQL and Valkey are among the supported engines available on the Free tier.
+
+## Free Tier Behavior
+
+Free databases sleep when idle.
+
+Therefore:
+
+```text
+connect
+→ wake
+→ possible startup delay
+→ database available
+```
+
+Poko development tooling must tolerate this.
+
+## Paid Layerbase
+
+Current listed plans include:
+
+### Solo
+
+* $5/month
+* 2 databases
+* 10 GB storage
+* one always-on capacity allocation
+* pooled/uncapped connections
+* daily backups
+* 7-day retention
+
+### Pro
+
+* $15/month
+* up to 10 databases
+* 25 GB storage
+* broader engine availability
+
+These prices and capacities are provider plan values and may change.
+
+## Poko Rule
+
+Layerbase is not a hard architectural dependency.
+
+A project must be able to move from:
+
+```text
+Layerbase
+→ Aiven
+→ another PostgreSQL provider
+```
+
+without changing the application data model.
+
+---
+
+# 11. Firebase Spark
+
+## Purpose
+
+Firebase is used selectively for Android/client infrastructure.
+
+Primary services:
+
+* Firebase Cloud Messaging
+* Crashlytics
+* Performance Monitoring
+* App Check
+* selected authentication helpers if ever required
+
+Poko's own backend remains authoritative.
+
+## Spark Tier
+
+Firebase currently provides a no-cost Spark plan.
+
+The following Firebase services are classified as no-cost products:
+
+* Cloud Messaging
+* Crashlytics
+* Performance Monitoring
+* App Check
+* Analytics
+* App Distribution
+* In-App Messaging
+* Firebase ML/model deployment
+
+These no-cost services do not require a billing account, subject to their individual fair-use/feature limits.
+
+## Firebase Authentication
+
+Poko is not dependent on Firebase Authentication.
+
+If Firebase Authentication is used for a specific flow, current limits include examples such as:
+
+* up to 100 million anonymous users
+* registered users not capped by a fixed documented limit
+* Spark password reset emails: 150/day
+* Spark address verification emails: 1,000/day
+* Spark email-link sign-in emails: 5/day
+
+These are Firebase Authentication limits, not Poko account limits.
+
+## Poko Rule
+
+Firebase must never become the source of truth for:
+
+* Poko accounts
+* PoKoins
+* ownership
+* moderation
+* game permissions
+* achievements
+* game data
+
+---
+
+# 12. Hugging Face CPU Infrastructure
+
+## Purpose
+
+Hugging Face CPU environments are for background AI/ML workloads.
