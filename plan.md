@@ -132,6 +132,7 @@ Avoid hidden global state.
 Use strong types for IDs and units.
 Keep ABI boundaries narrow.
 Do not throw across C ABI boundaries.
+Use Doxygen for all code documentation and comments.
 Go:
 Context propagation is mandatory for network and storage calls.
 Errors are explicit.
