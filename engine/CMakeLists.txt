@@ -17,6 +17,45 @@ set(ENGINE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(ENGINE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(ENGINE_PLATFORM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/platform)
 
+# External dependencies
+set(EXTERNAL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../external")
+
+# Diligent Engine - temporarily disabled due to submodule initialization issues
+# Will be re-enabled when build system is properly configured
+set(DILIGENT_DIR "${EXTERNAL_DIR}/diligent")
+set(DILIGENT_CORE_DIR "${EXTERNAL_DIR}/diligentcore")
+
+# if(EXISTS "${DILIGENT_DIR}" AND EXISTS "${DILIGENT_CORE_DIR}")
+#     message(STATUS "Diligent Engine found at ${DILIGENT_DIR}")
+#     message(STATUS "Diligent Core found at ${DILIGENT_CORE_DIR}")
+#     
+#     set(DILIGENT_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+#     set(DILIGENT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+#     set(DILIGENT_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+#     set(DILIGENT_USE_VULKAN ON CACHE BOOL "" FORCE)
+#     set(DILIGENT_USE_GL OFF CACHE BOOL "" FORCE)
+#     set(DILIGENT_SKIP_SPIRV_TOOLS ON CACHE BOOL "" FORCE)
+#     set(DILIGENT_SKIP_GLSLANG ON CACHE BOOL "" FORCE)
+#     set(DILIGENT_SKIP_SPIRV_CROSS ON CACHE BOOL "" FORCE)
+#     set(DILIGENT_SKIP_VULKAN_HEADERS ON CACHE BOOL "" FORCE)
+#     
+#     add_subdirectory(${DILIGENT_CORE_DIR} ${CMAKE_BINARY_DIR}/diligentcore EXCLUDE_FROM_ALL)
+#     add_subdirectory(${DILIGENT_DIR} ${CMAKE_BINARY_DIR}/diligent EXCLUDE_FROM_ALL)
+#     
+#     target_compile_definitions(poko_core PUBLIC ENGINE_ENABLE_DILIGENT)
+# else()
+    message(WARNING "Diligent Engine integration temporarily disabled - renderer will use abstraction layer")
+# endif()
+
+# Jolt Physics
+set(JOLT_DIR "${EXTERNAL_DIR}/jolt")
+if(EXISTS "${JOLT_DIR}")
+    message(STATUS "Jolt Physics found at ${JOLT_DIR}")
+    # Jolt will be added when physics is implemented
+else()
+    message(WARNING "Jolt Physics not found - physics will be stub")
+endif()
+
 # Source files - Core logging
 file(GLOB_RECURSE ENGINE_LOGGING_SOURCES
     "${ENGINE_SOURCE_DIR}/core/logging/*.cpp"
@@ -148,6 +187,11 @@ target_include_directories(poko_core PUBLIC
 )
 
 target_compile_features(poko_core PUBLIC cxx_std_20)
+
+# Link Diligent Engine if available (temporarily disabled)
+# if(EXISTS "${DILIGENT_DIR}" AND EXISTS "${DILIGENT_CORE_DIR}")
+#     target_link_libraries(poko_core PUBLIC DiligentCore DiligentEngine)
+# endif()
 
 # Platform abstraction library (only if sources exist)
 if(ENGINE_PLATFORM_SOURCES OR ENGINE_PLATFORM_HEADERS)

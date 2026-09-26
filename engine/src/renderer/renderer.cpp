@@ -24,7 +24,9 @@ RenderDevice::~RenderDevice() {
 
 bool RenderDevice::initialize(void* window_handle) {
     (void)window_handle;
-    POKO_LOG_INFO("Initializing render device");
+    POKO_LOG_INFO("Initializing render device (abstraction layer)");
+    // TODO: Initialize Diligent Engine when submodules are properly configured
+    // For now, return false to indicate not fully initialized
     return false;
 }
 
@@ -40,7 +42,7 @@ std::string RenderDevice::get_device_name() const {
     if (!initialized_) {
         return "Not initialized";
     }
-    return "Graphics Device";
+    return "Graphics Device (abstraction layer)";
 }
 
 // Swapchain implementation
@@ -66,6 +68,7 @@ bool Swapchain::create(int width, int height, bool vsync) {
     vsync_ = vsync;
 
     POKO_LOG_INFO("Creating swapchain: " + std::to_string(width) + "x" + std::to_string(height));
+    // TODO: Create Diligent swapchain when submodules are properly configured
     return false;
 }
 
@@ -73,9 +76,11 @@ void Swapchain::resize(int width, int height) {
     width_ = width;
     height_ = height;
     POKO_LOG_INFO("Resizing swapchain: " + std::to_string(width) + "x" + std::to_string(height));
+    // TODO: Resize Diligent swapchain when submodules are properly configured
 }
 
 void Swapchain::present() {
+    // TODO: Present with Diligent swapchain when submodules are properly configured
 }
 
 // Renderer implementation
@@ -108,7 +113,7 @@ bool Renderer::initialize(void* window_handle, const RenderSettings& settings) {
     }
 
     initialized_ = true;
-    POKO_LOG_INFO("Renderer initialized successfully");
+    POKO_LOG_INFO("Renderer initialized successfully (abstraction layer)");
     return true;
 }
 
@@ -122,6 +127,7 @@ void Renderer::shutdown() {
 }
 
 void Renderer::begin_frame() {
+    // TODO: Begin frame with Diligent Engine when submodules are properly configured
 }
 
 void Renderer::end_frame() {
@@ -131,11 +137,16 @@ void Renderer::end_frame() {
 }
 
 void Renderer::render() {
+    // TODO: Full render pipeline implementation
+    // World -> visibility -> culling -> LOD -> material grouping
+    // -> render graph -> shadow passes -> opaque/transparency
+    // -> post processing -> UI composition -> presentation
 }
 
 void Renderer::set_settings(const RenderSettings& settings) {
     settings_ = settings;
     POKO_LOG_INFO("Render settings updated");
+    // TODO: Apply new settings to the renderer
 }
 
 } // namespace renderer

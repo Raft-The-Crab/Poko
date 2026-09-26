@@ -34,3 +34,10 @@ docs/
 *.so
 *.dll
 *.exe
+
+# External dependency subdirectories with git issues
+external/diligentcore/ThirdParty/SPIRV-Tools/
+external/diligentcore/ThirdParty/glslang/
+external/diligentcore/ThirdParty/SPIRV-Cross/
+external/diligentcore/ThirdParty/volk/
+

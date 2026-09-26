@@ -18,19 +18,21 @@ This directory contains third-party library source code used by Poko Engine.
   - Repository: https://github.com/DiligentGraphics/DiligentEngine
   - Revision: ee29581ef213c564ae15626e24cc38bf8a35a44a
   - Purpose: Cross-platform graphics API abstraction (DirectX 11/12, Vulkan, Metal, OpenGL)
-  - Status: ✅ Installed
-  - Adapter: `engine/src/renderer/` (to be implemented)
+  - Status: ⚠️ Installed but temporarily disabled (submodule initialization issues)
+  - Adapter: `engine/src/renderer/` (abstraction layer ready, awaiting proper CMake configuration)
   - License: Apache 2.0
   - Local patches: None
+  - Notes: ThirdParty subdirectories (SPIRV-Tools, glslang, SPIRV-Cross, volk) need proper initialization
 
 - **Diligent Core** - Core utilities for Diligent Engine
   - Repository: https://github.com/DiligentGraphics/DiligentCore
   - Revision: 18bfa7b7563a0ef5b5fe074d37c2e8304100e965
   - Purpose: Core utilities shared across Diligent Engine components
-  - Status: ✅ Installed
+  - Status: ⚠️ Installed but temporarily disabled (submodule initialization issues)
   - Adapter: Integrated with Diligent Engine
   - License: Apache 2.0
   - Local patches: None
+  - Notes: ThirdParty subdirectories need proper initialization
 
 ### Physics
 - **Jolt Physics** - Rigid-body physics simulation
