@@ -73,12 +73,12 @@ file(GLOB ENGINE_MEMORY_HEADERS
 )
 
 # Source files - Runtime
-file(GLOB ENGINE_RUNTIME_SOURCES
+file(GLOB_RECURSE ENGINE_RUNTIME_SOURCES
     "${ENGINE_SOURCE_DIR}/runtime/*.cpp"
     "${ENGINE_SOURCE_DIR}/runtime/*.cc"
 )
 
-file(GLOB ENGINE_RUNTIME_HEADERS
+file(GLOB_RECURSE ENGINE_RUNTIME_HEADERS
     "${ENGINE_INCLUDE_DIR}/runtime/*.h"
     "${ENGINE_INCLUDE_DIR}/runtime/*.hpp"
 )
