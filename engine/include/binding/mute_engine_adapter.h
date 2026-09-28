@@ -107,6 +107,13 @@ void mute_engine_adapter_set_function(const char* name, void* function_ptr);
  */
 void mute_engine_adapter_register_functions(void);
 
+/**
+ * @brief Get memory allocation statistics
+ * @param total_allocated Output total bytes allocated
+ * @param allocation_count Output number of allocations
+ */
+void mute_engine_adapter_get_memory_stats(size_t* total_allocated, size_t* allocation_count);
+
 #ifdef __cplusplus
 }
 #endif

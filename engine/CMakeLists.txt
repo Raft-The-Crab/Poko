@@ -49,11 +49,17 @@ set(DILIGENT_CORE_DIR "${EXTERNAL_DIR}/diligentcore")
 
 # Jolt Physics
 set(JOLT_DIR "${EXTERNAL_DIR}/jolt")
-if(EXISTS "${JOLT_DIR}")
+set(JOLT_INCLUDE_DIR "${JOLT_DIR}/Jolt")
+set(JOLT_LIBRARY_DIR "${JOLT_DIR}/Build/MinGW_Debug")
+set(JOLT_LIBRARY "${JOLT_LIBRARY_DIR}/libJolt.a")
+
+if(EXISTS "${JOLT_DIR}" AND EXISTS "${JOLT_LIBRARY}")
     message(STATUS "Jolt Physics found at ${JOLT_DIR}")
-    # Jolt will be added when physics is implemented
+    message(STATUS "Jolt Library: ${JOLT_LIBRARY}")
+    include_directories(${JOLT_INCLUDE_DIR})
 else()
-    message(WARNING "Jolt Physics not found - physics will be stub")
+    message(WARNING "Jolt Physics not found or not built - physics will be stub")
+    set(JOLT_LIBRARY "")
 endif()
 
 # Source files - Core logging
@@ -163,14 +169,89 @@ file(GLOB_RECURSE ENGINE_RENDERER_HEADERS
 )
 
 # Source files - Physics
-file(GLOB ENGINE_PHYSICS_SOURCES
-    "${ENGINE_SOURCE_DIR}/physics/*.cpp"
-    "${ENGINE_SOURCE_DIR}/physics/*.cc"
-)
+if(EXISTS "${JOLT_LIBRARY}")
+    # Use Jolt physics adapter
+    set(ENGINE_PHYSICS_SOURCES
+        "${ENGINE_SOURCE_DIR}/physics/jolt/jolt_adapter.cpp"
+    )
+    message(STATUS "Using Jolt Physics adapter")
+else()
+    # Use placeholder physics
+    set(ENGINE_PHYSICS_SOURCES
+        "${ENGINE_SOURCE_DIR}/physics/physics_placeholder.cpp"
+    )
+    message(STATUS "Using placeholder physics")
+endif()
 
-file(GLOB ENGINE_PHYSICS_HEADERS
+file(GLOB_RECURSE ENGINE_PHYSICS_HEADERS
     "${ENGINE_INCLUDE_DIR}/physics/*.h"
     "${ENGINE_INCLUDE_DIR}/physics/*.hpp"
+)
+
+# Source files - Audio
+file(GLOB_RECURSE ENGINE_AUDIO_SOURCES
+    "${ENGINE_SOURCE_DIR}/audio/*.cpp"
+    "${ENGINE_SOURCE_DIR}/audio/*.cc"
+)
+
+file(GLOB_RECURSE ENGINE_AUDIO_HEADERS
+    "${ENGINE_INCLUDE_DIR}/audio/*.h"
+    "${ENGINE_INCLUDE_DIR}/audio/*.hpp"
+)
+
+# Source files - Input
+file(GLOB_RECURSE ENGINE_INPUT_SOURCES
+    "${ENGINE_SOURCE_DIR}/input/*.cpp"
+    "${ENGINE_SOURCE_DIR}/input/*.cc"
+)
+
+file(GLOB_RECURSE ENGINE_INPUT_HEADERS
+    "${ENGINE_INCLUDE_DIR}/input/*.h"
+    "${ENGINE_INCLUDE_DIR}/input/*.hpp"
+)
+
+# Source files - Camera
+file(GLOB_RECURSE ENGINE_CAMERA_SOURCES
+    "${ENGINE_SOURCE_DIR}/camera/*.cpp"
+    "${ENGINE_SOURCE_DIR}/camera/*.cc"
+)
+
+file(GLOB_RECURSE ENGINE_CAMERA_HEADERS
+    "${ENGINE_INCLUDE_DIR}/camera/*.h"
+    "${ENGINE_INCLUDE_DIR}/camera/*.hpp"
+)
+
+# Source files - Animation
+file(GLOB_RECURSE ENGINE_ANIMATION_SOURCES
+    "${ENGINE_SOURCE_DIR}/animation/*.cpp"
+    "${ENGINE_SOURCE_DIR}/animation/*.cc"
+)
+
+file(GLOB_RECURSE ENGINE_ANIMATION_HEADERS
+    "${ENGINE_INCLUDE_DIR}/animation/*.h"
+    "${ENGINE_INCLUDE_DIR}/animation/*.hpp"
+)
+
+# Source files - UI
+file(GLOB_RECURSE ENGINE_UI_SOURCES
+    "${ENGINE_SOURCE_DIR}/ui/*.cpp"
+    "${ENGINE_SOURCE_DIR}/ui/*.cc"
+)
+
+file(GLOB_RECURSE ENGINE_UI_HEADERS
+    "${ENGINE_INCLUDE_DIR}/ui/*.h"
+    "${ENGINE_INCLUDE_DIR}/ui/*.hpp"
+)
+
+# Source files - Networking
+file(GLOB_RECURSE ENGINE_NETWORKING_SOURCES
+    "${ENGINE_SOURCE_DIR}/networking/*.cpp"
+    "${ENGINE_SOURCE_DIR}/networking/*.cc"
+)
+
+file(GLOB_RECURSE ENGINE_NETWORKING_HEADERS
+    "${ENGINE_INCLUDE_DIR}/networking/*.h"
+    "${ENGINE_INCLUDE_DIR}/networking/*.hpp"
 )
 
 # Core engine library
@@ -193,6 +274,18 @@ add_library(poko_core STATIC
     ${ENGINE_RENDERER_HEADERS}
     ${ENGINE_PHYSICS_SOURCES}
     ${ENGINE_PHYSICS_HEADERS}
+    ${ENGINE_AUDIO_SOURCES}
+    ${ENGINE_AUDIO_HEADERS}
+    ${ENGINE_INPUT_SOURCES}
+    ${ENGINE_INPUT_HEADERS}
+    ${ENGINE_CAMERA_SOURCES}
+    ${ENGINE_CAMERA_HEADERS}
+    ${ENGINE_ANIMATION_SOURCES}
+    ${ENGINE_ANIMATION_HEADERS}
+    ${ENGINE_UI_SOURCES}
+    ${ENGINE_UI_HEADERS}
+    ${ENGINE_NETWORKING_SOURCES}
+    ${ENGINE_NETWORKING_HEADERS}
     ${ENGINE_CORE_PLACEHOLDERS}
 )
 
@@ -202,6 +295,52 @@ target_include_directories(poko_core PUBLIC
 )
 
 target_compile_features(poko_core PUBLIC cxx_std_20)
+
+# Link Windows libraries for audio support
+if(WIN32)
+    target_link_libraries(poko_core PUBLIC winmm)
+endif()
+
+# Miniaudio - for production audio
+set(MINIAUDIO_DIR "${EXTERNAL_DIR}/miniaudio")
+if(EXISTS "${MINIAUDIO_DIR}")
+    message(STATUS "Miniaudio found at ${MINIAUDIO_DIR}")
+    target_include_directories(poko_core PUBLIC "${MINIAUDIO_DIR}")
+    target_compile_definitions(poko_core PUBLIC MA_NO_DEVICE_NOTIFICATION=1)
+endif()
+
+# Jolt Physics - for production physics
+set(JOLT_DIR "${EXTERNAL_DIR}/jolt")
+set(JOLT_LIBRARY "${JOLT_DIR}/Build/MinGW_Debug/libJolt.a")
+if(EXISTS "${JOLT_DIR}" AND EXISTS "${JOLT_LIBRARY}")
+    message(STATUS "Jolt Physics found at ${JOLT_DIR}")
+    message(STATUS "Linking Jolt Physics library: ${JOLT_LIBRARY}")
+    target_include_directories(poko_core PUBLIC "${JOLT_DIR}/Jolt")
+    target_link_libraries(poko_core PUBLIC "${JOLT_LIBRARY}")
+else()
+    message(WARNING "Jolt Physics library not found at ${JOLT_LIBRARY}")
+endif()
+
+# libsodium - for networking/cryptography
+set(SODIUM_DIR "${EXTERNAL_DIR}/libsodium")
+if(EXISTS "${SODIUM_DIR}")
+    message(STATUS "libsodium found at ${SODIUM_DIR}")
+    target_include_directories(poko_core PUBLIC "${SODIUM_DIR}/src/libsodium/include")
+endif()
+
+# meshoptimizer - for mesh optimization
+set(MESHOPTIMIZER_DIR "${EXTERNAL_DIR}/meshoptimizer")
+if(EXISTS "${MESHOPTIMIZER_DIR}")
+    message(STATUS "meshoptimizer found at ${MESHOPTIMIZER_DIR}")
+    target_include_directories(poko_core PUBLIC "${MESHOPTIMIZER_DIR}/src")
+endif()
+
+# zstd - for compression
+set(ZSTD_DIR "${EXTERNAL_DIR}/zstd")
+if(EXISTS "${ZSTD_DIR}")
+    message(STATUS "zstd found at ${ZSTD_DIR}")
+    target_include_directories(poko_core PUBLIC "${ZSTD_DIR}/lib")
+endif()
 
 # Mute Language Integration
 set(MUTE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../mute")
