@@ -133,6 +133,8 @@ file(GLOB ENGINE_BINDING_HEADERS
     "${ENGINE_INCLUDE_DIR}/binding/*.hpp"
 )
 
+
+
 # Source files - Core (other modules - placeholders for now)
 file(GLOB ENGINE_CORE_PLACEHOLDERS
     "${ENGINE_SOURCE_DIR}/core/*/placeholder.cpp"
@@ -160,6 +162,17 @@ file(GLOB_RECURSE ENGINE_RENDERER_HEADERS
     "${ENGINE_INCLUDE_DIR}/renderer/*.hpp"
 )
 
+# Source files - Physics
+file(GLOB ENGINE_PHYSICS_SOURCES
+    "${ENGINE_SOURCE_DIR}/physics/*.cpp"
+    "${ENGINE_SOURCE_DIR}/physics/*.cc"
+)
+
+file(GLOB ENGINE_PHYSICS_HEADERS
+    "${ENGINE_INCLUDE_DIR}/physics/*.h"
+    "${ENGINE_INCLUDE_DIR}/physics/*.hpp"
+)
+
 # Core engine library
 add_library(poko_core STATIC
     ${ENGINE_LOGGING_SOURCES}
@@ -178,6 +191,8 @@ add_library(poko_core STATIC
     ${ENGINE_BINDING_HEADERS}
     ${ENGINE_RENDERER_SOURCES}
     ${ENGINE_RENDERER_HEADERS}
+    ${ENGINE_PHYSICS_SOURCES}
+    ${ENGINE_PHYSICS_HEADERS}
     ${ENGINE_CORE_PLACEHOLDERS}
 )
 
@@ -187,6 +202,26 @@ target_include_directories(poko_core PUBLIC
 )
 
 target_compile_features(poko_core PUBLIC cxx_std_20)
+
+# Mute Language Integration
+set(MUTE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../mute")
+if(EXISTS "${MUTE_DIR}")
+    message(STATUS "Mute language found at ${MUTE_DIR}")
+    
+    # Add Mute as a subdirectory
+    add_subdirectory(${MUTE_DIR} ${CMAKE_BINARY_DIR}/mute EXCLUDE_FROM_ALL)
+    
+    # Link Mute library to engine
+    target_link_libraries(poko_core PUBLIC mute)
+    
+    target_include_directories(poko_core PUBLIC
+        $<BUILD_INTERFACE:${MUTE_DIR}/include>
+    )
+    
+    target_compile_definitions(poko_core PUBLIC MUTE_INTEGRATION_ENABLED)
+else()
+    message(WARNING "Mute language not found - scripting will be disabled")
+endif()
 
 # Link Diligent Engine if available (temporarily disabled)
 # if(EXISTS "${DILIGENT_DIR}" AND EXISTS "${DILIGENT_CORE_DIR}")
@@ -239,6 +274,11 @@ install(TARGETS poko_core
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
     RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY include/
+    DESTINATION include
+    FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
 )
 
 if(ENGINE_PLATFORM_SOURCES OR ENGINE_PLATFORM_HEADERS)

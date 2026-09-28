@@ -1069,7 +1069,218 @@ golden diagnostics
 bytecode determinism checks
 runtime regression benchmarks
 
-## 77. Engine/Meta Registry
+## 77. Mute Language Server
+
+Mute includes a built-in language server within the Mute language itself - no external backend service required.
+The language server is embedded in the Mute compiler runtime and operates entirely client-side.
+
+**Architecture:**
+- Language server is compiled as a native library that can be loaded by Studio or other editors
+- Uses a lightweight JSON-RPC or binary protocol for editor communication
+- Maintains persistent compiler state for incremental analysis
+- Shares the same compiler pipeline as the runtime (lexer, parser, AST, name resolution, type checking)
+- No cloud service, no external API calls, fully offline-capable
+
+**Features:**
+- Real-time syntax highlighting with precise tokenization
+- Error and warning diagnostics with source ranges and quick-fix suggestions
+- Go-to-definition and find-references across the entire project
+- Type-aware autocomplete with context-sensitive suggestions
+- Signature help for function calls with parameter documentation
+- Hover information showing types, documentation, and inline examples
+- Workspace-wide symbol search and indexing
+- Code navigation across module boundaries
+- Real-time type checking as you type
+- Rename refactoring with scope awareness
+- Inlay hints for implicit types and parameter names
+
+**Performance Techniques:**
+- Incremental parsing - only re-parse changed files
+- Persistent symbol index with lazy loading
+- Background type checking on modified files
+- Debounced requests to avoid thrashing
+- LRU cache for symbol lookups
+- Optimized data structures for large projects (tries, bloom filters for prefixes)
+- Memory-mapped file reading for large source files
+- Concurrent symbol indexing for project startup
+
+**Client-Side Autocomplete System:**
+
+Autocomplete is entirely client-side with no backend dependency:
+- Uses static analysis from the compiler pipeline
+- Builds a symbol graph during compilation
+- Maintains a trie-based index for fast prefix matching
+- Ranks suggestions by:
+  - Lexical distance to typed prefix
+  - Type compatibility
+  - Scope proximity (local before global)
+  - Recent usage frequency
+  - Contextual relevance (e.g., after a dot, show instance members)
+- Provides fuzzy matching for typos
+- Shows parameter information for function calls
+- Displays return types and documentation inline
+- Handles engine API completions through metadata registry
+- Supports snippet expansion for common patterns
+
+**Autocomplete Ranking Algorithm:**
+```
+Score = (prefix_match * 0.4) + (type_compatibility * 0.2) + (scope_proximity * 0.15) + (recency * 0.15) + (context_relevance * 0.1)
+```
+
+- prefix_match: Exact match > prefix match > fuzzy match
+- type_compatibility: Exact type match > compatible type > any type
+- scope_proximity: Local variables > function scope > module scope > imported
+- recency: Decay based on time since last use (exponential decay)
+- context_relevance: Member access after dot, property access, etc.
+
+**No Backend Design:**
+- All analysis happens in the editor process or a local subprocess
+- Symbol index is built incrementally and persisted to disk
+- Engine API metadata is shipped with the Mute runtime (compiled-in)
+- No network calls, no API keys, no privacy concerns
+- Works offline without internet connection
+- Fast startup with persisted cache
+- Low latency responses (<50ms for most operations)
+
+## 78. Mute Compiler Optimization Strategy
+
+Mute uses a hybrid optimization approach combining AOT (Ahead-Of-Time) compilation with selective JIT (Just-In-Time) hot-spot optimization.
+
+**Primary Approach: AOT Bytecode Compiler**
+
+The default compilation mode is AOT bytecode compilation:
+- Source → HIR → Optimized HIR → Bytecode
+- Bytecode is deterministic, portable, and easy to debug
+- Suitable for client/server distribution via PKX packages
+- Fast compilation times (<100ms for typical files)
+- Good baseline performance for most game code
+
+**Optimization Levels:**
+
+1. **Level 0 (Debug):**
+   - Minimal optimizations
+   - Preserves source mapping for debugging
+   - Includes runtime bounds checks
+   - No dead code elimination
+   - Full diagnostics metadata
+
+2. **Level 1 (Basic - Default):**
+   - Constant folding and propagation
+   - Dead code elimination
+   - Simple control-flow simplification
+   - Inline small functions (<10 instructions)
+   - Type specialization for known types
+   - Loop-invariant code motion
+
+3. **Level 2 (Aggressive):**
+   - All Level 1 optimizations
+   - Advanced DCE across module boundaries
+   - Loop unrolling for small fixed loops
+   - Function inlining with heuristics
+   - Devirtualization of virtual calls
+   - Escape analysis for allocations
+   - Specialized collection operations
+
+4. **Level 3 (Release):**
+   - All Level 2 optimizations
+   - Whole-program analysis
+   - Interprocedural optimization
+   - Layout optimization for structures
+   - Hot/cold code splitting
+   - Stripped diagnostics metadata
+   - Aggressive constant propagation
+
+**Secondary Approach: Selective JIT for Hot Spots**
+
+For performance-critical code paths, Mute uses a selective tiered JIT:
+
+**Tier 1: Baseline Interpreter**
+- Bytecode interpreter with minimal overhead
+- Used for initial execution
+- Low startup cost
+- Good for rarely-executed code
+
+**Tier 2: Baseline JIT**
+- One-to-one bytecode to native code translation
+- No complex optimizations
+- Fast compilation (<1ms)
+- Good for warm code
+- Includes runtime type checks
+
+**Tier 3: Optimizing JIT**
+- Hot functions are identified by profiling counters
+- Compilation after N executions (default: 1000)
+- Advanced optimizations:
+  - Inline caching for property access
+  - Type feedback from runtime
+  - Speculative optimization with deoptimization guards
+  - Loop optimization
+  - Register allocation
+- Revert to Tier 2 if speculation fails
+
+**Tier 4: Aggressive JIT (Optional)**
+- Only for extremely hot functions (top 1%)
+- Profile-guided recompilation
+- Aggressive inlining
+- Specialization based on observed types
+- Vectorization where applicable
+- May use platform-specific SIMD
+
+**Profiling-Guided Optimization (PGO):**
+
+- Runtime profiling collects:
+  - Function call counts
+  - Branch frequencies
+  - Type distribution
+  - Allocation patterns
+  - Hot loops
+- PGO data can be collected during development testing
+- Used to inform AOT optimization decisions for release builds
+- Stored in profile files (.pgodata) alongside source
+
+**Incremental Compilation with Optimization Cache:**
+
+- Cache optimized intermediate representations
+- Invalidate only affected portions of the dependency graph
+- Reuse optimization passes when possible
+- Parallel compilation for independent modules
+- Link-time optimization (LTO) for final package assembly
+
+**Optimization Passes:**
+
+1. **Constant Folding:** Evaluate constant expressions at compile time
+2. **Constant Propagation:** Replace variables with known constant values
+3. **Dead Code Elimination:** Remove unreachable code and unused assignments
+4. **Control Flow Simplification:** Remove redundant branches, merge blocks
+5. **Loop Invariant Code Motion:** Move loop-invariant calculations outside loops
+6. **Common Subexpression Elimination:** Cache computed expressions
+7. **Function Inlining:** Replace function calls with function bodies
+8. **Type Specialization:** Generate specialized versions for known types
+9. **Devirtualization:** Convert virtual calls to direct calls when possible
+10. **Escape Analysis:** Determine if allocations can be stack-allocated
+11. **Loop Unrolling:** Replicate loop bodies for small fixed iteration counts
+12. **Vectorization:** Convert scalar operations to SIMD where applicable (Tier 4)
+13. **Register Allocation:** Assign values to CPU registers efficiently
+14. **Layout Optimization:** Reorder struct fields for better cache locality
+
+**Trade-offs:**
+
+- AOT bytecode: predictable performance, good debugging, portable
+- JIT: higher peak performance, dynamic adaptation, more complexity
+- The hybrid approach gives us the best of both worlds
+- JIT is opt-in via optimization level or explicit annotations
+- Most game code runs well with AOT Level 2 optimizations
+- Only extremely hot paths benefit from Tier 3/4 JIT
+
+**Safety:**
+
+- All optimization levels preserve semantic correctness
+- Runtime bounds checks remain in all levels (can be disabled in Level 3)
+- Deoptimization guards in JIT ensure fallback to safe execution
+- No undefined behavior from optimizations
+- Deterministic outputs for given inputs (except JIT profiling-based optimization)
+
+## 79. Engine/Meta Registry
 
 Create a single authoritative metadata registry for engine classes and APIs.
 Registry feeds:
