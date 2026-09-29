@@ -19,10 +19,23 @@
 #include <cstdint>
 #include <atomic>
 #include <mutex>
+#include <cassert>
 
 namespace poko {
 namespace core {
 namespace memory {
+
+// ============================================================================
+// Debug Utilities
+// ============================================================================
+
+#if defined(_DEBUG) || defined(DEBUG)
+    #define POKO_MEMORY_ASSERT(cond) assert(cond)
+    #define POKO_MEMORY_ALWAYS_ASSERT(cond) assert(cond)
+#else
+    #define POKO_MEMORY_ASSERT(cond) ((void)0)
+    #define POKO_MEMORY_ALWAYS_ASSERT(cond) assert(cond)
+#endif
 
 /**
  * @brief Memory allocation flags
@@ -59,6 +72,9 @@ constexpr uint8_t GUARD_PATTERN = 0xCD;
 
 /// Size of guard regions before and after allocations
 constexpr size_t GUARD_SIZE = 8;
+
+/// Maximum allocation size for small object optimization
+constexpr size_t MAX_SMALL_ALLOCATION = 1024;
 
 // ============================================================================
 // Allocation Flags Operators

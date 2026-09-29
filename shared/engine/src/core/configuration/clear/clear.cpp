@@ -17,7 +17,12 @@ namespace configuration {
 /**
  * @brief Clear all configuration values
  * 
- * Removes all configuration values but keeps defaults.
+ * Removes all user-set configuration values but preserves default values.
+ * After clearing, all keys will return their default values (if set).
+ * 
+ * @note This is a destructive operation that cannot be undone
+ * @note Default values are preserved
+ * @note Thread-safe via mutex protection
  */
 void Configuration::clear() {
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -27,7 +32,13 @@ void Configuration::clear() {
 /**
  * @brief Get number of configuration entries
  * 
- * @return Number of entries
+ * Returns the count of user-set configuration values.
+ * Does not include default values in the count.
+ * 
+ * @return Number of user-set configuration entries
+ * 
+ * @note Only counts user-set values, not defaults
+ * @note Thread-safe via mutex protection
  */
 size_t Configuration::size() const {
     std::lock_guard<std::mutex> lock(m_mutex);
