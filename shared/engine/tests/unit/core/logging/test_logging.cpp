@@ -12,7 +12,6 @@
 #include <cassert>
 #include <iostream>
 #include <fstream>
-#include <filesystem>
 #include <thread>
 
 namespace poko {
@@ -131,10 +130,12 @@ void test_file_sink() {
     }
     
     // Verify file was created
-    assert(std::filesystem::exists(testFile));
+    std::ifstream checkFile(testFile);
+    assert(checkFile.good());
+    checkFile.close();
     
     // Clean up
-    std::filesystem::remove(testFile);
+    std::remove(testFile.c_str());
     
     std::cout << "✓ File sink tests passed" << std::endl;
 }

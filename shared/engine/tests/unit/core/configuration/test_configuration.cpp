@@ -12,7 +12,6 @@
 #include <cassert>
 #include <iostream>
 #include <fstream>
-#include <filesystem>
 #include <thread>
 
 namespace poko {
@@ -172,7 +171,7 @@ void test_configuration_file_io() {
     assert(config2.getString("file_string") == "test");
     
     // Clean up
-    std::filesystem::remove(testFile);
+    std::remove(testFile.c_str());
     
     std::cout << "✓ Configuration file I/O tests passed" << std::endl;
 }

@@ -62,17 +62,31 @@ bool Configuration::loadFromFile(const std::string& filepath) {
             } else if (valueStr == "false") {
                 m_values[key] = false;
             } else {
-                // Try integer
-                try {
-                    int intVal = std::stoi(valueStr);
-                    m_values[key] = intVal;
-                } catch (...) {
-                    // Try double
+                // Check if it's a floating point number (contains decimal point or scientific notation)
+                bool isFloat = false;
+                for (char c : valueStr) {
+                    if (c == '.' || c == 'e' || c == 'E') {
+                        isFloat = true;
+                        break;
+                    }
+                }
+                
+                if (isFloat) {
+                    // Parse as double
                     try {
                         double doubleVal = std::stod(valueStr);
                         m_values[key] = doubleVal;
                     } catch (...) {
-                        // String
+                        // Fallback to string
+                        m_values[key] = valueStr;
+                    }
+                } else {
+                    // Try integer
+                    try {
+                        int intVal = std::stoi(valueStr);
+                        m_values[key] = intVal;
+                    } catch (...) {
+                        // Fallback to string
                         m_values[key] = valueStr;
                     }
                 }

@@ -380,9 +380,13 @@ Additional production-quality improvements across all implemented modules (items
 
 #### Build Status
 - All modules compiled successfully with no warnings
-- 7/9 tests passing (78%)
-- Configuration and logging tests fail with DLL load error (environment issue, not code issue)
+- 9/9 tests passing (100%)
 - 102 test suites total across 9 modules
+
+#### Test Fixes
+- **Core Configuration**: Fixed floating-point parsing in loadFromFile to correctly identify double values before integer parsing (prevents 2.718 from being parsed as 2)
+- **Core Logging**: Replaced std::filesystem calls with portable std::ifstream/std::remove for file sink verification
+- All tests now pass with no environment issues
 
 #### Git
 - **Commit**: (to be added)
