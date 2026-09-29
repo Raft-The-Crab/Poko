@@ -22,6 +22,18 @@ Property::Property(const PropertyMetadata& metadata)
     // Validate metadata name
     if (m_metadata.name.empty()) {
         m_metadata.name = "UnnamedProperty";
+    } else if (m_metadata.name.length() > MAX_PROPERTY_NAME_LENGTH) {
+        m_metadata.name = m_metadata.name.substr(0, MAX_PROPERTY_NAME_LENGTH);
+    }
+    
+    // Validate category length
+    if (m_metadata.category.length() > MAX_PROPERTY_CATEGORY_LENGTH) {
+        m_metadata.category = m_metadata.category.substr(0, MAX_PROPERTY_CATEGORY_LENGTH);
+    }
+    
+    // Validate description length
+    if (m_metadata.description.length() > MAX_PROPERTY_DESCRIPTION_LENGTH) {
+        m_metadata.description = m_metadata.description.substr(0, MAX_PROPERTY_DESCRIPTION_LENGTH);
     }
 }
 
@@ -33,6 +45,18 @@ Property::Property(const PropertyMetadata& metadata, const PropertyValue& value)
     // Validate metadata name
     if (m_metadata.name.empty()) {
         m_metadata.name = "UnnamedProperty";
+    } else if (m_metadata.name.length() > MAX_PROPERTY_NAME_LENGTH) {
+        m_metadata.name = m_metadata.name.substr(0, MAX_PROPERTY_NAME_LENGTH);
+    }
+    
+    // Validate category length
+    if (m_metadata.category.length() > MAX_PROPERTY_CATEGORY_LENGTH) {
+        m_metadata.category = m_metadata.category.substr(0, MAX_PROPERTY_CATEGORY_LENGTH);
+    }
+    
+    // Validate description length
+    if (m_metadata.description.length() > MAX_PROPERTY_DESCRIPTION_LENGTH) {
+        m_metadata.description = m_metadata.description.substr(0, MAX_PROPERTY_DESCRIPTION_LENGTH);
     }
 }
 

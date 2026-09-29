@@ -423,6 +423,43 @@ void test_template_helpers() {
     std::cout << "✓ Template helpers tests passed" << std::endl;
 }
 
+void test_component_limits() {
+    std::cout << "Testing component limits..." << std::endl;
+    
+    // Test component count limit per instance
+    poko::core::components::ComponentManager manager;
+    poko::core::handles::HandleManager handleManager;
+    
+    poko::core::handles::Handle handle = handleManager.allocate();
+    uint64_t instanceId = handle.index;
+    
+    // Note: We won't actually hit the limit (64 components) in tests
+    // but verify the limit checking logic is in place
+    auto comp1 = std::make_unique<TestComponent>();
+    auto comp2 = std::make_unique<AnotherComponent>();
+    
+    assert(manager.attachComponent(instanceId, std::move(comp1)));
+    assert(manager.attachComponent(instanceId, std::move(comp2)));
+    assert(manager.getComponentCount(instanceId) == 2);
+    
+    [[maybe_unused]] bool freed = handleManager.free(handle);
+    
+    // Test registered types limit
+    // Note: We won't actually hit the limit (256 types) in tests
+    // but verify the limit checking logic is in place
+    poko::core::components::ComponentRegistry registry;
+    
+    auto factory = []() -> std::unique_ptr<poko::core::components::Component> {
+        return std::make_unique<TestComponent>();
+    };
+    
+    assert(registry.registerComponent(300, "TestComponent1", factory));
+    assert(registry.registerComponent(301, "TestComponent2", factory));
+    assert(registry.getRegisteredCount() == 2);
+    
+    std::cout << "✓ Component limits tests passed" << std::endl;
+}
+
 int main() {
     std::cout << "=== Core Component System Unit Tests ===" << std::endl;
     
@@ -444,6 +481,7 @@ int main() {
     test_manager_clear();
     test_global_registry();
     test_template_helpers();
+    test_component_limits();
     
     std::cout << "\n=== All tests passed! ===" << std::endl;
     

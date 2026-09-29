@@ -44,6 +44,21 @@ using ComponentID = uint32_t;
  */
 constexpr ComponentID INVALID_COMPONENT_ID = 0;
 
+/**
+ * @brief Maximum component type name length (for safety)
+ */
+constexpr size_t MAX_COMPONENT_TYPE_NAME_LENGTH = 128;
+
+/**
+ * @brief Maximum components per instance (for safety)
+ */
+constexpr size_t MAX_COMPONENTS_PER_INSTANCE = 64;
+
+/**
+ * @brief Maximum registered component types (for safety)
+ */
+constexpr size_t MAX_REGISTERED_COMPONENT_TYPES = 256;
+
 // ============================================================================
 // Component Lifecycle State
 // ============================================================================

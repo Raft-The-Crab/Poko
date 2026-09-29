@@ -30,6 +30,11 @@ bool ComponentManager::attachComponent(uint64_t instanceId, std::unique_ptr<Comp
     // Find or create component map for this instance
     auto& components = m_instanceComponents[instanceId];
     
+    // Check component count limit
+    if (components.size() >= MAX_COMPONENTS_PER_INSTANCE) {
+        return false;
+    }
+    
     // Check if component of this type already exists
     if (components.find(typeId) != components.end()) {
         return false; // Already attached

@@ -26,7 +26,21 @@ bool ComponentRegistry::registerComponent(ComponentID typeId, const char* typeNa
         return false;
     }
     
+    // Validate type name length
+    size_t nameLen = 0;
+    while (typeName[nameLen] != '\0') {
+        nameLen++;
+        if (nameLen > MAX_COMPONENT_TYPE_NAME_LENGTH) {
+            return false;
+        }
+    }
+    
     std::lock_guard<std::mutex> lock(m_mutex);
+    
+    // Check registered types limit
+    if (m_types.size() >= MAX_REGISTERED_COMPONENT_TYPES) {
+        return false;
+    }
     
     if (m_types.find(typeId) != m_types.end()) {
         return false; // Already registered

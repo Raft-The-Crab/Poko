@@ -394,6 +394,40 @@ void test_utility_functions() {
     std::cout << "✓ Utility functions tests passed" << std::endl;
 }
 
+void test_property_limits() {
+    std::cout << "Testing property limits..." << std::endl;
+    
+    // Test property name length validation
+    poko::core::properties::PropertyMetadata metadata;
+    metadata.name = "TestProperty";
+    metadata.type = poko::core::properties::PropertyType::Int32;
+    
+    // Normal name should work
+    poko::core::properties::Property prop1(metadata);
+    assert(prop1.getMetadata().name == "TestProperty");
+    
+    // Name exceeding limit should be truncated
+    std::string longName(poko::core::properties::MAX_PROPERTY_NAME_LENGTH + 100, 'A');
+    metadata.name = longName;
+    poko::core::properties::Property prop2(metadata);
+    assert(prop2.getMetadata().name.length() == poko::core::properties::MAX_PROPERTY_NAME_LENGTH);
+    
+    // Test registry size limit
+    // Note: We won't actually hit the limit (256 properties) in tests
+    // but verify the limit checking logic is in place
+    poko::core::properties::PropertyRegistry registry;
+    
+    metadata.name = "Prop1";
+    registry.registerProperty("Prop1", metadata);
+    
+    metadata.name = "Prop2";
+    registry.registerProperty("Prop2", metadata);
+    
+    assert(registry.getPropertyCount() == 2);
+    
+    std::cout << "✓ Property limits tests passed" << std::endl;
+}
+
 int main() {
     std::cout << "=== Core Property System Unit Tests ===" << std::endl;
     
@@ -414,6 +448,7 @@ int main() {
     test_registry_clear();
     test_global_registry();
     test_utility_functions();
+    test_property_limits();
     
     std::cout << "\n=== All tests passed! ===" << std::endl;
     

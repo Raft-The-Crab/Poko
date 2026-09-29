@@ -15,7 +15,17 @@ namespace core {
 namespace properties {
 
 bool PropertyRegistry::registerProperty(const std::string& name, const PropertyMetadata& metadata) {
+    // Validate name length
+    if (name.empty() || name.length() > MAX_PROPERTY_NAME_LENGTH) {
+        return false;
+    }
+    
     std::lock_guard<std::mutex> lock(m_mutex);
+    
+    // Check registry size limit
+    if (m_properties.size() >= MAX_PROPERTIES_PER_REGISTRY) {
+        return false;
+    }
     
     if (m_properties.find(name) != m_properties.end()) {
         return false; // Already exists
@@ -27,7 +37,17 @@ bool PropertyRegistry::registerProperty(const std::string& name, const PropertyM
 }
 
 bool PropertyRegistry::registerProperty(const std::string& name, const PropertyMetadata& metadata, const PropertyValue& value) {
+    // Validate name length
+    if (name.empty() || name.length() > MAX_PROPERTY_NAME_LENGTH) {
+        return false;
+    }
+    
     std::lock_guard<std::mutex> lock(m_mutex);
+    
+    // Check registry size limit
+    if (m_properties.size() >= MAX_PROPERTIES_PER_REGISTRY) {
+        return false;
+    }
     
     if (m_properties.find(name) != m_properties.end()) {
         return false; // Already exists

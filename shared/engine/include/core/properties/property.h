@@ -96,6 +96,25 @@ using PropertyValue = std::variant<
 >;
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+/// Maximum property name length (for safety)
+constexpr size_t MAX_PROPERTY_NAME_LENGTH = 128;
+
+/// Maximum property category length (for safety)
+constexpr size_t MAX_PROPERTY_CATEGORY_LENGTH = 64;
+
+/// Maximum property description length (for safety)
+constexpr size_t MAX_PROPERTY_DESCRIPTION_LENGTH = 512;
+
+/// Maximum properties per registry (for safety)
+constexpr size_t MAX_PROPERTIES_PER_REGISTRY = 256;
+
+/// Maximum vector size for property values (for safety)
+constexpr size_t MAX_PROPERTY_VECTOR_SIZE = 4;
+
+// ============================================================================
 // Property Metadata
 // ============================================================================
 

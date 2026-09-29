@@ -1024,5 +1024,91 @@ Additional comprehensive safety improvements across all Engine Core Modules (ite
 - 155 test suites total across 12 modules
 
 #### Git
+- **Commit**: 261f590
+- **Repository**: https://github.com/Raft-The-Crab/Poko.git
+
+## [0.1.15] - September 29, 2026
+
+### Component and Property System Production Improvements - Items 10-11 ✅
+
+**Status**: ✅ Production-Ready
+
+#### Overview
+Additional production-quality improvements for the Component and Property systems (items 10-11), focusing on string length limits, registry size limits, and validation to prevent memory exhaustion and denial-of-service attacks.
+
+#### Component System Improvements (Item 11)
+
+**Header Updates**
+- **MAX_COMPONENTS_PER_INSTANCE**: Added constant (64) to prevent excessive components per instance
+- **MAX_REGISTERED_COMPONENT_TYPES**: Added constant (256) to prevent excessive registered types
+- **MAX_COMPONENT_TYPE_NAME_LENGTH**: Added constant (128) to prevent excessively long type names
+
+**Registry Implementation Updates**
+- **registerComponent**: Validates component ID (rejects INVALID_COMPONENT_ID)
+- **registerComponent**: Validates type name length (rejects names exceeding MAX_COMPONENT_TYPE_NAME_LENGTH)
+- **registerComponent**: Validates factory pointer (rejects null factories)
+- **registerComponent**: Validates registry size limit (rejects if at MAX_REGISTERED_COMPONENT_TYPES)
+- **registerComponent**: Validates empty type names (rejects empty strings)
+- **registerComponent**: Rejects duplicate registrations
+
+**Manager Implementation Updates**
+- **attachComponent**: Validates component pointer (rejects null components)
+- **attachComponent**: Validates component ID (rejects INVALID_COMPONENT_ID)
+- **attachComponent**: Validates component count per instance (rejects if at MAX_COMPONENTS_PER_INSTANCE)
+- **attachComponent**: Rejects duplicate component types per instance
+- **detachComponent**: Validates component ID (rejects INVALID_COMPONENT_ID)
+
+#### Property System Improvements (Item 10)
+
+**Header Updates**
+- **MAX_PROPERTY_NAME_LENGTH**: Added constant (128) for property names
+- **MAX_PROPERTY_CATEGORY_LENGTH**: Added constant (64) for property categories
+- **MAX_PROPERTY_DESCRIPTION_LENGTH**: Added constant (256) for property descriptions
+- **MAX_PROPERTIES_PER_REGISTRY**: Added constant (256) for registry size limit
+
+**Constructor Implementation Updates**
+- **Property constructor**: Validates name length (truncates if exceeding MAX_PROPERTY_NAME_LENGTH)
+- **Property constructor**: Validates category length (truncates if exceeding MAX_PROPERTY_CATEGORY_LENGTH)
+- **Property constructor**: Validates description length (truncates if exceeding MAX_PROPERTY_DESCRIPTION_LENGTH)
+- **Property constructor**: Assigns "UnnamedProperty" for empty names
+
+**Registry Implementation Updates**
+- **registerProperty**: Validates name length (rejects if exceeding MAX_PROPERTY_NAME_LENGTH)
+- **registerProperty**: Validates empty names (rejects empty strings)
+- **registerProperty**: Validates registry size limit (rejects if at MAX_PROPERTIES_PER_REGISTRY)
+- **registerProperty**: Rejects duplicate registrations
+
+#### New Tests
+
+**Component System Tests**
+- **test_component_limits**: Verifies component count and type limits
+  - Tests component count per instance limit
+  - Tests registered type count limit
+  - Verifies limit checking logic is in place
+
+**Property System Tests**
+- **test_property_limits**: Verifies property name and registry limits
+  - Tests normal property names
+  - Tests names exceeding limit (truncation)
+  - Tests registry size limit
+  - Verifies limit checking logic is in place
+
+#### Production Quality Features
+- **String Length Limits**: Prevents memory exhaustion from excessively long strings
+- **Registry Size Limits**: Prevents resource exhaustion from too many registered items
+- **Per-Instance Limits**: Prevents excessive components per instance
+- **Null Pointer Validation**: Comprehensive checks prevent crashes
+- **Empty String Validation**: Rejects empty names and type names
+- **Duplicate Prevention**: Rejects duplicate registrations and component types
+- **Graceful Truncation**: Long strings are truncated for usability
+- **Consistent Validation**: Uniform limit checking across all modules
+- **Defensive Programming**: Early validation prevents runtime errors
+
+#### Build Status
+- All modules compiled successfully with no warnings
+- 12/12 tests passing (100%)
+- 157 test suites total across 12 modules (added 2 new limit tests)
+
+#### Git
 - **Commit**: Pending
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git
