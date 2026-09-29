@@ -30,18 +30,22 @@ bool BinaryMemorySerializer::serialize(bool& value) {
 }
 
 bool BinaryMemorySerializer::serialize(int8_t& value) {
+    static_assert(sizeof(int8_t) == 1, "int8_t must be 1 byte");
     return serialize(reinterpret_cast<uint8_t&>(value));
 }
 
 bool BinaryMemorySerializer::serialize(int16_t& value) {
+    static_assert(sizeof(int16_t) == 2, "int16_t must be 2 bytes");
     return serialize(reinterpret_cast<uint16_t&>(value));
 }
 
 bool BinaryMemorySerializer::serialize(int32_t& value) {
+    static_assert(sizeof(int32_t) == 4, "int32_t must be 4 bytes");
     return serialize(reinterpret_cast<uint32_t&>(value));
 }
 
 bool BinaryMemorySerializer::serialize(int64_t& value) {
+    static_assert(sizeof(int64_t) == 8, "int64_t must be 8 bytes");
     return serialize(reinterpret_cast<uint64_t&>(value));
 }
 

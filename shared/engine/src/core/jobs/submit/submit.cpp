@@ -15,6 +15,11 @@ namespace core {
 namespace jobs {
 
 JobId JobSystem::submit(std::unique_ptr<Job> job) {
+    // Validate job
+    if (!job) {
+        return INVALID_JOB_ID;
+    }
+    
     std::lock_guard<std::mutex> lock(m_mutex);
     
     if (!m_running.load(std::memory_order_relaxed)) {

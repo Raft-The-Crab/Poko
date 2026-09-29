@@ -15,6 +15,11 @@ namespace core {
 namespace events {
 
 size_t Signal::connect(EventCallback callback) {
+    // Validate callback
+    if (!callback) {
+        return 0; // Invalid connection ID
+    }
+    
     std::lock_guard<std::mutex> lock(m_mutex);
     
     size_t id = m_nextConnectionId.fetch_add(1, std::memory_order_relaxed);

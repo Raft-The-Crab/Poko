@@ -19,6 +19,11 @@ namespace logging {
  * @brief Add a log sink
  */
 void Logger::addSink(std::shared_ptr<LogSink> sink) {
+    // Validate sink
+    if (!sink) {
+        return;
+    }
+    
     std::lock_guard<std::mutex> lock(m_mutex);
     m_sinks.push_back(sink);
 }
