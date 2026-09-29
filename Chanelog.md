@@ -431,5 +431,74 @@ Additional production-quality improvements focused on memory safety, automatic g
 - 102 test suites total across 9 modules
 
 #### Git
+- **Commit**: 5c0ff9b
+- **Repository**: https://github.com/Raft-The-Crab/Poko.git
+
+## [0.1.4] - September 29, 2026
+
+### Runtime Property System - Item 10 ✅
+
+**Status**: ✅ Production-Ready
+
+#### Overview
+Runtime Property System (item 10 from plan.md section 18) has been implemented with Fine-Grained Translation Units. This module provides type-safe properties with metadata, change notifications, and serialization support for runtime objects.
+
+#### Completed Components
+
+**10. Runtime Property System ✅**
+- **Location**: `shared/engine/include/core/properties/`, `shared/engine/src/core/properties/`
+- **Fine-Grained Translation Units**: 6 files in semantic subfolders
+- **Features**:
+  - Type-safe property values using std::variant (bool, int32, int64, float, double, string, vectors, colors)
+  - Property metadata with name, type, flags, default value, min/max, category, and description
+  - Property flags: ReadOnly, Transient, Replicated, EditorOnly, RuntimeOnly, Clamp, Hidden
+  - Change notifications with callbacks (old value, new value)
+  - Property registry for managing multiple properties
+  - Category-based property grouping
+  - Thread-safe operations with mutex protection
+  - Global property registry instance
+  - Utility functions for type conversion and default values
+  - Reset to default functionality
+  - Copy/move semantics with proper locking
+- **Tests**: 17 test suites (basics, setValue, read-only, transient, resetToDefault, callback, string type, vector type, registry basics, registry get/set, registry unregister, registry getNames, registry category, registry resetAll, registry clear, global registry, utility functions)
+- **Build**: `libpoko_core_properties.a`
+
+#### Fine-Grained Translation Units
+
+**constructor/constructor.cpp** - Property constructors and copy/move operators
+**get/get.cpp** - Property getter methods (getValue, getMetadata, getName, getType, isReadOnly, isTransient)
+**set/set.cpp** - Property setter methods (setValue, resetToDefault, setChangeCallback)
+**metadata/metadata.cpp** - Utility functions (propertyTypeToString, stringToPropertyType, getDefaultValueForType)
+**registry/registry.cpp** - PropertyRegistry implementation (register, unregister, getValue, setValue, category queries)
+**interface/interface.cpp** - Global registry interface (getGlobalPropertyRegistry, destroyGlobalPropertyRegistry)
+
+#### Production Quality Features
+- **Thread Safety**: All operations protected by mutex locks
+- **Type Safety**: Strong typing with std::variant for all property values
+- **Change Notifications**: Callback system for reactive programming
+- **Metadata-Driven**: Rich metadata for editor integration and serialization
+- **Flexible Flags**: Support for read-only, transient, replicated, and other property behaviors
+- **Category Grouping**: Organize properties by category for editor UI
+- **Global Registry**: Singleton pattern for engine-wide property management
+- **Memory Safety**: Proper RAII and move semantics with lock guards
+
+#### Build Status
+
+**Libraries Built**
+- `libpoko_core_properties.a` - Runtime property system
+
+**Test Status**
+- **Total Translation Units**: 6 new files
+- **Total Test Suites**: 17 new test suites
+- **Tests Passing**: 17/17 (100%)
+- **Test Executable**: `test_property.exe` (17 suites)
+
+**Overall Test Summary**
+- **Total Modules**: 10 (items 1-10 from plan.md)
+- **Total Translation Units**: 75 + 6 = 81 Fine-Grained files
+- **Total Test Suites**: 102 + 17 = 119 test suites
+- **Tests Passing**: 119/119 (100%)
+
+#### Git
 - **Commit**: (to be added)
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git
