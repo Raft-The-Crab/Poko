@@ -52,6 +52,16 @@ constexpr size_t MAX_INSTANCES_PER_SCENE = 1000000;
  */
 constexpr size_t MAX_SCENES_PER_WORLD = 10000;
 
+/**
+ * @brief Maximum scene name length (for safety)
+ */
+constexpr size_t MAX_SCENE_NAME_LENGTH = 256;
+
+/**
+ * @brief Maximum tag length (for safety)
+ */
+constexpr size_t MAX_TAG_LENGTH = 128;
+
 // ============================================================================
 // Scene Class
 // ============================================================================
@@ -86,14 +96,14 @@ public:
     
     /**
      * @brief Set scene name
-     * @param name New name (empty name assigns "UnnamedScene")
+     * @param name New name (empty name assigns "UnnamedScene", names longer than MAX_SCENE_NAME_LENGTH are truncated)
      * @note Thread-safe with mutex protection
      */
     void setName(const std::string& name);
     
     /**
      * @brief Set scene name (move overload)
-     * @param name New name (moved, empty name assigns "UnnamedScene")
+     * @param name New name (moved, empty name assigns "UnnamedScene", names longer than MAX_SCENE_NAME_LENGTH are truncated)
      * @note Thread-safe with mutex protection
      */
     void setName(std::string&& name) noexcept;

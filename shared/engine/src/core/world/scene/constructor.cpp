@@ -30,7 +30,7 @@ Scene::Scene()
 
 Scene::Scene(const std::string& name)
     : m_id(g_nextSceneId.fetch_add(1, std::memory_order_relaxed))
-    , m_name(name.empty() ? "UnnamedScene" : name)
+    , m_name(name.empty() ? "UnnamedScene" : (name.length() > MAX_SCENE_NAME_LENGTH ? name.substr(0, MAX_SCENE_NAME_LENGTH) : name))
     , m_instances()
     , m_active(false)
     , m_mutex()
@@ -43,12 +43,18 @@ Scene::~Scene() {
 
 void Scene::setName(const std::string& name) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    m_name = name.empty() ? "UnnamedScene" : name;
+    m_name = name.empty() ? "UnnamedScene" : (name.length() > MAX_SCENE_NAME_LENGTH ? name.substr(0, MAX_SCENE_NAME_LENGTH) : name);
 }
 
 void Scene::setName(std::string&& name) noexcept {
     std::lock_guard<std::mutex> lock(m_mutex);
-    m_name = name.empty() ? "UnnamedScene" : std::move(name);
+    if (name.empty()) {
+        m_name = "UnnamedScene";
+    } else if (name.length() > MAX_SCENE_NAME_LENGTH) {
+        m_name = name.substr(0, MAX_SCENE_NAME_LENGTH);
+    } else {
+        m_name = std::move(name);
+    }
 }
 
 } // namespace world

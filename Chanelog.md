@@ -862,5 +862,56 @@ Additional production-quality improvements for the World/Scene System (item 12),
 - 153 test suites total across 12 modules
 
 #### Git
+- **Commit**: 8306554
+- **Repository**: https://github.com/Raft-The-Crab/Poko.git
+
+## [0.1.12] - September 29, 2026
+
+### World/Scene System Additional Safety Improvements - Item 12 ✅
+
+**Status**: ✅ Production-Ready
+
+#### Overview
+Additional safety improvements for the World/Scene System (item 12), focusing on string length limits to prevent memory exhaustion and denial-of-service attacks.
+
+#### New Safety Constants
+- **MAX_SCENE_NAME_LENGTH**: Added constant (256) to prevent excessively long scene names
+- **MAX_TAG_LENGTH**: Added constant (128) to prevent excessively long tag strings
+
+#### Scene Name Length Validation
+- **Scene constructor**: Truncates names exceeding MAX_SCENE_NAME_LENGTH
+- **Scene::setName**: Truncates names exceeding MAX_SCENE_NAME_LENGTH (both overloads)
+- **World::createScene**: Rejects names exceeding MAX_SCENE_NAME_LENGTH
+- Updated documentation to reflect truncation behavior
+
+#### Tag Length Validation
+- **Scene::findInstancesByTag**: Rejects tags exceeding MAX_TAG_LENGTH (returns empty vector)
+- Prevents memory exhaustion from extremely long tag searches
+
+#### New Tests
+- **test_scene_name_length**: Verifies scene name truncation and rejection
+  - Tests normal names
+  - Tests names at limit
+  - Tests names exceeding limit (truncation)
+  - Tests setName with long names
+  - Tests World rejection of too long names
+- **test_tag_length**: Verifies tag length validation
+  - Tests normal tags
+  - Tests tags exceeding limit (returns empty)
+
+#### Production Quality Features
+- **String Length Limits**: Prevents memory exhaustion from excessively long strings
+- **Truncation vs Rejection**: Scene names are truncated for usability, World creation rejects for safety
+- **Defensive Programming**: Early validation prevents performance degradation
+- **DoS Protection**: Limits prevent resource exhaustion attacks
+- **Consistent Validation**: Uniform length checking across all string inputs
+
+#### Build Status
+- All modules compiled successfully with no warnings
+- 12/12 tests passing (100%)
+- 19 test suites for World/Scene system (added 2 new length tests)
+- 155 test suites total across 12 modules
+
+#### Git
 - **Commit**: Pending
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git

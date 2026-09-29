@@ -34,6 +34,10 @@ Scene* World::createScene(const std::string& name) {
         return nullptr;
     }
     
+    if (name.length() > MAX_SCENE_NAME_LENGTH) {
+        return nullptr;
+    }
+    
     std::lock_guard<std::mutex> lock(m_mutex);
     
     // Check if scene with this name already exists

@@ -85,6 +85,10 @@ std::vector<runtime::Instance*> Scene::findInstancesByTag(const std::string& tag
         return {};
     }
     
+    if (tag.length() > MAX_TAG_LENGTH) {
+        return {};
+    }
+    
     std::lock_guard<std::mutex> lock(m_mutex);
     
     std::vector<runtime::Instance*> result;

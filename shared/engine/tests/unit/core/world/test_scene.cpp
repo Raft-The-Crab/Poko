@@ -372,6 +372,56 @@ void test_scene_limit() {
     std::cout << "✓ Scene limit tests passed" << std::endl;
 }
 
+void test_scene_name_length() {
+    std::cout << "Testing scene name length..." << std::endl;
+    
+    // Test normal name
+    poko::core::world::Scene scene1("NormalName");
+    assert(scene1.getName() == "NormalName");
+    
+    // Test name at limit
+    std::string longName(poko::core::world::MAX_SCENE_NAME_LENGTH, 'A');
+    poko::core::world::Scene scene2(longName);
+    assert(scene2.getName().length() == poko::core::world::MAX_SCENE_NAME_LENGTH);
+    
+    // Test name exceeding limit (should be truncated)
+    std::string tooLongName(poko::core::world::MAX_SCENE_NAME_LENGTH + 100, 'B');
+    poko::core::world::Scene scene3(tooLongName);
+    assert(scene3.getName().length() == poko::core::world::MAX_SCENE_NAME_LENGTH);
+    
+    // Test setName with long name
+    scene1.setName(tooLongName);
+    assert(scene1.getName().length() == poko::core::world::MAX_SCENE_NAME_LENGTH);
+    
+    // Test World rejects too long names
+    poko::core::world::World world;
+    [[maybe_unused]] poko::core::world::Scene* scene4 = world.createScene(tooLongName);
+    assert(scene4 == nullptr);
+    
+    std::cout << "✓ Scene name length tests passed" << std::endl;
+}
+
+void test_tag_length() {
+    std::cout << "Testing tag length..." << std::endl;
+    
+    poko::core::world::Scene scene("TestScene");
+    
+    poko::core::runtime::Instance instance1{1, "Instance1"};
+    instance1.addTag("NormalTag");
+    scene.addInstance(&instance1);
+    
+    // Normal tag should work
+    auto normalResults = scene.findInstancesByTag("NormalTag");
+    assert(normalResults.size() == 1);
+    
+    // Tag exceeding limit should return empty
+    std::string longTag(poko::core::world::MAX_TAG_LENGTH + 100, 'A');
+    auto longTagResults = scene.findInstancesByTag(longTag);
+    assert(longTagResults.size() == 0);
+    
+    std::cout << "✓ Tag length tests passed" << std::endl;
+}
+
 int main() {
     std::cout << "=== World/Scene System Unit Tests ===" << std::endl;
     
@@ -392,6 +442,8 @@ int main() {
     test_empty_tag_handling();
     test_instance_limit();
     test_scene_limit();
+    test_scene_name_length();
+    test_tag_length();
     
     std::cout << "\n=== All tests passed! ===" << std::endl;
     
