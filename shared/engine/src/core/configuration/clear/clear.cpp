@@ -19,13 +19,15 @@ namespace configuration {
  * 
  * Removes all user-set configuration values but preserves default values.
  * After clearing, all keys will return their default values (if set).
+ * Uses exclusive lock for write operations.
  * 
  * @note This is a destructive operation that cannot be undone
  * @note Default values are preserved
- * @note Thread-safe via mutex protection
+ * @note Thread-safe via shared mutex (exclusive lock for writes)
  */
 void Configuration::clear() {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    // Use unique_lock for write operations - exclusive access
+    std::unique_lock<std::shared_mutex> lock(m_mutex);
     m_values.clear();
 }
 
@@ -34,14 +36,16 @@ void Configuration::clear() {
  * 
  * Returns the count of user-set configuration values.
  * Does not include default values in the count.
+ * Uses shared lock for concurrent reads.
  * 
  * @return Number of user-set configuration entries
  * 
  * @note Only counts user-set values, not defaults
- * @note Thread-safe via mutex protection
+ * @note Thread-safe via shared mutex (allows concurrent reads)
  */
 size_t Configuration::size() const {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    // Use shared_lock for read operations - allows concurrent reads
+    std::shared_lock<std::shared_mutex> lock(m_mutex);
     return m_values.size();
 }
 

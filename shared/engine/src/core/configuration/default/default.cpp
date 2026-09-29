@@ -18,12 +18,16 @@ namespace configuration {
  * @brief Set default value
  * 
  * Default values are used when a key is not found in the main configuration.
+ * Uses exclusive lock for write operations.
  * 
  * @param key Configuration key
  * @param value Default value
+ * 
+ * @note Thread-safe via shared mutex (exclusive lock for writes)
  */
 void Configuration::setDefault(const std::string& key, const ConfigValue& value) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    // Use unique_lock for write operations - exclusive access
+    std::unique_lock<std::shared_mutex> lock(m_mutex);
     m_defaults[key] = value;
 }
 

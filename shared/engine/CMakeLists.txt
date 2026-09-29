@@ -26,6 +26,7 @@ add_library(poko_core_memory
     src/core/memory/allocators/system/getter.cpp
     src/core/memory/allocators/system/info.cpp
     src/core/memory/allocators/system/tracking.cpp
+    src/core/memory/allocators/system/validate.cpp
 )
 
 target_include_directories(poko_core_memory

@@ -16,6 +16,7 @@
 #include <variant>
 #include <optional>
 #include <mutex>
+#include <shared_mutex>
 #include <vector>
 
 namespace poko {
@@ -227,7 +228,7 @@ public:
     [[nodiscard]] std::vector<std::string> getAllKeys() const;
 
 private:
-    mutable std::mutex m_mutex;
+    mutable std::shared_mutex m_mutex;  ///< Shared mutex for read-write optimization
     std::map<std::string, ConfigValue> m_values;
     std::map<std::string, ConfigValue> m_defaults;
 };

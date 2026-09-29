@@ -77,6 +77,26 @@ constexpr size_t GUARD_SIZE = 8;
 constexpr size_t MAX_SMALL_ALLOCATION = 1024;
 
 // ============================================================================
+// Allocation Header
+// ============================================================================
+
+/**
+ * @brief Allocation metadata header for debugging and leak detection
+ * 
+ * Stored before each allocation when Guard flag is enabled.
+ * Enables automatic guard validation and proper deallocation.
+ */
+struct AllocationHeader {
+    size_t size;              ///< Original allocation size
+    size_t alignment;         ///< Requested alignment
+    bool hasGuard;            ///< Whether guard bytes are present
+    uint8_t guardPattern[4];  ///< Header guard pattern (0xDEADBEEF)
+};
+
+/// Header guard pattern for corruption detection
+constexpr uint32_t HEADER_GUARD = 0xDEADBEEF;
+
+// ============================================================================
 // Allocation Flags Operators
 // ============================================================================
 
@@ -408,6 +428,23 @@ public:
      * @note Thread-safe (atomic flag)
      */
     void setTrackingEnabled(bool enabled) noexcept;
+    
+    /**
+     * @brief Validate guard bytes for an allocation
+     * 
+     * Checks if guard bytes before and after an allocation are intact.
+     * Useful for detecting buffer overflows and underflows.
+     * 
+     * @param ptr Pointer to allocation (as returned by allocate)
+     * @param size Original allocation size
+     * @param alignment Original alignment
+     * @return True if guard bytes are intact, false if corrupted
+     * 
+     * @note Only works if Guard flag was used during allocation
+     * @note Thread-safe
+     * @note Does not modify the allocation
+     */
+    [[nodiscard]] bool validateGuardBytes(void* ptr, size_t size, size_t alignment) const noexcept;
     
 private:
     mutable std::mutex m_mutex;                ///< Mutex for thread safety

@@ -20,12 +20,16 @@ namespace configuration {
  * @brief Save configuration to file
  * 
  * Saves configuration to a simple key=value format file.
+ * Uses shared lock for concurrent reads.
  * 
  * @param filepath Path to configuration file
  * @return True if saved successfully
+ * 
+ * @note Thread-safe via shared mutex (allows concurrent reads)
  */
 bool Configuration::saveToFile(const std::string& filepath) const {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    // Use shared_lock for read operations - allows concurrent reads
+    std::shared_lock<std::shared_mutex> lock(m_mutex);
     
     std::ofstream file(filepath);
     if (!file.is_open()) {

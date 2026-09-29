@@ -21,12 +21,16 @@ namespace configuration {
  * 
  * Loads configuration from a simple key=value format file.
  * Lines starting with # are comments.
+ * Uses exclusive lock for write operations.
  * 
  * @param filepath Path to configuration file
  * @return True if loaded successfully
+ * 
+ * @note Thread-safe via shared mutex (exclusive lock for writes)
  */
 bool Configuration::loadFromFile(const std::string& filepath) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    // Use unique_lock for write operations - exclusive access
+    std::unique_lock<std::shared_mutex> lock(m_mutex);
     
     std::ifstream file(filepath);
     if (!file.is_open()) {

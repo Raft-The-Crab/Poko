@@ -19,12 +19,13 @@ namespace configuration {
  * 
  * Thread-safe operation that sets or updates a configuration value.
  * If the key already exists, its value is overwritten.
+ * Uses exclusive lock for write operations.
  * 
  * @param key Configuration key (non-empty string)
  * @param value Configuration value to store
  * 
  * @note Empty keys are rejected (no-op)
- * @note Thread-safe via mutex protection
+ * @note Thread-safe via shared mutex (exclusive lock for writes)
  */
 void Configuration::set(const std::string& key, const ConfigValue& value) {
     // Reject empty keys as they are not meaningful
@@ -32,7 +33,8 @@ void Configuration::set(const std::string& key, const ConfigValue& value) {
         return;
     }
     
-    std::lock_guard<std::mutex> lock(m_mutex);
+    // Use unique_lock for write operations - exclusive access
+    std::unique_lock<std::shared_mutex> lock(m_mutex);
     m_values[key] = value;
 }
 

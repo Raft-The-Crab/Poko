@@ -19,12 +19,14 @@ namespace configuration {
  * @brief Get a configuration value
  * 
  * Thread-safe operation that retrieves a configuration value.
+ * Uses shared lock for concurrent reads.
  * 
  * @param key Configuration key
  * @return Optional containing the value if key exists
  */
 std::optional<ConfigValue> Configuration::get(const std::string& key) const {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    // Use shared_lock for read operations - allows concurrent reads
+    std::shared_lock<std::shared_mutex> lock(m_mutex);
     
     auto it = m_values.find(key);
     if (it != m_values.end()) {
