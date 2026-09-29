@@ -733,3 +733,74 @@ Additional input validation improvements across Engine Core Modules, focusing on
 #### Git
 - **Commit**: a0daea9
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git
+
+## [0.1.10] - September 29, 2026
+
+### World/Scene System - Item 12 ✅
+
+**Status**: ✅ Production-Ready
+
+#### Overview
+World/Scene System (item 12 from plan.md section 18) has been implemented with Fine-Grained Translation Units. This module provides scene management for organizing instances into hierarchical worlds with loading, querying, and lifecycle support.
+
+#### Completed Components
+
+**12. World/Scene System ✅**
+- **Location**: `shared/engine/include/core/world/`, `shared/engine/src/core/world/`
+- **Fine-Grained Translation Units**: 4 files in semantic subfolders
+- **Features**:
+  - Scene class for organizing instances with unique IDs
+  - Scene naming with default name handling ("UnnamedScene")
+  - Scene activation/deactivation with proper state management
+  - Scene instance management (add, remove, has, find by name)
+  - Scene tag-based instance queries
+  - Scene clear functionality
+  - World class for managing multiple scenes
+  - World scene creation/destruction with duplicate name prevention
+  - World scene lookup by ID and name
+  - World active scene management with automatic scene activation/deactivation
+  - World clear functionality with proper cleanup
+  - Global world instance with singleton pattern
+  - Thread-safe operations with mutex protection
+  - Empty name and null instance validation
+  - Empty tag query handling
+- **Tests**: 15 test suites (scene basics, scene naming, scene instances, scene tags, scene clear, world basics, world create scene, world destroy scene, world get scene, world active scene, world clear, global world, null instance handling, empty name handling, empty tag handling)
+- **Build**: `libpoko_core_world.a`
+
+#### Fine-Grained Translation Units
+
+**scene/constructor.cpp** - Scene constructor, destructor, and setName methods
+**scene/instances.cpp** - Scene instance management (add, remove, has, find, findInstancesByTag, clear)
+**world/manager.cpp** - World scene registry and management (create, destroy, get, has, setActiveScene, clear)
+**interface/interface.cpp** - Global world interface (getGlobalWorld, destroyGlobalWorld)
+
+#### Production Quality Features
+- **Thread Safety**: All operations protected by mutex locks
+- **Lifecycle Management**: Automatic scene activation/deactivation when switching active scenes
+- **Validation**: Null instance checks, empty name rejection, empty tag handling
+- **Default Values**: Scenes with empty names automatically assigned "UnnamedScene"
+- **Proper Cleanup**: Active scene deactivated before destruction or clearing
+- **Duplicate Prevention**: World rejects duplicate scene names
+- **Unique IDs**: Atomic scene ID generation for thread-safe unique IDs
+- **Integration**: Works with existing Instance system from Runtime Object System
+
+#### Build Status
+
+**Libraries Built**
+- `libpoko_core_world.a` - World/Scene management system
+
+**Test Status**
+- **Total Translation Units**: 4 new files
+- **Total Test Suites**: 15 new test suites
+- **Tests Passing**: 15/15 (100%)
+- **Test Executable**: `test_scene.exe` (15 suites)
+
+**Overall Test Summary**
+- **Total Modules**: 12 (items 1-12 from plan.md)
+- **Total Translation Units**: 84 + 4 = 88 Fine-Grained files
+- **Total Test Suites**: 136 + 15 = 151 test suites
+- **Tests Passing**: 151/151 (100%)
+
+#### Git
+- **Commit**: Pending
+- **Repository**: https://github.com/Raft-The-Crab/Poko.git

@@ -211,6 +211,22 @@ target_include_directories(poko_core_components
 # Components library dependencies
 target_link_libraries(poko_core_components PRIVATE poko_core_handles)
 
+# Core world library
+add_library(poko_core_world
+    src/core/world/scene/constructor.cpp
+    src/core/world/scene/instances.cpp
+    src/core/world/world/manager.cpp
+    src/core/world/interface.cpp
+)
+
+target_include_directories(poko_core_world
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+# World library dependencies
+target_link_libraries(poko_core_world PRIVATE poko_core_runtime)
+
 # Platform-specific settings
 if(WIN32)
     target_compile_definitions(poko_core_memory PRIVATE _WIN32)
@@ -224,6 +240,7 @@ if(WIN32)
     target_compile_definitions(poko_core_runtime PRIVATE _WIN32)
     target_compile_definitions(poko_core_properties PRIVATE _WIN32)
     target_compile_definitions(poko_core_components PRIVATE _WIN32)
+    target_compile_definitions(poko_core_world PRIVATE _WIN32)
 endif()
 
 # Production build flags
@@ -239,6 +256,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_options(poko_core_runtime PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_properties PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_components PRIVATE -O3 -DNDEBUG)
+    target_compile_options(poko_core_world PRIVATE -O3 -DNDEBUG)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_memory PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_handles PRIVATE -g -O0 -DDEBUG)
@@ -251,6 +269,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_runtime PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_properties PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_components PRIVATE -g -O0 -DDEBUG)
+    target_compile_options(poko_core_world PRIVATE -g -O0 -DDEBUG)
 endif()
 
 # Enable testing
@@ -334,8 +353,15 @@ add_executable(test_component
 target_link_libraries(test_component PRIVATE poko_core_components poko_core_handles Catch2::Catch2)
 add_test(NAME test_component COMMAND test_component)
 
+add_executable(test_scene
+    tests/unit/core/world/test_scene.cpp
+)
+
+target_link_libraries(test_scene PRIVATE poko_core_world Catch2::Catch2)
+add_test(NAME test_scene COMMAND test_scene)
+
 # Installation
-install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration poko_core_logging poko_core_serialization poko_core_runtime poko_core_properties poko_core_components
+install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration poko_core_logging poko_core_serialization poko_core_runtime poko_core_properties poko_core_components poko_core_world
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
