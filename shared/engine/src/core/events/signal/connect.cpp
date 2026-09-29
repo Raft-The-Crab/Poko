@@ -22,6 +22,11 @@ size_t Signal::connect(EventCallback callback) {
     
     std::lock_guard<std::mutex> lock(m_mutex);
     
+    // Check connection limit
+    if (m_connections.size() >= MAX_SIGNAL_CONNECTIONS) {
+        return 0; // Invalid connection ID
+    }
+    
     size_t id = m_nextConnectionId.fetch_add(1, std::memory_order_relaxed);
     m_connections.push_back({id, std::move(callback)});
     

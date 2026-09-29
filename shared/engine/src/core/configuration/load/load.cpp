@@ -34,6 +34,11 @@ bool Configuration::loadFromFile(const std::string& filepath) {
         return false;
     }
     
+    // Validate filepath length
+    if (filepath.length() > MAX_FILEPATH_LENGTH) {
+        return false;
+    }
+    
     // Use unique_lock for write operations - exclusive access
     std::unique_lock<std::shared_mutex> lock(m_mutex);
     

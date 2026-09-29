@@ -26,6 +26,11 @@ JobId JobSystem::submit(std::unique_ptr<Job> job) {
         return INVALID_JOB_ID;
     }
     
+    // Check pending jobs limit
+    if (m_pendingCount.load(std::memory_order_relaxed) >= MAX_PENDING_JOBS) {
+        return INVALID_JOB_ID;
+    }
+    
     JobId jobId = job->getId();
     m_jobs.push_back({std::move(job), nullptr});
     m_pendingQueue.push(m_jobs.size() - 1);

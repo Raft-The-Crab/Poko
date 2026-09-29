@@ -31,6 +31,21 @@ namespace configuration {
 using ConfigValue = std::variant<bool, int, double, std::string>;
 
 /**
+ * @brief Maximum configuration key length (for safety)
+ */
+constexpr size_t MAX_CONFIG_KEY_LENGTH = 256;
+
+/**
+ * @brief Maximum configuration value string length (for safety)
+ */
+constexpr size_t MAX_CONFIG_VALUE_LENGTH = 4096;
+
+/**
+ * @brief Maximum filepath length (for safety)
+ */
+constexpr size_t MAX_FILEPATH_LENGTH = 1024;
+
+/**
  * @brief Configuration system class
  * 
  * Provides runtime configuration management with:

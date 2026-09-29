@@ -913,5 +913,57 @@ Additional safety improvements for the World/Scene System (item 12), focusing on
 - 155 test suites total across 12 modules
 
 #### Git
+- **Commit**: e95ea68
+- **Repository**: https://github.com/Raft-The-Crab/Poko.git
+
+## [0.1.13] - September 29, 2026
+
+### Comprehensive Safety Improvements - Items 1-12 ✅
+
+**Status**: ✅ Production-Ready
+
+#### Overview
+Comprehensive safety improvements across all Engine Core Modules (items 1-12), adding string length limits and resource limits to prevent memory exhaustion and denial-of-service attacks.
+
+#### Core Configuration Improvements (Item 6)
+- **MAX_CONFIG_KEY_LENGTH**: Added constant (256) to prevent excessively long keys
+- **MAX_CONFIG_VALUE_LENGTH**: Added constant (4096) to prevent excessively long values
+- **MAX_FILEPATH_LENGTH**: Added constant (1024) to prevent excessively long filepaths
+- **Configuration::set**: Validates key length and string value length before setting
+- **Configuration::loadFromFile**: Validates filepath length before loading
+- **Configuration::saveToFile**: Validates filepath length before saving
+
+#### Core Logging Improvements (Item 7)
+- **MAX_LOG_MESSAGE_LENGTH**: Added constant (8192) to prevent excessively long log messages
+- **MAX_SUBSYSTEM_LENGTH**: Added constant (128) to prevent excessively long subsystem names
+- **MAX_LOG_FILEPATH_LENGTH**: Added constant (1024) to prevent excessively long log filepaths
+- **Logger::log**: Validates message length and subsystem length before logging
+- **FileSink constructor**: Validates filepath length before opening file
+
+#### Core Events Improvements (Item 4)
+- **MAX_EVENT_QUEUE_SIZE**: Added constant (10000) to prevent event queue overflow
+- **MAX_SIGNAL_CONNECTIONS**: Added constant (1000) to prevent excessive signal connections
+- **EventQueue::push**: Validates queue size before pushing events
+- **Signal::connect**: Validates connection count before connecting
+
+#### Core Jobs Improvements (Item 5)
+- **MAX_PENDING_JOBS**: Added constant (10000) to prevent job queue overflow
+- **MAX_JOB_DEPENDENCIES**: Added constant (32) to prevent excessive job dependencies
+- **JobSystem::submit**: Validates pending job count before submitting
+
+#### Production Quality Features
+- **String Length Limits**: Prevents memory exhaustion from excessively long strings across all modules
+- **Resource Limits**: Prevents queue overflow and resource exhaustion
+- **DoS Protection**: Limits prevent denial-of-service attacks from malicious input
+- **Early Validation**: Rejection happens early to avoid wasted processing
+- **Consistent Patterns**: Uniform limit checking across all modules
+- **Defensive Programming**: Comprehensive safety checks for production robustness
+
+#### Build Status
+- All modules compiled successfully with no warnings
+- 12/12 tests passing (100%)
+- 155 test suites total across 12 modules
+
+#### Git
 - **Commit**: Pending
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git

@@ -33,6 +33,11 @@ bool Configuration::saveToFile(const std::string& filepath) const {
         return false;
     }
     
+    // Validate filepath length
+    if (filepath.length() > MAX_FILEPATH_LENGTH) {
+        return false;
+    }
+    
     // Use shared_lock for read operations - allows concurrent reads
     std::shared_lock<std::shared_mutex> lock(m_mutex);
     

@@ -60,6 +60,12 @@ constexpr EventId INVALID_EVENT_ID = 0;
 /// Maximum number of event types (adjust based on application needs)
 constexpr EventId MAX_EVENT_TYPES = 1024;
 
+/// Maximum event queue size (for safety)
+constexpr size_t MAX_EVENT_QUEUE_SIZE = 10000;
+
+/// Maximum number of signal connections (for safety)
+constexpr size_t MAX_SIGNAL_CONNECTIONS = 1000;
+
 // ============================================================================
 // Event Base Class
 // ============================================================================

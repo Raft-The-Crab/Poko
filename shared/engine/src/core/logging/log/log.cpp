@@ -36,6 +36,16 @@ namespace logging {
  */
 void Logger::log(LogLevel level, const std::string& subsystem, const std::string& message,
                 const std::string& file, int line, const std::string& function) {
+    // Validate message length
+    if (message.length() > MAX_LOG_MESSAGE_LENGTH) {
+        return;
+    }
+    
+    // Validate subsystem length
+    if (subsystem.length() > MAX_SUBSYSTEM_LENGTH) {
+        return;
+    }
+    
     std::lock_guard<std::mutex> lock(m_mutex);
     
     // ============================================================================

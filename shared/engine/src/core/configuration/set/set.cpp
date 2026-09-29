@@ -33,6 +33,19 @@ void Configuration::set(const std::string& key, const ConfigValue& value) {
         return;
     }
     
+    // Reject keys exceeding maximum length
+    if (key.length() > MAX_CONFIG_KEY_LENGTH) {
+        return;
+    }
+    
+    // Check string value length if applicable
+    if (std::holds_alternative<std::string>(value)) {
+        const std::string& strValue = std::get<std::string>(value);
+        if (strValue.length() > MAX_CONFIG_VALUE_LENGTH) {
+            return;
+        }
+    }
+    
     // Use unique_lock for write operations - exclusive access
     std::unique_lock<std::shared_mutex> lock(m_mutex);
     m_values[key] = value;
@@ -42,6 +55,19 @@ void Configuration::set(std::string&& key, ConfigValue&& value) noexcept {
     // Reject empty keys as they are not meaningful
     if (key.empty()) {
         return;
+    }
+    
+    // Reject keys exceeding maximum length
+    if (key.length() > MAX_CONFIG_KEY_LENGTH) {
+        return;
+    }
+    
+    // Check string value length if applicable
+    if (std::holds_alternative<std::string>(value)) {
+        const std::string& strValue = std::get<std::string>(value);
+        if (strValue.length() > MAX_CONFIG_VALUE_LENGTH) {
+            return;
+        }
     }
     
     // Use unique_lock for write operations - exclusive access

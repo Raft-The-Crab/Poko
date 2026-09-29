@@ -38,6 +38,21 @@ enum class LogLevel {
 };
 
 /**
+ * @brief Maximum log message length (for safety)
+ */
+constexpr size_t MAX_LOG_MESSAGE_LENGTH = 8192;
+
+/**
+ * @brief Maximum subsystem name length (for safety)
+ */
+constexpr size_t MAX_SUBSYSTEM_LENGTH = 128;
+
+/**
+ * @brief Maximum log filepath length (for safety)
+ */
+constexpr size_t MAX_LOG_FILEPATH_LENGTH = 1024;
+
+/**
  * @brief Convert log level to string
  * 
  * @param level Log level

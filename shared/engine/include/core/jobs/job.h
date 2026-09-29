@@ -72,6 +72,12 @@ constexpr size_t MAX_WORKER_THREADS = 16;
 /// Default number of worker threads
 constexpr size_t DEFAULT_WORKER_THREADS = 4;
 
+/// Maximum pending jobs (for safety)
+constexpr size_t MAX_PENDING_JOBS = 10000;
+
+/// Maximum job dependencies (for safety)
+constexpr size_t MAX_JOB_DEPENDENCIES = 32;
+
 // ============================================================================
 // Job Task
 // ============================================================================

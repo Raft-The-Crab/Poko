@@ -22,6 +22,11 @@ void EventQueue::push(std::unique_ptr<Event> event) {
     
     std::lock_guard<std::mutex> lock(m_mutex);
     
+    // Check queue size limit
+    if (m_events.size() >= MAX_EVENT_QUEUE_SIZE) {
+        return;
+    }
+    
     // Insert in priority order (higher priority comes first)
     // Find the first position where priority is lower than our event
     auto it = m_events.begin();

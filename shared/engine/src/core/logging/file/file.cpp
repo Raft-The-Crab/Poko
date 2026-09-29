@@ -23,6 +23,12 @@ FileSink::FileSink(const std::string& filepath)
     : m_filepath(filepath)
     , m_file(nullptr)
 {
+    // Validate filepath length
+    if (filepath.length() > MAX_LOG_FILEPATH_LENGTH) {
+        std::cerr << "Log filepath exceeds maximum length: " << filepath << std::endl;
+        return;
+    }
+    
     m_file = fopen(filepath.c_str(), "a");
     if (!m_file) {
         std::cerr << "Failed to open log file: " << filepath << std::endl;
