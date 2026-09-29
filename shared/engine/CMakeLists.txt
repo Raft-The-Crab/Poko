@@ -196,6 +196,21 @@ target_include_directories(poko_core_properties
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
+# Core components library
+add_library(poko_core_components
+    src/core/components/interface/interface.cpp
+    src/core/components/registry/registry.cpp
+    src/core/components/manager/manager.cpp
+)
+
+target_include_directories(poko_core_components
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+# Components library dependencies
+target_link_libraries(poko_core_components PRIVATE poko_core_handles)
+
 # Platform-specific settings
 if(WIN32)
     target_compile_definitions(poko_core_memory PRIVATE _WIN32)
@@ -208,6 +223,7 @@ if(WIN32)
     target_compile_definitions(poko_core_serialization PRIVATE _WIN32)
     target_compile_definitions(poko_core_runtime PRIVATE _WIN32)
     target_compile_definitions(poko_core_properties PRIVATE _WIN32)
+    target_compile_definitions(poko_core_components PRIVATE _WIN32)
 endif()
 
 # Production build flags
@@ -222,6 +238,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_options(poko_core_serialization PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_runtime PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_properties PRIVATE -O3 -DNDEBUG)
+    target_compile_options(poko_core_components PRIVATE -O3 -DNDEBUG)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_memory PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_handles PRIVATE -g -O0 -DDEBUG)
@@ -233,6 +250,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_serialization PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_runtime PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_properties PRIVATE -g -O0 -DDEBUG)
+    target_compile_options(poko_core_components PRIVATE -g -O0 -DDEBUG)
 endif()
 
 # Enable testing
@@ -309,8 +327,15 @@ add_executable(test_property
 target_link_libraries(test_property PRIVATE poko_core_properties Catch2::Catch2)
 add_test(NAME test_property COMMAND test_property)
 
+add_executable(test_component
+    tests/unit/core/components/test_component.cpp
+)
+
+target_link_libraries(test_component PRIVATE poko_core_components poko_core_handles Catch2::Catch2)
+add_test(NAME test_component COMMAND test_component)
+
 # Installation
-install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration poko_core_logging poko_core_serialization poko_core_runtime poko_core_properties
+install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration poko_core_logging poko_core_serialization poko_core_runtime poko_core_properties poko_core_components
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin

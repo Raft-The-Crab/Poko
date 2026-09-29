@@ -500,5 +500,74 @@ Runtime Property System (item 10 from plan.md section 18) has been implemented w
 - **Tests Passing**: 119/119 (100%)
 
 #### Git
+- **Commit**: 05090d0
+- **Repository**: https://github.com/Raft-The-Crab/Poko.git
+
+## [0.1.5] - September 29, 2026
+
+### Runtime Component System - Item 11 ✅
+
+**Status**: ✅ Production-Ready
+
+#### Overview
+Runtime Component System (item 11 from plan.md section 18) has been implemented with Fine-Grained Translation Units. This module provides a composition-based component system for runtime objects, with type-safe factories, lifecycle management, and integration with the Instance system.
+
+#### Completed Components
+
+**11. Runtime Component System ✅**
+- **Location**: `shared/engine/include/core/components/`, `shared/engine/src/core/components/`
+- **Fine-Grained Translation Units**: 3 files in semantic subfolders
+- **Features**:
+  - Component base class with virtual type ID and type name
+  - Component lifecycle state management (None, Created, Activating, Active, Deactivating, Destroyed)
+  - Virtual lifecycle callbacks (onCreate, onActivate, onDeactivate, onDestroy)
+  - Component registry for type registration and factory management
+  - Type-safe component factory functions
+  - Component manager for attaching/detaching components to instances
+  - Instance ID-based component storage (integrates with handle system)
+  - Component existence checks and queries
+  - Component enumeration and type enumeration
+  - Thread-safe operations with mutex protection
+  - Global component registry instance
+  - Template helpers for component ID generation and type registration
+  - Fixed namespace structure (removed duplicate namespace declarations)
+  - Fixed component ID generation using std::hash<std::type_index> for portability
+- **Tests**: 17 test suites (component basics, lifecycle, registry basics, registry create, registry unregister, registry type name, registry get types, registry clear, manager attach, manager detach, manager get, manager has, manager multiple components, manager get components, manager remove all, manager clear, global registry, template helpers)
+- **Build**: `libpoko_core_components.a`
+
+#### Fine-Grained Translation Units
+
+**registry/registry.cpp** - ComponentRegistry implementation (register, unregister, create, isRegistered, getTypeName, getRegisteredTypes, getRegisteredCount, clear)
+**manager/manager.cpp** - ComponentManager implementation (attach, detach, get, has, getComponents, getComponentTypes, getComponentCount, removeComponents, clear)
+**interface/interface.cpp** - Global registry interface (getGlobalComponentRegistry, destroyGlobalComponentRegistry)
+
+#### Production Quality Features
+- **Thread Safety**: All operations protected by mutex locks
+- **Type Safety**: Component ID generation using std::hash<std::type_index> for portable, stable IDs
+- **Lifecycle Management**: State machine with virtual callbacks for component lifecycle
+- **Composition Pattern**: Multiple components per instance for flexible object composition
+- **Integration**: Works with existing handle system via instance IDs
+- **Factory Pattern**: Type-safe factory functions for component creation
+- **Namespace Safety**: Fixed duplicate namespace declarations to prevent contamination
+- **Portability**: Uses std::hash instead of pointer casting for cross-platform compatibility
+
+#### Build Status
+
+**Libraries Built**
+- `libpoko_core_components.a` - Runtime component system
+
+**Test Status**
+- **Total Translation Units**: 3 new files
+- **Total Test Suites**: 17 new test suites
+- **Tests Passing**: 17/17 (100%)
+- **Test Executable**: `test_component.exe` (17 suites)
+
+**Overall Test Summary**
+- **Total Modules**: 11 (items 1-11 from plan.md)
+- **Total Translation Units**: 81 + 3 = 84 Fine-Grained files
+- **Total Test Suites**: 119 + 17 = 136 test suites
+- **Tests Passing**: 136/136 (100%)
+
+#### Git
 - **Commit**: (to be added)
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git
