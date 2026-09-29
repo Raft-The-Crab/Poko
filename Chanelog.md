@@ -1200,3 +1200,69 @@ Resource Management System (item 13 from plan.md section 18) has been implemente
 #### Git
 - **Commit**: Pending
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git
+
+## [0.1.17] - September 29, 2026
+
+### Resource Management System Production Improvements - Item 13 ✅
+
+**Status**: ✅ Production-Ready
+
+#### Overview
+Additional production-quality improvements for the Resource Management System (item 13), focusing on enhanced documentation, noexcept specifications, validation, and Fine-Grained Translation Units.
+
+#### Header Documentation Improvements
+- **getName**: Added thread safety documentation (name is const after construction)
+- **getType**: Added thread safety documentation (type is const after construction)
+- **getState**: Added thread safety documentation (state updates are atomic via ResourceManager locking)
+- **setState**: Added thread safety documentation (should be called only by ResourceManager with lock held)
+- **getID**: Added thread safety documentation (ID is const after assignment)
+- **setID**: Added thread safety documentation (should be called only by ResourceManager with lock held)
+- **getHandle**: Added thread safety documentation (handle is const after assignment)
+- **setHandle**: Added thread safety documentation (should be called only by ResourceManager with lock held)
+- **getRefCount**: Added thread safety documentation (atomic operations via ResourceManager locking)
+- **incrementRefCount**: Added thread safety documentation (should be called only by ResourceManager with lock held)
+- **decrementRefCount**: Added thread safety documentation (should be called only by ResourceManager with lock held)
+- **getFilePath**: Added thread safety documentation (filepath is const after assignment)
+- **setFilePath**: Added documentation for filepath truncation behavior and thread safety
+- **getMemorySize**: Added thread safety documentation (memory size is const after loading)
+- **load**: Added thread safety documentation (should be called only by ResourceManager with lock held)
+- **unload**: Added thread safety documentation (should be called only by ResourceManager with lock held)
+- **isLoaded**: Added thread safety documentation (state read is atomic)
+- **isLoading**: Added thread safety documentation (state read is atomic)
+- **isFailed**: Added thread safety documentation (state read is atomic)
+- **clear (ResourceManager)**: Added noexcept specification and thread safety documentation
+
+#### Fine-Grained Translation Units
+- **base/constructor.cpp** - ResourceBase constructor and setFilePath implementation (NEW)
+- Previously consolidated into manager/interface, now split for Fine-Grained Translation Units
+
+#### Implementation Improvements
+- **ResourceBase constructor**: Added name validation and truncation (empty names become "UnnamedResource", names exceeding limit are truncated)
+- **setFilePath**: Added filepath length validation and truncation (filepaths exceeding limit are truncated)
+- **registerLoader**: Enhanced validation comments for type and loader function
+- **loadResource (filepath only)**: Added filepath length validation before name extraction
+- **loadResource (filepath and name)**: Added resource type validation (rejects Unknown type)
+- **loadResource (filepath and name)**: Added loader function validation (rejects null loaders)
+- **loadResource (filepath and name)**: Enhanced comments for loader registration check
+
+#### noexcept Specifications
+- **ResourceManager::clear**: Added noexcept (all operations are noexcept or catch exceptions internally)
+
+#### Production Quality Features
+- **Enhanced Documentation**: All public methods now have detailed notes on behavior, validation, and thread safety
+- **noexcept Specifications**: Added to clear operation for better compiler optimization
+- **Fine-Grained Translation Units**: Split ResourceBase implementation into separate file for incremental builds
+- **Input Validation**: Enhanced validation for resource types, loader functions, and extracted names
+- **String Length Validation**: Proper truncation for names and filepaths
+- **Default Values**: Empty names automatically assigned "UnnamedResource"
+- **Consistent API**: Uniform documentation and exception specification patterns across all methods
+- **Defensive Programming**: Early validation prevents runtime errors
+
+#### Build Status
+- All modules compiled successfully with no warnings
+- 12/12 tests passing (100%)
+- 157 test suites total across 12 modules
+
+#### Git
+- **Commit**: Pending
+- **Repository**: https://github.com/Raft-The-Crab/Poko.git

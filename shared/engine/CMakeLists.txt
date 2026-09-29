@@ -229,6 +229,7 @@ target_link_libraries(poko_core_world PRIVATE poko_core_runtime)
 
 # Core resources library
 add_library(poko_core_resources
+    src/core/resources/base/constructor.cpp
     src/core/resources/manager/manager.cpp
     src/core/resources/interface/interface.cpp
 )

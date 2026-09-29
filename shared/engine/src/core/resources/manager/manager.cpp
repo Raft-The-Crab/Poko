@@ -26,16 +26,19 @@ ResourceManager::~ResourceManager() {
 }
 
 bool ResourceManager::registerLoader(ResourceType type, ResourceLoader loader) {
+    // Validate type
     if (type == ResourceType::Unknown) {
         return false;
     }
     
+    // Validate loader function
     if (!loader) {
         return false;
     }
     
     std::lock_guard<std::mutex> lock(m_mutex);
     
+    // Check for duplicate registration
     if (m_loaders.find(type) != m_loaders.end()) {
         return false; // Already registered
     }
@@ -57,6 +60,11 @@ bool ResourceManager::unregisterLoader(ResourceType type) {
 }
 
 ResourceHandle ResourceManager::loadResource(const std::string& filepath, ResourceType type) {
+    // Validate filepath length
+    if (filepath.empty() || filepath.length() > MAX_RESOURCE_FILEPATH_LENGTH) {
+        return ResourceHandle();
+    }
+    
     // Extract name from filepath
     std::string name = filepath;
     size_t lastSlash = filepath.find_last_of("/\\");
@@ -70,6 +78,11 @@ ResourceHandle ResourceManager::loadResource(const std::string& filepath, Resour
         name = name.substr(0, lastDot);
     }
     
+    // Validate extracted name length
+    if (name.empty() || name.length() > MAX_RESOURCE_NAME_LENGTH) {
+        return ResourceHandle();
+    }
+    
     return loadResource(filepath, name, type);
 }
 
@@ -81,6 +94,11 @@ ResourceHandle ResourceManager::loadResource(const std::string& filepath, const 
     
     // Validate name length
     if (name.empty() || name.length() > MAX_RESOURCE_NAME_LENGTH) {
+        return ResourceHandle();
+    }
+    
+    // Validate resource type
+    if (type == ResourceType::Unknown) {
         return ResourceHandle();
     }
     
@@ -116,9 +134,14 @@ ResourceHandle ResourceManager::loadResource(const std::string& filepath, const 
         std::lock_guard<std::mutex> lock(m_mutex);
         auto it = m_loaders.find(type);
         if (it == m_loaders.end()) {
-            return ResourceHandle();
+            return ResourceHandle(); // No loader registered for this type
         }
         loader = it->second;
+    }
+    
+    // Validate loader function
+    if (!loader) {
+        return ResourceHandle();
     }
     
     // Load resource
@@ -355,7 +378,7 @@ size_t ResourceManager::getTotalMemoryUsage() const noexcept {
     return total;
 }
 
-void ResourceManager::clear() {
+void ResourceManager::clear() noexcept {
     std::lock_guard<std::mutex> lock(m_mutex);
     
     for (auto& pair : m_resourcesByIndex) {

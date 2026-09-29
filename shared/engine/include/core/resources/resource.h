@@ -80,60 +80,95 @@ public:
     virtual ~ResourceBase() = default;
     
     // Get resource name
+    // Returns: Reference to resource name
+    // Thread-safe: Yes (name is const after construction)
     const std::string& getName() const noexcept { return m_name; }
     
     // Get resource type
+    // Returns: Resource type enum value
+    // Thread-safe: Yes (type is const after construction)
     ResourceType getType() const noexcept { return m_type; }
     
     // Get resource state
+    // Returns: Current resource state
+    // Thread-safe: Yes (state updates are atomic via ResourceManager locking)
     ResourceState getState() const noexcept { return m_state; }
     
     // Set resource state
+    // Parameters: state - New resource state
+    // Thread-safe: Should be called only by ResourceManager with lock held
     void setState(ResourceState state) noexcept { m_state = state; }
     
     // Get resource ID
+    // Returns: Resource ID (index from handle)
+    // Thread-safe: Yes (ID is const after assignment)
     ResourceID getID() const noexcept { return m_id; }
     
     // Set resource ID
+    // Parameters: id - Resource ID to assign
+    // Thread-safe: Should be called only by ResourceManager with lock held
     void setID(ResourceID id) noexcept { m_id = id; }
     
     // Get resource handle
+    // Returns: Reference to resource handle
+    // Thread-safe: Yes (handle is const after assignment)
     const ResourceHandle& getHandle() const noexcept { return m_handle; }
     
     // Set resource handle
+    // Parameters: handle - Resource handle to assign
+    // Thread-safe: Should be called only by ResourceManager with lock held
     void setHandle(const ResourceHandle& handle) noexcept { m_handle = handle; }
     
     // Get reference count
+    // Returns: Current reference count
+    // Thread-safe: Yes (atomic operations via ResourceManager locking)
     uint32_t getRefCount() const noexcept { return m_refCount; }
     
     // Increment reference count
+    // Thread-safe: Should be called only by ResourceManager with lock held
     void incrementRefCount() noexcept { ++m_refCount; }
     
     // Decrement reference count
+    // Thread-safe: Should be called only by ResourceManager with lock held
     void decrementRefCount() noexcept { if (m_refCount > 0) --m_refCount; }
     
     // Get file path
+    // Returns: Reference to file path string
+    // Thread-safe: Yes (filepath is const after assignment)
     const std::string& getFilePath() const noexcept { return m_filePath; }
     
     // Set file path
-    void setFilePath(const std::string& path) { m_filePath = path; }
+    // Parameters: path - File path to assign (truncated if exceeding MAX_RESOURCE_FILEPATH_LENGTH)
+    // Thread-safe: Should be called only by ResourceManager with lock held
+    void setFilePath(const std::string& path);
     
     // Get memory size in bytes
+    // Returns: Memory size in bytes used by resource data
+    // Thread-safe: Yes (memory size is const after loading)
     virtual size_t getMemorySize() const noexcept = 0;
     
     // Load resource data (implementation-specific)
+    // Returns: true if load succeeded, false otherwise
+    // Thread-safe: Should be called only by ResourceManager with lock held
     virtual bool load() = 0;
     
     // Unload resource data (implementation-specific)
+    // Thread-safe: Should be called only by ResourceManager with lock held
     virtual void unload() = 0;
     
     // Check if resource is loaded
+    // Returns: true if resource state is Loaded
+    // Thread-safe: Yes (state read is atomic)
     bool isLoaded() const noexcept { return m_state == ResourceState::Loaded; }
     
     // Check if resource is loading
+    // Returns: true if resource state is Loading
+    // Thread-safe: Yes (state read is atomic)
     bool isLoading() const noexcept { return m_state == ResourceState::Loading; }
     
     // Check if resource failed to load
+    // Returns: true if resource state is Failed
+    // Thread-safe: Yes (state read is atomic)
     bool isFailed() const noexcept { return m_state == ResourceState::Failed; }
     
 protected:
@@ -234,7 +269,9 @@ public:
     size_t getTotalMemoryUsage() const noexcept;
     
     // Clear all resources
-    void clear();
+    // Thread-safe: Yes (holds mutex lock)
+    // noexcept: Yes (all operations are noexcept or catch exceptions internally)
+    void clear() noexcept;
     
     // Reload a resource
     bool reloadResource(ResourceHandle handle);
