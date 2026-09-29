@@ -24,7 +24,7 @@ Makefile
 !CMakeLists.txt
 
 # Doxygen
-docs/
+docs/generated/
 
 # Compiled files
 *.o

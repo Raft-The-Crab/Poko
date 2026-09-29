@@ -15,7 +15,7 @@ endif()
 # Core memory library
 add_library(poko_core_memory
     # Allocator interface
-    src/core/memory/allocators/interface.cpp
+    src/core/memory/allocators/interface/interface.cpp
     
     # System allocator
     src/core/memory/allocators/system/constructor.cpp
