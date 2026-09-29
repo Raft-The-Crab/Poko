@@ -5,6 +5,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Add Catch2 testing framework
+add_subdirectory(external/Catch2 EXCLUDE_FROM_ALL)
+
 # Enable warnings
 if(MSVC)
     add_compile_options(/W4)
@@ -144,6 +147,40 @@ target_include_directories(poko_core_logging
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
+# Core serialization library
+add_library(poko_core_serialization
+    src/core/serialization/interface.cpp
+    src/core/serialization/binary/constructor.cpp
+    src/core/serialization/binary/mode.cpp
+    src/core/serialization/binary/primitives.cpp
+    src/core/serialization/binary/string.cpp
+    src/core/serialization/binary/io.cpp
+    src/core/serialization/binary/data.cpp
+)
+
+target_include_directories(poko_core_serialization
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+# Core runtime library
+add_library(poko_core_runtime
+    src/core/runtime/factory.cpp
+    src/core/runtime/instance/constructor.cpp
+    src/core/runtime/instance/accessors.cpp
+    src/core/runtime/instance/children.cpp
+    src/core/runtime/instance/properties.cpp
+    src/core/runtime/instance/tags.cpp
+)
+
+target_include_directories(poko_core_runtime
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+# Runtime library dependencies
+target_link_libraries(poko_core_runtime PRIVATE poko_core_handles)
+
 # Platform-specific settings
 if(WIN32)
     target_compile_definitions(poko_core_memory PRIVATE _WIN32)
@@ -153,6 +190,8 @@ if(WIN32)
     target_compile_definitions(poko_core_jobs PRIVATE _WIN32)
     target_compile_definitions(poko_core_configuration PRIVATE _WIN32)
     target_compile_definitions(poko_core_logging PRIVATE _WIN32)
+    target_compile_definitions(poko_core_serialization PRIVATE _WIN32)
+    target_compile_definitions(poko_core_runtime PRIVATE _WIN32)
 endif()
 
 # Production build flags
@@ -164,6 +203,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_options(poko_core_jobs PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_configuration PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_logging PRIVATE -O3 -DNDEBUG)
+    target_compile_options(poko_core_serialization PRIVATE -O3 -DNDEBUG)
+    target_compile_options(poko_core_runtime PRIVATE -O3 -DNDEBUG)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_memory PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_handles PRIVATE -g -O0 -DDEBUG)
@@ -172,6 +213,8 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_jobs PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_configuration PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_logging PRIVATE -g -O0 -DDEBUG)
+    target_compile_options(poko_core_serialization PRIVATE -g -O0 -DDEBUG)
+    target_compile_options(poko_core_runtime PRIVATE -g -O0 -DDEBUG)
 endif()
 
 # Enable testing
@@ -182,53 +225,67 @@ add_executable(test_allocator
     tests/unit/core/memory/test_allocator.cpp
 )
 
-target_link_libraries(test_allocator PRIVATE poko_core_memory)
+target_link_libraries(test_allocator PRIVATE poko_core_memory Catch2::Catch2)
 add_test(NAME test_allocator COMMAND test_allocator)
 
 add_executable(test_handle
     tests/unit/core/handles/test_handle.cpp
 )
 
-target_link_libraries(test_handle PRIVATE poko_core_handles)
+target_link_libraries(test_handle PRIVATE poko_core_handles Catch2::Catch2)
 add_test(NAME test_handle COMMAND test_handle)
 
 add_executable(test_time
     tests/unit/core/time/test_time.cpp
 )
 
-target_link_libraries(test_time PRIVATE poko_core_time)
+target_link_libraries(test_time PRIVATE poko_core_time Catch2::Catch2)
 add_test(NAME test_time COMMAND test_time)
 
 add_executable(test_event
     tests/unit/core/events/test_event.cpp
 )
 
-target_link_libraries(test_event PRIVATE poko_core_events)
+target_link_libraries(test_event PRIVATE poko_core_events Catch2::Catch2)
 add_test(NAME test_event COMMAND test_event)
 
 add_executable(test_job
     tests/unit/core/jobs/test_job.cpp
 )
 
-target_link_libraries(test_job PRIVATE poko_core_jobs)
+target_link_libraries(test_job PRIVATE poko_core_jobs Catch2::Catch2)
 add_test(NAME test_job COMMAND test_job)
 
 add_executable(test_configuration
     tests/unit/core/configuration/test_configuration.cpp
 )
 
-target_link_libraries(test_configuration PRIVATE poko_core_configuration)
+target_link_libraries(test_configuration PRIVATE poko_core_configuration Catch2::Catch2)
 add_test(NAME test_configuration COMMAND test_configuration)
 
 add_executable(test_logging
     tests/unit/core/logging/test_logging.cpp
 )
 
-target_link_libraries(test_logging PRIVATE poko_core_logging)
+target_link_libraries(test_logging PRIVATE poko_core_logging Catch2::Catch2)
 add_test(NAME test_logging COMMAND test_logging)
 
+add_executable(test_serialization
+    tests/unit/core/serialization/test_serialization.cpp
+)
+
+target_link_libraries(test_serialization PRIVATE poko_core_serialization Catch2::Catch2)
+add_test(NAME test_serialization COMMAND test_serialization)
+
+add_executable(test_runtime
+    tests/unit/core/runtime/test_runtime.cpp
+)
+
+target_link_libraries(test_runtime PRIVATE poko_core_runtime Catch2::Catch2)
+add_test(NAME test_runtime COMMAND test_runtime)
+
 # Installation
-install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration poko_core_logging
+install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration poko_core_logging poko_core_serialization poko_core_runtime
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
