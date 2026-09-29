@@ -242,6 +242,21 @@ target_include_directories(poko_core_resources
 # Resources library dependencies
 target_link_libraries(poko_core_resources PRIVATE)
 
+# Core platform library
+add_library(poko_core_platform
+    src/core/platform/detection/detection.cpp
+)
+
+target_include_directories(poko_core_platform
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+# Platform library dependencies
+if(UNIX AND NOT APPLE)
+    target_link_libraries(poko_core_platform PRIVATE pthread)
+endif()
+
 # Platform-specific settings
 if(WIN32)
     target_compile_definitions(poko_core_memory PRIVATE _WIN32)
@@ -257,6 +272,7 @@ if(WIN32)
     target_compile_definitions(poko_core_components PRIVATE _WIN32)
     target_compile_definitions(poko_core_world PRIVATE _WIN32)
     target_compile_definitions(poko_core_resources PRIVATE _WIN32)
+    target_compile_definitions(poko_core_platform PRIVATE _WIN32)
 endif()
 
 # Production build flags
@@ -274,6 +290,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_options(poko_core_components PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_world PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_resources PRIVATE -O3 -DNDEBUG)
+    target_compile_options(poko_core_platform PRIVATE -O3 -DNDEBUG)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_memory PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_handles PRIVATE -g -O0 -DDEBUG)
@@ -288,6 +305,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_components PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_world PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_resources PRIVATE -g -O0 -DDEBUG)
+    target_compile_options(poko_core_platform PRIVATE -g -O0 -DDEBUG)
 endif()
 
 # Enable testing
@@ -386,8 +404,15 @@ add_test(NAME test_scene COMMAND test_scene)
 # target_link_libraries(test_resource PRIVATE poko_core_resources Catch2::Catch2)
 # add_test(NAME test_resource COMMAND test_resource)
 
+add_executable(test_platform
+    tests/unit/core/platform/test_platform.cpp
+)
+
+target_link_libraries(test_platform PRIVATE poko_core_platform Catch2::Catch2)
+add_test(NAME test_platform COMMAND test_platform)
+
 # Installation
-install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration poko_core_logging poko_core_serialization poko_core_runtime poko_core_properties poko_core_components poko_core_world poko_core_resources
+install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration poko_core_logging poko_core_serialization poko_core_runtime poko_core_properties poko_core_components poko_core_world poko_core_resources poko_core_platform
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
