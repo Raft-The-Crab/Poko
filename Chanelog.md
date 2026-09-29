@@ -571,3 +571,41 @@ Runtime Component System (item 11 from plan.md section 18) has been implemented 
 #### Git
 - **Commit**: 09c7d3d
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git
+
+## [0.1.6] - September 29, 2026
+
+### Production Improvements - Items 1-11 ✅
+
+**Status**: ✅ Production-Ready
+
+#### Overview
+Additional production-quality improvements across all Engine Core Modules (items 1-11), focusing on input validation, noexcept specifications, and enhanced documentation.
+
+#### Runtime Component System Improvements
+- **noexcept specification**: Added noexcept to generateComponentID template function for better performance
+- **Enhanced documentation**: Improved generateComponentID documentation with detailed notes on stability and portability
+- **Input validation**: Added validation to ComponentRegistry::registerComponent (checks for INVALID_COMPONENT_ID, empty typeName, null factory)
+- **Input validation**: Added validation to ComponentManager::attachComponent (checks for null component and INVALID_COMPONENT_ID)
+- **Input validation**: Added validation to ComponentManager::detachComponent (checks for INVALID_COMPONENT_ID)
+- **Flexible instance IDs**: Removed overly strict instanceId == 0 validation to allow valid instance ID 0
+
+#### Runtime Property System Improvements
+- **Metadata name validation**: Added validation in Property constructors to ensure names are not empty
+- **String validation**: Replaced nullptr check with empty() check for std::string name field (correct type for name)
+- **Default naming**: Properties with empty names are automatically assigned "UnnamedProperty"
+
+#### Production Quality Features
+- **Input Validation**: Comprehensive checks prevent invalid operations and undefined behavior
+- **noexcept Specifications**: Added to performance-critical paths for better compiler optimization
+- **Enhanced Documentation**: Improved inline documentation for clarity and maintainability
+- **Robust Error Handling**: Early validation prevents runtime errors
+- **Type Safety**: Correct type checks (std::string::empty instead of nullptr comparison)
+
+#### Build Status
+- All modules compiled successfully with no warnings
+- 11/11 tests passing (100%)
+- 136 test suites total across 11 modules
+
+#### Git
+- **Commit**: e242a4c
+- **Repository**: https://github.com/Raft-The-Crab/Poko.git
