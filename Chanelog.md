@@ -696,3 +696,40 @@ Additional safety and validation improvements across Engine Core Modules, focusi
 #### Git
 - **Commit**: d6cdb73
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git
+
+## [0.1.9] - September 29, 2026
+
+### Additional Validation Improvements - Items 1-11 ✅
+
+**Status**: ✅ Production-Ready
+
+#### Overview
+Additional input validation improvements across Engine Core Modules, focusing on null pointer checks and key validation.
+
+#### Core Events Improvements
+- **Event validation**: Added validation in `EventQueue::push` to reject null events
+- **Event validation**: Added validation in `EventDispatcher::dispatch` to reject null events
+- **Crash prevention**: Prevents null pointer dereferences during event processing
+- **Early exit**: Returns early for invalid input to avoid wasted processing
+
+#### Runtime Object System Improvements
+- **Key validation**: Added validation in `Instance::setProperty` to reject empty keys
+- **Key validation**: Added validation in `Instance::setProperty` move overload to reject empty keys
+- **Consistency**: Removed `noexcept` from move overload to match implementation (validation requires early return)
+- **Header sync**: Updated header declaration to match implementation signature
+
+#### Production Quality Features
+- **Null Pointer Validation**: Comprehensive checks prevent crashes
+- **Empty Key Validation**: Prevents meaningless operations with empty keys
+- **Consistent Specifications**: noexcept specifications match between header and implementation
+- **Early Exit**: Invalid input is rejected early to avoid wasted processing
+- **Defensive Programming**: Protects against undefined behavior
+
+#### Build Status
+- All modules compiled successfully with no warnings
+- 11/11 tests passing (100%)
+- 136 test suites total across 11 modules
+
+#### Git
+- **Commit**: a0daea9
+- **Repository**: https://github.com/Raft-The-Crab/Poko.git
