@@ -42,16 +42,20 @@ enum class LogLevel {
  * 
  * @param level Log level
  * @return String representation
+ * 
+ * @note noexcept - does not throw
  */
-[[nodiscard]] const char* logLevelToString(LogLevel level);
+[[nodiscard]] const char* logLevelToString(LogLevel level) noexcept;
 
 /**
  * @brief Convert string to log level
  * 
  * @param str String representation
  * @return Log level
+ * 
+ * @note noexcept - does not throw
  */
-[[nodiscard]] LogLevel stringToLogLevel(const std::string& str);
+[[nodiscard]] LogLevel stringToLogLevel(const std::string& str) noexcept;
 
 /**
  * @brief Log message structure

@@ -276,7 +276,7 @@ public:
      * @note Thread-safe
      * @note Cannot cancel jobs that are already running
      */
-    bool cancel(JobId jobId);
+    bool cancel(JobId jobId) noexcept;
     
     /**
      * @brief Wait for a job to complete
@@ -363,7 +363,7 @@ public:
      * @note Thread-safe
      * @note Does not affect pending or running jobs
      */
-    void clearFinishedJobs();
+    void clearFinishedJobs() noexcept;
     
     /**
      * @brief Shutdown the job system

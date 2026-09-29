@@ -15,7 +15,16 @@ namespace poko {
 namespace core {
 namespace jobs {
 
-void JobSystem::clearFinishedJobs() {
+/**
+ * @brief Clear finished jobs from the job list
+ * 
+ * Removes jobs that have completed, failed, or been cancelled.
+ * This keeps the job list from growing indefinitely.
+ * 
+ * @note Thread-safe via mutex lock
+ * @note Only removes finished jobs, not pending or running jobs
+ */
+void JobSystem::clearFinishedJobs() noexcept {
     std::lock_guard<std::mutex> lock(m_mutex);
     
     m_jobs.erase(

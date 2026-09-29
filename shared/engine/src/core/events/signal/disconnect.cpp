@@ -14,7 +14,7 @@ namespace poko {
 namespace core {
 namespace events {
 
-bool Signal::disconnect(size_t connectionId) {
+bool Signal::disconnect(size_t connectionId) noexcept {
     std::lock_guard<std::mutex> lock(m_mutex);
     
     for (auto it = m_connections.begin(); it != m_connections.end(); ++it) {
@@ -27,7 +27,7 @@ bool Signal::disconnect(size_t connectionId) {
     return false;
 }
 
-void Signal::disconnectAll() {
+void Signal::disconnectAll() noexcept {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_connections.clear();
 }

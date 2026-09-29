@@ -16,8 +16,13 @@ namespace logging {
 
 /**
  * @brief Convert log level to string
+ * 
+ * @param level Log level to convert
+ * @return String representation of log level
+ * 
+ * @note noexcept - does not throw
  */
-const char* logLevelToString(LogLevel level) {
+const char* logLevelToString(LogLevel level) noexcept {
     switch (level) {
         case LogLevel::Debug: return "DEBUG";
         case LogLevel::Info: return "INFO";
@@ -30,14 +35,21 @@ const char* logLevelToString(LogLevel level) {
 
 /**
  * @brief Convert string to log level
+ * 
+ * @param str String to convert
+ * @return Log level (defaults to Info if unrecognized)
+ * 
+ * @note Empty strings default to Info
+ * @note Case-sensitive comparison
  */
-LogLevel stringToLogLevel(const std::string& str) {
+LogLevel stringToLogLevel(const std::string& str) noexcept {
+    if (str.empty()) return LogLevel::Info;
     if (str == "DEBUG") return LogLevel::Debug;
     if (str == "INFO") return LogLevel::Info;
     if (str == "WARNING") return LogLevel::Warning;
     if (str == "ERROR") return LogLevel::Error;
     if (str == "FATAL") return LogLevel::Fatal;
-    return LogLevel::Info; // Default
+    return LogLevel::Info; // Default for unrecognized strings
 }
 
 } // namespace logging

@@ -14,7 +14,7 @@ namespace poko {
 namespace core {
 namespace jobs {
 
-bool JobSystem::cancel(JobId jobId) {
+bool JobSystem::cancel(JobId jobId) noexcept {
     std::lock_guard<std::mutex> lock(m_mutex);
     
     for (auto& entry : m_jobs) {

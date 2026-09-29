@@ -21,10 +21,18 @@ namespace configuration {
  * Thread-safe operation that retrieves a configuration value.
  * Uses shared lock for concurrent reads.
  * 
- * @param key Configuration key
+ * @param key Configuration key (non-empty string)
  * @return Optional containing the value if key exists
+ * 
+ * @note Empty keys return nullopt
+ * @note Thread-safe via shared mutex (allows concurrent reads)
  */
-std::optional<ConfigValue> Configuration::get(const std::string& key) const {
+std::optional<ConfigValue> Configuration::get(const std::string& key) const noexcept {
+    // Empty keys are considered non-existent
+    if (key.empty()) {
+        return std::nullopt;
+    }
+    
     // Use shared_lock for read operations - allows concurrent reads
     std::shared_lock<std::shared_mutex> lock(m_mutex);
     
@@ -45,10 +53,13 @@ std::optional<ConfigValue> Configuration::get(const std::string& key) const {
 /**
  * @brief Get boolean value
  * 
- * @param key Configuration key
+ * @param key Configuration key (non-empty string)
  * @return Optional containing the value if key exists and is bool
+ * 
+ * @note Empty keys return nullopt
+ * @note Thread-safe via shared mutex (allows concurrent reads)
  */
-std::optional<bool> Configuration::getBool(const std::string& key) const {
+std::optional<bool> Configuration::getBool(const std::string& key) const noexcept {
     auto value = get(key);
     if (value && std::holds_alternative<bool>(*value)) {
         return std::get<bool>(*value);
@@ -59,10 +70,13 @@ std::optional<bool> Configuration::getBool(const std::string& key) const {
 /**
  * @brief Get integer value
  * 
- * @param key Configuration key
+ * @param key Configuration key (non-empty string)
  * @return Optional containing the value if key exists and is int
+ * 
+ * @note Empty keys return nullopt
+ * @note Thread-safe via shared mutex (allows concurrent reads)
  */
-std::optional<int> Configuration::getInt(const std::string& key) const {
+std::optional<int> Configuration::getInt(const std::string& key) const noexcept {
     auto value = get(key);
     if (value && std::holds_alternative<int>(*value)) {
         return std::get<int>(*value);
@@ -73,10 +87,13 @@ std::optional<int> Configuration::getInt(const std::string& key) const {
 /**
  * @brief Get double value
  * 
- * @param key Configuration key
+ * @param key Configuration key (non-empty string)
  * @return Optional containing the value if key exists and is double
+ * 
+ * @note Empty keys return nullopt
+ * @note Thread-safe via shared mutex (allows concurrent reads)
  */
-std::optional<double> Configuration::getDouble(const std::string& key) const {
+std::optional<double> Configuration::getDouble(const std::string& key) const noexcept {
     auto value = get(key);
     if (value && std::holds_alternative<double>(*value)) {
         return std::get<double>(*value);
@@ -87,10 +104,13 @@ std::optional<double> Configuration::getDouble(const std::string& key) const {
 /**
  * @brief Get string value
  * 
- * @param key Configuration key
+ * @param key Configuration key (non-empty string)
  * @return Optional containing the value if key exists and is string
+ * 
+ * @note Empty keys return nullopt
+ * @note Thread-safe via shared mutex (allows concurrent reads)
  */
-std::optional<std::string> Configuration::getString(const std::string& key) const {
+std::optional<std::string> Configuration::getString(const std::string& key) const noexcept {
     auto value = get(key);
     if (value && std::holds_alternative<std::string>(*value)) {
         return std::get<std::string>(*value);

@@ -310,14 +310,14 @@ public:
      * 
      * @note Thread-safe
      */
-    bool disconnect(size_t connectionId);
+    bool disconnect(size_t connectionId) noexcept;
     
     /**
      * @brief Disconnect all callbacks
      * 
      * @note Thread-safe
      */
-    void disconnectAll();
+    void disconnectAll() noexcept;
     
     /**
      * @brief Emit signal with event

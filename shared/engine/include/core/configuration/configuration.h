@@ -100,7 +100,7 @@ public:
      * 
      * @note Thread-safe
      */
-    [[nodiscard]] std::optional<ConfigValue> get(const std::string& key) const;
+    [[nodiscard]] std::optional<ConfigValue> get(const std::string& key) const noexcept;
     
     /**
      * @brief Get a configuration value with default
@@ -112,7 +112,7 @@ public:
      * @note Thread-safe
      */
     template<typename T>
-    [[nodiscard]] T getOrDefault(const std::string& key, const T& defaultValue) const {
+    [[nodiscard]] T getOrDefault(const std::string& key, const T& defaultValue) const noexcept {
         auto value = get(key);
         if (value && std::holds_alternative<T>(*value)) {
             return std::get<T>(*value);
@@ -128,7 +128,7 @@ public:
      * 
      * @note Thread-safe
      */
-    [[nodiscard]] std::optional<bool> getBool(const std::string& key) const;
+    [[nodiscard]] std::optional<bool> getBool(const std::string& key) const noexcept;
     
     /**
      * @brief Get integer value
@@ -138,7 +138,7 @@ public:
      * 
      * @note Thread-safe
      */
-    [[nodiscard]] std::optional<int> getInt(const std::string& key) const;
+    [[nodiscard]] std::optional<int> getInt(const std::string& key) const noexcept;
     
     /**
      * @brief Get double value
@@ -148,7 +148,7 @@ public:
      * 
      * @note Thread-safe
      */
-    [[nodiscard]] std::optional<double> getDouble(const std::string& key) const;
+    [[nodiscard]] std::optional<double> getDouble(const std::string& key) const noexcept;
     
     /**
      * @brief Get string value
@@ -158,7 +158,7 @@ public:
      * 
      * @note Thread-safe
      */
-    [[nodiscard]] std::optional<std::string> getString(const std::string& key) const;
+    [[nodiscard]] std::optional<std::string> getString(const std::string& key) const noexcept;
     
     /**
      * @brief Check if key exists
