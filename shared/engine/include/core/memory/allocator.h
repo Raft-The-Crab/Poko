@@ -87,10 +87,10 @@ constexpr size_t MAX_SMALL_ALLOCATION = 1024;
  * Enables automatic guard validation and proper deallocation.
  */
 struct AllocationHeader {
+    uint32_t guard;           ///< Header guard pattern (0xDEADBEEF)
     size_t size;              ///< Original allocation size
     size_t alignment;         ///< Requested alignment
     bool hasGuard;            ///< Whether guard bytes are present
-    uint8_t guardPattern[4];  ///< Header guard pattern (0xDEADBEEF)
 };
 
 /// Header guard pattern for corruption detection

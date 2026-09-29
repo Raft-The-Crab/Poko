@@ -85,12 +85,13 @@ static constexpr size_t alignUp(size_t size, size_t alignment) noexcept {
     }
     
     // ============================================================================
-    // Calculate Total Size with Guard Bytes
+    // Calculate Total Size with Guard Bytes and Header
     // ============================================================================
     // Guard bytes add padding before and after the allocation for corruption detection
+    // Header stores metadata for proper deallocation and validation
     size_t totalSize = size;
     if ((flags & AllocationFlags::Guard) != AllocationFlags::None) {
-        totalSize += GUARD_SIZE * 2; // Guard before and after allocation
+        totalSize += sizeof(AllocationHeader) + GUARD_SIZE * 2; // Header + guard before/after
     }
     
     // ============================================================================
@@ -139,16 +140,24 @@ static constexpr size_t alignUp(size_t size, size_t alignment) noexcept {
     }
     
     // ============================================================================
-    // Write Guard Patterns (if requested)
+    // Write Guard Patterns and Header (if requested)
     // ============================================================================
     // Guard bytes help detect buffer overflows and underflows
-    // Pattern 0xCD is the Visual Studio debug fill pattern
+    // Header stores metadata for automatic deallocation and validation
     if ((flags & AllocationFlags::Guard) != AllocationFlags::None) {
         uint8_t* bytes = static_cast<uint8_t*>(ptr);
-        // Guard before allocation
-        std::memset(bytes, GUARD_PATTERN, GUARD_SIZE);
+        
+        // Write header with metadata
+        AllocationHeader* header = reinterpret_cast<AllocationHeader*>(bytes);
+        header->guard = HEADER_GUARD;
+        header->size = size;
+        header->alignment = alignment;
+        header->hasGuard = true;
+        
+        // Guard before allocation (after header)
+        std::memset(bytes + sizeof(AllocationHeader), GUARD_PATTERN, GUARD_SIZE);
         // Guard after allocation
-        std::memset(bytes + GUARD_SIZE + size, GUARD_PATTERN, GUARD_SIZE);
+        std::memset(bytes + sizeof(AllocationHeader) + GUARD_SIZE + size, GUARD_PATTERN, GUARD_SIZE);
     }
     
     // ============================================================================
@@ -157,8 +166,9 @@ static constexpr size_t alignUp(size_t size, size_t alignment) noexcept {
     // Zero-initialize the allocation for security and correctness
     if ((flags & AllocationFlags::ZeroMemory) != AllocationFlags::None) {
         uint8_t* bytes = static_cast<uint8_t*>(ptr);
-        // Skip guard bytes if present (only zero the user-accessible region)
-        size_t zeroStart = (flags & AllocationFlags::Guard) != AllocationFlags::None ? GUARD_SIZE : 0;
+        // Skip header and guard bytes if present (only zero the user-accessible region)
+        size_t zeroStart = (flags & AllocationFlags::Guard) != AllocationFlags::None 
+            ? sizeof(AllocationHeader) + GUARD_SIZE : 0;
         std::memset(bytes + zeroStart, 0, size);
     }
     
@@ -190,20 +200,12 @@ static constexpr size_t alignUp(size_t size, size_t alignment) noexcept {
     }
     
     // ============================================================================
-    // Return Pointer (adjust for guard bytes if present)
+    // Return Pointer (adjust for header and guard bytes if present)
     // ============================================================================
-    // When guard bytes are enabled, return pointer past the guard region
-    // Note: For production use with guards, we would need to store allocation metadata
-    // (including guard flag) in a header to properly deallocate. Current implementation
-    // requires users to remember if guards were enabled for proper deallocation.
-    // 
-    // Future improvement: Add allocation header with:
-    // - Guard flag
-    // - Original size
-    // - Original alignment
-    // This would enable automatic guard validation on deallocation.
+    // When guard bytes are enabled, return pointer past the header and guard region
+    // This enables automatic deallocation and validation using the stored metadata
     if ((flags & AllocationFlags::Guard) != AllocationFlags::None) {
-        return static_cast<uint8_t*>(ptr) + GUARD_SIZE;
+        return static_cast<uint8_t*>(ptr) + sizeof(AllocationHeader) + GUARD_SIZE;
     }
     
     return ptr;

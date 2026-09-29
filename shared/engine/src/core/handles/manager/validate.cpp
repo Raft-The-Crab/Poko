@@ -22,42 +22,29 @@ namespace handles {
         return false;
     }
     
-    // Use try_lock to avoid potential exceptions from lock acquisition
-    // If lock fails, assume invalid (conservative but safe)
-    if (!m_mutex.try_lock()) {
-        return false;
-    }
+    // Lock for thread-safe access to entries
+    std::lock_guard<std::mutex> lock(m_mutex);
     
     // Check if index is within bounds
     if (handle.index >= m_entries.size()) {
-        m_mutex.unlock();
         return false;
     }
     
     // Check if active and generation matches
     const HandleEntry& entry = m_entries[handle.index];
-    const bool valid = entry.active && entry.generation == handle.generation;
-    
-    m_mutex.unlock();
-    return valid;
+    return entry.active && entry.generation == handle.generation;
 }
 
 [[nodiscard]] HandleGeneration HandleManager::getGeneration(HandleIndex index) const noexcept {
-    // Use try_lock to avoid potential exceptions from lock acquisition
-    // If lock fails, return 0 (safe default)
-    if (!m_mutex.try_lock()) {
-        return 0;
-    }
+    // Lock for thread-safe access to entries
+    std::lock_guard<std::mutex> lock(m_mutex);
     
     // Return 0 for out-of-bounds indices
     if (index >= m_entries.size()) {
-        m_mutex.unlock();
         return 0;
     }
     
-    const HandleGeneration gen = m_entries[index].generation;
-    m_mutex.unlock();
-    return gen;
+    return m_entries[index].generation;
 }
 
 } // namespace handles

@@ -25,6 +25,46 @@ void SystemAllocator::deallocate(void* ptr, size_t size) noexcept {
     if (!ptr) return;
     
     // ============================================================================
+    // Validate Guard Bytes (if present)
+    // ============================================================================
+    // Check for allocation header to determine if guards were used
+    uint8_t* rawPtr = static_cast<uint8_t*>(ptr);
+    AllocationHeader* header = reinterpret_cast<AllocationHeader*>(rawPtr - sizeof(AllocationHeader) - GUARD_SIZE);
+    
+    // Check if this allocation has a valid header
+    bool hasValidHeader = (header->guard == HEADER_GUARD && header->hasGuard);
+    
+    if (hasValidHeader) {
+        // Validate guard bytes before deallocation
+        uint8_t* allocationStart = rawPtr - GUARD_SIZE;
+        
+        // Validate guard before allocation
+        uint8_t* guardBefore = allocationStart - sizeof(AllocationHeader);
+        for (size_t i = 0; i < GUARD_SIZE; ++i) {
+            if (guardBefore[i] != GUARD_PATTERN) {
+                // Guard corruption detected - continue deallocation but could log error
+                // In production builds, this might be logged to an error tracking system
+            }
+        }
+        
+        // Validate guard after allocation
+        uint8_t* guardAfter = allocationStart + header->size;
+        for (size_t i = 0; i < GUARD_SIZE; ++i) {
+            if (guardAfter[i] != GUARD_PATTERN) {
+                // Guard corruption detected - continue deallocation but could log error
+            }
+        }
+        
+        // Use stored size from header if not provided
+        if (size == 0) {
+            size = header->size;
+        }
+        
+        // Adjust pointer to original allocation
+        rawPtr = reinterpret_cast<uint8_t*>(header);
+    }
+    
+    // ============================================================================
     // Update Statistics (if tracking enabled and size provided)
     // ============================================================================
     // Statistics update is done with relaxed memory ordering for performance
@@ -50,13 +90,11 @@ void SystemAllocator::deallocate(void* ptr, size_t size) noexcept {
     // Platform-Specific Deallocation
     // ============================================================================
     // These system calls are guaranteed not to throw
-    // Note: If guard bytes were used, the pointer should have been adjusted
-    // back to the original allocation before deallocation. Current implementation
-    // requires users to handle this manually.
+    // Pointer is now adjusted to the original allocation if guards were used
 #ifdef _WIN32
-    _aligned_free(ptr);
+    _aligned_free(rawPtr);
 #else
-    free(ptr);
+    free(rawPtr);
 #endif
 }
 

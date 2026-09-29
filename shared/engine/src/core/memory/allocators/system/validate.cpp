@@ -25,14 +25,27 @@ namespace memory {
         return false;
     }
     
-    // Calculate pointer to actual allocation (account for guard bytes)
-    // The allocate function returns pointer past the guard region
-    uint8_t* allocationStart = static_cast<uint8_t*>(ptr) - GUARD_SIZE;
+    // Calculate pointer to allocation header
+    uint8_t* rawPtr = static_cast<uint8_t*>(ptr);
+    AllocationHeader* header = reinterpret_cast<AllocationHeader*>(rawPtr - sizeof(AllocationHeader) - GUARD_SIZE);
+    
+    // Check if this allocation has a valid header
+    if (header->guard != HEADER_GUARD || !header->hasGuard) {
+        return false; // No valid header or guards not enabled
+    }
+    
+    // Use stored size from header if not provided
+    if (size == 0) {
+        size = header->size;
+    }
+    
+    // Calculate pointer to guard before allocation (after header)
+    uint8_t* allocationStart = rawPtr - GUARD_SIZE;
     
     // ============================================================================
     // Validate Guard Before Allocation
     // ============================================================================
-    uint8_t* guardBefore = allocationStart;
+    uint8_t* guardBefore = reinterpret_cast<uint8_t*>(header) + sizeof(AllocationHeader);
     for (size_t i = 0; i < GUARD_SIZE; ++i) {
         if (guardBefore[i] != GUARD_PATTERN) {
             return false; // Guard before allocation corrupted
@@ -42,7 +55,7 @@ namespace memory {
     // ============================================================================
     // Validate Guard After Allocation
     // ============================================================================
-    uint8_t* guardAfter = allocationStart + GUARD_SIZE + size;
+    uint8_t* guardAfter = allocationStart + size;
     for (size_t i = 0; i < GUARD_SIZE; ++i) {
         if (guardAfter[i] != GUARD_PATTERN) {
             return false; // Guard after allocation corrupted

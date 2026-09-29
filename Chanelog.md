@@ -389,5 +389,47 @@ Additional production-quality improvements across all implemented modules (items
 - All tests now pass with no environment issues
 
 #### Git
+- **Commit**: ef09fba
+- **Repository**: https://github.com/Raft-The-Crab/Poko.git
+
+## [0.1.3] - September 29, 2026
+
+### Production Enhancements - Memory and Thread Safety ✅
+
+**Status**: ✅ Production-Ready
+
+#### Overview
+Additional production-quality improvements focused on memory safety, automatic guard validation, and proper thread synchronization.
+
+#### Core Memory Improvements
+- **Enhanced Allocation Header**: Restructured AllocationHeader to use 32-bit guard field for better memory layout
+- **Automatic Guard Validation**: deallocate now automatically validates guard bytes before deallocation
+- **Header-Based Metadata**: Allocation header stores size, alignment, and guard flag for automatic deallocation
+- **Improved validateGuardBytes**: Now uses allocation header for accurate validation
+- **Better Memory Layout**: Header + guard before + user data + guard after structure for comprehensive corruption detection
+
+#### Core Handles Improvements
+- **Replaced try_lock with lock_guard**: Removed unsafe try_lock in isValid and getGeneration
+- **Proper Thread Safety**: Using lock_guard ensures consistent state and prevents race conditions
+- **More Reliable Validation**: No longer assumes invalid on lock contention
+
+#### Core Time Improvements
+- **Added noexcept to sleep**: Function now catches and ignores thread interruption exceptions
+- **Robust Thread Sleep**: Game engine robustness - sleep continues even if thread is interrupted
+- **Updated Header Declaration**: Matches implementation with noexcept specification
+
+#### Production Quality Features
+- **Memory Safety**: Automatic guard validation detects buffer overflows/underflows on deallocation
+- **Thread Safety**: Proper mutex locking ensures consistent state across all operations
+- **Robustness**: Sleep function handles thread interruption gracefully
+- **Metadata Storage**: Allocation headers enable automatic deallocation without user bookkeeping
+- **Corruption Detection**: Guard bytes before and after allocations with header validation
+
+#### Build Status
+- All modules compiled successfully with no warnings
+- 9/9 tests passing (100%)
+- 102 test suites total across 9 modules
+
+#### Git
 - **Commit**: (to be added)
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git

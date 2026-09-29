@@ -447,8 +447,9 @@ struct TimePoint {
 /**
  * @brief Sleep for a duration
  * @param duration Duration to sleep
+ * @note Thread interruption exceptions are caught and ignored for game engine robustness
  */
-void sleep(Duration duration);
+void sleep(Duration duration) noexcept;
 
 /**
  * @brief Get time since program start
