@@ -9,21 +9,21 @@
  */
 
 #include "core/memory/allocator.h"
-#include <mutex>
 
 namespace poko {
 namespace core {
 namespace memory {
 
-void SystemAllocator::setTrackingEnabled(bool enabled) {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_trackingEnabled = enabled;
+void SystemAllocator::setTrackingEnabled(bool enabled) noexcept {
+    // Use atomic store for lock-free tracking flag update
+    // This allows fast-path checks without acquiring mutex
+    m_trackingEnabled.store(enabled, std::memory_order_relaxed);
 }
 
-bool SystemAllocator::isTrackingEnabled() const {
+bool SystemAllocator::isTrackingEnabled() const noexcept {
     // Fast path: read atomic flag without lock for performance
-    // In a more sophisticated implementation, this could be std::atomic<bool>
-    return m_trackingEnabled;
+    // Relaxed memory ordering is sufficient for this boolean flag
+    return m_trackingEnabled.load(std::memory_order_relaxed);
 }
 
 } // namespace memory

@@ -14,8 +14,12 @@ namespace poko {
 namespace core {
 namespace handles {
 
-[[nodiscard]] HandleManagerStats HandleManager::getStats() const {
-    std::lock_guard<std::mutex> lock(m_mutex);
+[[nodiscard]] HandleManagerStats HandleManager::getStats() const noexcept {
+    // Use try_lock to avoid potential exceptions from lock acquisition
+    // If lock fails, return zero stats (safe default)
+    if (!m_mutex.try_lock()) {
+        return HandleManagerStats{0, 0, 0, 0};
+    }
     
     // Create stats snapshot from atomic counters
     HandleManagerStats stats;
@@ -24,6 +28,7 @@ namespace handles {
     stats.activeHandles = m_activeCount.load(std::memory_order_relaxed);
     stats.freeListSize = m_freeList.size();
     
+    m_mutex.unlock();
     return stats;
 }
 

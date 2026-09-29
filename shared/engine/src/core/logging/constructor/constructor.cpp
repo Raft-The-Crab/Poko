@@ -23,7 +23,8 @@ namespace logging {
  * - Console sink added by default
  */
 Logger::Logger()
-    : m_sinks()
+    : m_mutex()
+    , m_sinks()
     , m_minLevel(LogLevel::Info)
     , m_subsystemFilter()
 {

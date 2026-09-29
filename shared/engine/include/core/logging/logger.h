@@ -132,6 +132,26 @@ public:
     ~Logger();
     
     /**
+     * @brief Copy constructor (deleted)
+     */
+    Logger(const Logger&) = delete;
+    
+    /**
+     * @brief Copy assignment (deleted)
+     */
+    Logger& operator=(const Logger&) = delete;
+    
+    /**
+     * @brief Move constructor
+     */
+    Logger(Logger&&) noexcept = default;
+    
+    /**
+     * @brief Move assignment
+     */
+    Logger& operator=(Logger&&) noexcept = default;
+    
+    /**
      * @brief Log a message
      * 
      * @param level Log severity level

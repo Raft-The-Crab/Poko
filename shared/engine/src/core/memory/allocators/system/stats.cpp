@@ -9,14 +9,14 @@
  */
 
 #include "core/memory/allocator.h"
-#include "core/memory/allocators/interface.h"
 
 namespace poko {
 namespace core {
 namespace memory {
 
-AllocationStats SystemAllocator::getStats() const {
+AllocationStats SystemAllocator::getStats() const noexcept {
     // Return a snapshot copy of current statistics
+    // All atomic operations are lock-free and noexcept
     AllocationStats stats;
     stats.totalAllocated = m_stats.totalAllocated.load(std::memory_order_relaxed);
     stats.totalFreed = m_stats.totalFreed.load(std::memory_order_relaxed);

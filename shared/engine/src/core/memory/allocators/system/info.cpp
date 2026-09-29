@@ -14,11 +14,11 @@ namespace poko {
 namespace core {
 namespace memory {
 
-const char* SystemAllocator::getName() const {
+const char* SystemAllocator::getName() const noexcept {
     return "SystemAllocator";
 }
 
-bool SystemAllocator::supportsIndividualDeallocation() const {
+bool SystemAllocator::supportsIndividualDeallocation() const noexcept {
     return true;
 }
 

@@ -14,8 +14,10 @@ namespace poko {
 namespace core {
 namespace memory {
 
-SystemAllocator::SystemAllocator() 
-    : m_stats{}, m_trackingEnabled(false) {
+SystemAllocator::SystemAllocator() noexcept
+    : m_mutex()
+    , m_stats{}
+    , m_trackingEnabled(false) {
 }
 
 SystemAllocator::~SystemAllocator() {

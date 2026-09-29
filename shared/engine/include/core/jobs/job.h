@@ -237,6 +237,26 @@ public:
     ~JobSystem();
     
     /**
+     * @brief Copy constructor (deleted)
+     */
+    JobSystem(const JobSystem&) = delete;
+    
+    /**
+     * @brief Copy assignment (deleted)
+     */
+    JobSystem& operator=(const JobSystem&) = delete;
+    
+    /**
+     * @brief Move constructor (deleted - job system must remain in place)
+     */
+    JobSystem(JobSystem&&) = delete;
+    
+    /**
+     * @brief Move assignment (deleted - job system must remain in place)
+     */
+    JobSystem& operator=(JobSystem&&) = delete;
+    
+    /**
      * @brief Submit a job for execution
      * 
      * @param job Job to execute (takes ownership)

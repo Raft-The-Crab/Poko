@@ -442,7 +442,7 @@ struct TimePoint {
  * @brief Get current time as TimePoint
  * @return Current time point
  */
-[[nodiscard]] TimePoint getCurrentTime();
+[[nodiscard]] TimePoint getCurrentTime() noexcept;
 
 /**
  * @brief Sleep for a duration
@@ -454,7 +454,7 @@ void sleep(Duration duration);
  * @brief Get time since program start
  * @return Time since program started
  */
-[[nodiscard]] Duration getElapsedTime();
+[[nodiscard]] Duration getElapsedTime() noexcept;
 
 } // namespace time
 } // namespace core

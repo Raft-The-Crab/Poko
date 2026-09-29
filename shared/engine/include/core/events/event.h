@@ -264,12 +264,32 @@ public:
     /**
      * @brief Constructor
      */
-    Signal() = default;
+    Signal() noexcept = default;
     
     /**
      * @brief Destructor
      */
     ~Signal() = default;
+    
+    /**
+     * @brief Copy constructor (deleted)
+     */
+    Signal(const Signal&) = delete;
+    
+    /**
+     * @brief Copy assignment (deleted)
+     */
+    Signal& operator=(const Signal&) = delete;
+    
+    /**
+     * @brief Move constructor
+     */
+    Signal(Signal&&) noexcept = default;
+    
+    /**
+     * @brief Move assignment
+     */
+    Signal& operator=(Signal&&) noexcept = default;
     
     /**
      * @brief Connect a callback to this signal
@@ -355,12 +375,32 @@ public:
     /**
      * @brief Constructor
      */
-    EventQueue() = default;
+    EventQueue() noexcept = default;
     
     /**
      * @brief Destructor
      */
     ~EventQueue() = default;
+    
+    /**
+     * @brief Copy constructor (deleted)
+     */
+    EventQueue(const EventQueue&) = delete;
+    
+    /**
+     * @brief Copy assignment (deleted)
+     */
+    EventQueue& operator=(const EventQueue&) = delete;
+    
+    /**
+     * @brief Move constructor
+     */
+    EventQueue(EventQueue&&) noexcept = default;
+    
+    /**
+     * @brief Move assignment
+     */
+    EventQueue& operator=(EventQueue&&) noexcept = default;
     
     /**
      * @brief Push event to queue
@@ -435,12 +475,32 @@ public:
     /**
      * @brief Constructor
      */
-    EventDispatcher() = default;
+    EventDispatcher() noexcept = default;
     
     /**
      * @brief Destructor
      */
     ~EventDispatcher() = default;
+    
+    /**
+     * @brief Copy constructor (deleted)
+     */
+    EventDispatcher(const EventDispatcher&) = delete;
+    
+    /**
+     * @brief Copy assignment (deleted)
+     */
+    EventDispatcher& operator=(const EventDispatcher&) = delete;
+    
+    /**
+     * @brief Move constructor
+     */
+    EventDispatcher(EventDispatcher&&) noexcept = default;
+    
+    /**
+     * @brief Move assignment
+     */
+    EventDispatcher& operator=(EventDispatcher&&) noexcept = default;
     
     /**
      * @brief Register handler for event type

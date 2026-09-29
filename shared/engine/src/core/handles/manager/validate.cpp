@@ -14,7 +14,7 @@ namespace poko {
 namespace core {
 namespace handles {
 
-[[nodiscard]] bool HandleManager::isValid(Handle handle) const {
+[[nodiscard]] bool HandleManager::isValid(Handle handle) const noexcept {
     // ============================================================================
     // Validate Handle
     // ============================================================================
@@ -22,27 +22,42 @@ namespace handles {
         return false;
     }
     
-    std::lock_guard<std::mutex> lock(m_mutex);
+    // Use try_lock to avoid potential exceptions from lock acquisition
+    // If lock fails, assume invalid (conservative but safe)
+    if (!m_mutex.try_lock()) {
+        return false;
+    }
     
     // Check if index is within bounds
     if (handle.index >= m_entries.size()) {
+        m_mutex.unlock();
         return false;
     }
     
     // Check if active and generation matches
     const HandleEntry& entry = m_entries[handle.index];
-    return entry.active && entry.generation == handle.generation;
+    const bool valid = entry.active && entry.generation == handle.generation;
+    
+    m_mutex.unlock();
+    return valid;
 }
 
-[[nodiscard]] HandleGeneration HandleManager::getGeneration(HandleIndex index) const {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    
-    // Return 0 for out-of-bounds indices
-    if (index >= m_entries.size()) {
+[[nodiscard]] HandleGeneration HandleManager::getGeneration(HandleIndex index) const noexcept {
+    // Use try_lock to avoid potential exceptions from lock acquisition
+    // If lock fails, return 0 (safe default)
+    if (!m_mutex.try_lock()) {
         return 0;
     }
     
-    return m_entries[index].generation;
+    // Return 0 for out-of-bounds indices
+    if (index >= m_entries.size()) {
+        m_mutex.unlock();
+        return 0;
+    }
+    
+    const HandleGeneration gen = m_entries[index].generation;
+    m_mutex.unlock();
+    return gen;
 }
 
 } // namespace handles

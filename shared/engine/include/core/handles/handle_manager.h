@@ -118,7 +118,7 @@ public:
     /**
      * @brief Constructor - initializes empty handle manager
      */
-    HandleManager();
+    HandleManager() noexcept;
     
     /**
      * @brief Destructor - cleans up handle manager
@@ -127,6 +127,26 @@ public:
      * @note Users should free all handles before destruction
      */
     ~HandleManager();
+    
+    /**
+     * @brief Copy constructor (deleted)
+     */
+    HandleManager(const HandleManager&) = delete;
+    
+    /**
+     * @brief Copy assignment (deleted)
+     */
+    HandleManager& operator=(const HandleManager&) = delete;
+    
+    /**
+     * @brief Move constructor
+     */
+    HandleManager(HandleManager&&) noexcept = default;
+    
+    /**
+     * @brief Move assignment
+     */
+    HandleManager& operator=(HandleManager&&) noexcept = default;
     
     /**
      * @brief Allocate a new handle
@@ -171,7 +191,7 @@ public:
      * @note Thread-safe
      * @note Stale handles (wrong generation) return false
      */
-    [[nodiscard]] bool isValid(Handle handle) const;
+    [[nodiscard]] bool isValid(Handle handle) const noexcept;
     
     /**
      * @brief Get generation for a handle index
@@ -182,7 +202,7 @@ public:
      * @note Thread-safe
      * @note Useful for debugging handle state
      */
-    [[nodiscard]] HandleGeneration getGeneration(HandleIndex index) const;
+    [[nodiscard]] HandleGeneration getGeneration(HandleIndex index) const noexcept;
     
     /**
      * @brief Get manager statistics
@@ -192,7 +212,7 @@ public:
      * @note Thread-safe (lock-free reads)
      * @note Statistics are snapshots and may change immediately
      */
-    [[nodiscard]] HandleManagerStats getStats() const;
+    [[nodiscard]] HandleManagerStats getStats() const noexcept;
     
     /**
      * @brief Reset the handle manager (clear all handles)
@@ -204,7 +224,7 @@ public:
      * @warning This invalidates ALL handles, even active ones
      * @warning Use with caution - ensure no handles are in use
      */
-    void reset();
+    void reset() noexcept;
     
     /**
      * @brief Get the maximum capacity of the manager
@@ -213,7 +233,9 @@ public:
      * 
      * @note Thread-safe (constant)
      */
-    [[nodiscard]] size_t getCapacity() const;
+    [[nodiscard]] constexpr size_t getCapacity() const noexcept {
+        return MAX_HANDLES;
+    }
     
     /**
      * @brief Get the current number of active handles
@@ -222,7 +244,7 @@ public:
      * 
      * @note Thread-safe (atomic read)
      */
-    [[nodiscard]] size_t getActiveCount() const;
+    [[nodiscard]] size_t getActiveCount() const noexcept;
     
 private:
     mutable std::mutex m_mutex;                   ///< Mutex for thread safety

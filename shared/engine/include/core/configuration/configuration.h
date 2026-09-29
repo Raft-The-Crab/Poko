@@ -44,12 +44,32 @@ public:
     /**
      * @brief Constructor
      */
-    Configuration();
-
+    Configuration() noexcept;
+    
     /**
      * @brief Destructor
      */
     ~Configuration();
+    
+    /**
+     * @brief Copy constructor (deleted)
+     */
+    Configuration(const Configuration&) = delete;
+    
+    /**
+     * @brief Copy assignment (deleted)
+     */
+    Configuration& operator=(const Configuration&) = delete;
+    
+    /**
+     * @brief Move constructor
+     */
+    Configuration(Configuration&&) noexcept = default;
+    
+    /**
+     * @brief Move assignment
+     */
+    Configuration& operator=(Configuration&&) noexcept = default;
 
     /**
      * @brief Set a configuration value
@@ -70,7 +90,7 @@ public:
      * @note Thread-safe
      */
     [[nodiscard]] std::optional<ConfigValue> get(const std::string& key) const;
-
+    
     /**
      * @brief Get a configuration value with default
      * 
@@ -88,7 +108,7 @@ public:
         }
         return defaultValue;
     }
-
+    
     /**
      * @brief Get boolean value
      * 
@@ -98,7 +118,7 @@ public:
      * @note Thread-safe
      */
     [[nodiscard]] std::optional<bool> getBool(const std::string& key) const;
-
+    
     /**
      * @brief Get integer value
      * 
@@ -108,7 +128,7 @@ public:
      * @note Thread-safe
      */
     [[nodiscard]] std::optional<int> getInt(const std::string& key) const;
-
+    
     /**
      * @brief Get double value
      * 
@@ -118,7 +138,7 @@ public:
      * @note Thread-safe
      */
     [[nodiscard]] std::optional<double> getDouble(const std::string& key) const;
-
+    
     /**
      * @brief Get string value
      * 
@@ -128,7 +148,7 @@ public:
      * @note Thread-safe
      */
     [[nodiscard]] std::optional<std::string> getString(const std::string& key) const;
-
+    
     /**
      * @brief Check if key exists
      * 
@@ -148,14 +168,14 @@ public:
      * @note Thread-safe
      */
     bool remove(const std::string& key);
-
+    
     /**
      * @brief Clear all configuration values
      * 
      * @note Thread-safe
      */
     void clear();
-
+    
     /**
      * @brief Get number of configuration entries
      * 

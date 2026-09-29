@@ -225,7 +225,7 @@ public:
      * @note Passing the correct size improves statistics accuracy
      * @note Some allocators may require size for proper deallocation
      */
-    virtual void deallocate(void* ptr, size_t size = 0) = 0;
+    virtual void deallocate(void* ptr, size_t size = 0) noexcept = 0;
     
     /**
      * @brief Get allocation statistics
@@ -235,7 +235,7 @@ public:
      * @note Statistics may be zero if tracking is disabled
      * @note Returned values are snapshots and may change immediately
      */
-    virtual AllocationStats getStats() const = 0;
+    [[nodiscard]] virtual AllocationStats getStats() const noexcept = 0;
     
     /**
      * @brief Check if tracking is enabled (for fast path optimization)
@@ -244,7 +244,7 @@ public:
      * 
      * @note This should be a fast operation (atomic read)
      */
-    virtual bool isTrackingEnabled() const = 0;
+    [[nodiscard]] virtual bool isTrackingEnabled() const noexcept = 0;
     
     /**
      * @brief Reset allocator state (where applicable)
@@ -255,14 +255,14 @@ public:
      * @note Actual allocations are NOT freed by reset() in most allocators
      * @note Users must still deallocate all memory before allocator destruction
      */
-    virtual void reset() = 0;
+    virtual void reset() noexcept = 0;
     
     /**
      * @brief Get allocator name for debugging
      * 
      * @return Allocator name (e.g., "SystemAllocator", "PoolAllocator")
      */
-    virtual const char* getName() const = 0;
+    [[nodiscard]] virtual const char* getName() const noexcept = 0;
     
     /**
      * @brief Check if allocator supports individual deallocation
@@ -271,7 +271,7 @@ public:
      * 
      * @note Some allocators (e.g., linear) may only support bulk reset
      */
-    virtual bool supportsIndividualDeallocation() const = 0;
+    [[nodiscard]] virtual bool supportsIndividualDeallocation() const noexcept = 0;
 };
 
 // ============================================================================
@@ -314,7 +314,7 @@ public:
     /**
      * @brief Constructor - initializes allocator with tracking disabled
      */
-    SystemAllocator();
+    SystemAllocator() noexcept;
     
     /**
      * @brief Destructor - cleans up allocator resources
@@ -325,6 +325,26 @@ public:
     ~SystemAllocator() override;
     
     /**
+     * @brief Copy constructor (deleted)
+     */
+    SystemAllocator(const SystemAllocator&) = delete;
+    
+    /**
+     * @brief Copy assignment (deleted)
+     */
+    SystemAllocator& operator=(const SystemAllocator&) = delete;
+    
+    /**
+     * @brief Move constructor
+     */
+    SystemAllocator(SystemAllocator&&) noexcept = default;
+    
+    /**
+     * @brief Move assignment
+     */
+    SystemAllocator& operator=(SystemAllocator&&) noexcept = default;
+    
+    /**
      * @copydoc IAllocator::allocate
      */
     void* allocate(size_t size, size_t alignment = DEFAULT_ALIGNMENT, AllocationFlags flags = AllocationFlags::None) override;
@@ -332,12 +352,12 @@ public:
     /**
      * @copydoc IAllocator::deallocate
      */
-    void deallocate(void* ptr, size_t size = 0) override;
+    void deallocate(void* ptr, size_t size = 0) noexcept override;
     
     /**
      * @copydoc IAllocator::getStats
      */
-    AllocationStats getStats() const override;
+    [[nodiscard]] AllocationStats getStats() const noexcept override;
     
     /**
      * @copydoc IAllocator::reset
@@ -345,22 +365,22 @@ public:
      * @note For SystemAllocator, reset() only clears statistics
      * @note Does NOT free any actual allocations
      */
-    void reset() override;
+    void reset() noexcept override;
     
     /**
      * @copydoc IAllocator::getName
      */
-    const char* getName() const override;
+    [[nodiscard]] const char* getName() const noexcept override;
     
     /**
      * @copydoc IAllocator::supportsIndividualDeallocation
      */
-    bool supportsIndividualDeallocation() const override;
+    [[nodiscard]] bool supportsIndividualDeallocation() const noexcept override;
     
     /**
      * @copydoc IAllocator::isTrackingEnabled
      */
-    bool isTrackingEnabled() const override;
+    [[nodiscard]] bool isTrackingEnabled() const noexcept override;
     
     /**
      * @brief Enable or disable memory tracking
@@ -371,7 +391,7 @@ public:
      * @note Tracking has minimal performance overhead
      * @note Thread-safe (atomic flag)
      */
-    void setTrackingEnabled(bool enabled);
+    void setTrackingEnabled(bool enabled) noexcept;
     
 private:
     mutable std::mutex m_mutex;                ///< Mutex for thread safety

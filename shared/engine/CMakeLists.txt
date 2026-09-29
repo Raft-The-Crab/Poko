@@ -42,6 +42,7 @@ add_library(poko_core_handles
     src/core/handles/manager/validate.cpp
     src/core/handles/manager/stats.cpp
     src/core/handles/manager/reset.cpp
+    src/core/handles/manager/active_count.cpp
 )
 
 target_include_directories(poko_core_handles

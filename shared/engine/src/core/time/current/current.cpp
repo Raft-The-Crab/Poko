@@ -15,8 +15,9 @@ namespace poko {
 namespace core {
 namespace time {
 
-TimePoint getCurrentTime() {
+TimePoint getCurrentTime() noexcept {
     // Use high-resolution clock for best precision
+    // These operations are noexcept for standard library chrono functions
     auto now = std::chrono::high_resolution_clock::now();
     auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
     return TimePoint(nanos);

@@ -15,7 +15,7 @@ namespace poko {
 namespace core {
 namespace time {
 
-Duration getElapsedTime() {
+Duration getElapsedTime() noexcept {
     static auto startTime = std::chrono::high_resolution_clock::now();
     auto now = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(now - startTime).count();

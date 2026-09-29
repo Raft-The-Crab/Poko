@@ -14,16 +14,20 @@ namespace poko {
 namespace core {
 namespace handles {
 
-HandleManager::HandleManager()
-    : m_activeCount(0)
+HandleManager::HandleManager() noexcept
+    : m_mutex()
+    , m_entries()
+    , m_freeList()
+    , m_activeCount(0)
     , m_totalAllocated(0)
     , m_totalFreed(0)
 {
     // Pre-allocate capacity to minimize reallocations
     m_entries.reserve(MAX_HANDLES);
+    m_freeList.reserve(128); // Reserve space for common free list size
 }
 
-HandleManager::~HandleManager() {
+HandleManager::~HandleManager() noexcept {
     // Cleanup is automatic - vector destructor handles it
     // Note: Does NOT free any outstanding handles - users must free them
 }

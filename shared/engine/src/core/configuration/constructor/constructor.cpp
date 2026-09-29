@@ -19,8 +19,9 @@ namespace configuration {
  * 
  * Initializes an empty configuration system with no values or defaults.
  */
-Configuration::Configuration()
-    : m_values()
+Configuration::Configuration() noexcept
+    : m_mutex()
+    , m_values()
     , m_defaults()
 {
 }
