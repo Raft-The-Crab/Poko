@@ -66,6 +66,12 @@ constexpr int64_t NANOS_PER_SECOND = 1000000000;
 /// Maximum time value in seconds (to prevent overflow)
 constexpr Seconds MAX_TIME_SECONDS = 3600.0; // 1 hour
 
+/// Maximum sleep duration in seconds (to prevent excessive blocking)
+constexpr Seconds MAX_SLEEP_SECONDS = 3600.0; // 1 hour
+
+/// Minimum sleep duration in seconds (to prevent busy-waiting)
+constexpr Seconds MIN_SLEEP_SECONDS = 0.001; // 1 millisecond
+
 // ============================================================================
 // Duration
 // ============================================================================

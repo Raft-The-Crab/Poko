@@ -16,6 +16,11 @@ namespace core {
 namespace runtime {
 
 void Instance::addChild(handles::Handle child) noexcept {
+    // Check children count limit
+    if (m_children.size() >= MAX_CHILDREN_PER_INSTANCE) {
+        return;
+    }
+    
     // Check if child already exists
     auto it = std::find(m_children.begin(), m_children.end(), child);
     if (it == m_children.end()) {

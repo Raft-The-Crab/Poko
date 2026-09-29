@@ -18,7 +18,7 @@ namespace runtime {
 Instance::Instance(InstanceType type, const std::string& name)
     : m_id()
     , m_type(type)
-    , m_name(name.empty() ? "UnnamedInstance" : name)
+    , m_name(name.empty() ? "UnnamedInstance" : (name.length() > MAX_INSTANCE_NAME_LENGTH ? name.substr(0, MAX_INSTANCE_NAME_LENGTH) : name))
     , m_state(InstanceState::Created)
     , m_parent()
     , m_children()

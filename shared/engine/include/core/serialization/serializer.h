@@ -34,6 +34,16 @@ enum class SerializeMode : uint8_t {
 };
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+/// Maximum serialized string length (for safety)
+constexpr size_t MAX_SERIALIZED_STRING_LENGTH = 1048576; // 1MB
+
+/// Maximum vector element count during serialization (for safety)
+constexpr size_t MAX_SERIALIZED_VECTOR_SIZE = 1048576; // 1 million elements
+
+// ============================================================================
 // Serializer Interface
 // ============================================================================
 
@@ -95,7 +105,7 @@ public:
             if (!serialize(size)) return false;
             
             // Sanity check for reasonable vector size (prevent memory exhaustion)
-            if (size > 1024 * 1024) { // 1 million elements limit for safety
+            if (size > MAX_SERIALIZED_VECTOR_SIZE) {
                 return false;
             }
             

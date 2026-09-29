@@ -21,6 +21,12 @@ void sleep(Duration duration) noexcept {
         return;
     }
     
+    // Validate sleep duration to prevent excessive blocking
+    auto seconds = duration.toSeconds();
+    if (seconds < MIN_SLEEP_SECONDS || seconds > MAX_SLEEP_SECONDS) {
+        return;
+    }
+    
     // Convert to milliseconds for std::this_thread::sleep_for
     // Exception handling: if thread interruption occurs, we catch and ignore
     // This is acceptable for game engine use cases where thread interruption is rare

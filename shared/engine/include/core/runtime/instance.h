@@ -48,6 +48,36 @@ enum class InstanceState : uint8_t {
  */
 constexpr InstanceType INVALID_INSTANCE_TYPE = 0;
 
+/**
+ * @brief Maximum instance name length (for safety)
+ */
+constexpr size_t MAX_INSTANCE_NAME_LENGTH = 256;
+
+/**
+ * @brief Maximum property key length (for safety)
+ */
+constexpr size_t MAX_PROPERTY_KEY_LENGTH = 128;
+
+/**
+ * @brief Maximum property value length (for safety)
+ */
+constexpr size_t MAX_PROPERTY_VALUE_LENGTH = 1024;
+
+/**
+ * @brief Maximum tag length (for safety)
+ */
+constexpr size_t MAX_TAG_LENGTH = 64;
+
+/**
+ * @brief Maximum tags per instance (for safety)
+ */
+constexpr size_t MAX_TAGS_PER_INSTANCE = 64;
+
+/**
+ * @brief Maximum children per instance (for safety)
+ */
+constexpr size_t MAX_CHILDREN_PER_INSTANCE = 128;
+
 // ============================================================================
 // Instance Class
 // ============================================================================

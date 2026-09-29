@@ -85,7 +85,7 @@ std::vector<runtime::Instance*> Scene::findInstancesByTag(const std::string& tag
         return {};
     }
     
-    if (tag.length() > MAX_TAG_LENGTH) {
+    if (tag.length() > MAX_SCENE_TAG_LENGTH) {
         return {};
     }
     

@@ -19,6 +19,17 @@ void Instance::setProperty(const std::string& key, const std::string& value) {
     if (key.empty()) {
         return;
     }
+    
+    // Validate key length
+    if (key.length() > MAX_PROPERTY_KEY_LENGTH) {
+        return;
+    }
+    
+    // Validate value length
+    if (value.length() > MAX_PROPERTY_VALUE_LENGTH) {
+        return;
+    }
+    
     m_properties[key] = value;
 }
 
@@ -27,6 +38,17 @@ void Instance::setProperty(std::string&& key, std::string&& value) {
     if (key.empty()) {
         return;
     }
+    
+    // Validate key length
+    if (key.length() > MAX_PROPERTY_KEY_LENGTH) {
+        return;
+    }
+    
+    // Validate value length
+    if (value.length() > MAX_PROPERTY_VALUE_LENGTH) {
+        return;
+    }
+    
     m_properties[std::move(key)] = std::move(value);
 }
 

@@ -965,5 +965,64 @@ Comprehensive safety improvements across all Engine Core Modules (items 1-12), a
 - 155 test suites total across 12 modules
 
 #### Git
+- **Commit**: 7dc215a
+- **Repository**: https://github.com/Raft-The-Crab/Poko.git
+
+## [0.1.14] - September 29, 2026
+
+### Additional Comprehensive Safety Improvements - Items 1-12 ✅
+
+**Status**: ✅ Production-Ready
+
+#### Overview
+Additional comprehensive safety improvements across all Engine Core Modules (items 1-12), adding more resource limits, capacity checks, and validation to prevent memory exhaustion and denial-of-service attacks.
+
+#### Core Handles Improvements (Item 2)
+- **MAX_HANDLE_CAPACITY**: Added constant (1,000,000) for safety limit
+- **HandleManager::allocate**: Changed to return invalid handle instead of throwing when capacity reached
+- More graceful failure handling without exceptions
+
+#### Core Time Improvements (Item 3)
+- **MAX_SLEEP_SECONDS**: Added constant (3600.0) to prevent excessive blocking
+- **MIN_SLEEP_SECONDS**: Added constant (0.001) to prevent busy-waiting
+- **sleep()**: Validates sleep duration to prevent excessive blocking or busy-waiting
+
+#### Core Serialization Improvements (Item 8)
+- **MAX_SERIALIZED_STRING_LENGTH**: Added constant (1MB) for string serialization
+- **MAX_SERIALIZED_VECTOR_SIZE**: Added constant (1 million) for vector serialization
+- **serialize(string)**: Uses MAX_SERIALIZED_STRING_LENGTH constant instead of hardcoded value
+- Consistent limit enforcement across serialization operations
+
+#### Runtime Object System Improvements (Item 9)
+- **MAX_INSTANCE_NAME_LENGTH**: Added constant (256) for instance names
+- **MAX_PROPERTY_KEY_LENGTH**: Added constant (128) for property keys
+- **MAX_PROPERTY_VALUE_LENGTH**: Added constant (1024) for property values
+- **MAX_TAG_LENGTH**: Added constant (64) for instance tags
+- **MAX_TAGS_PER_INSTANCE**: Added constant (64) for tag count limit
+- **MAX_CHILDREN_PER_INSTANCE**: Added constant (128) for children limit
+- **Instance constructor**: Truncates names exceeding MAX_INSTANCE_NAME_LENGTH
+- **setProperty**: Validates key and value lengths before setting
+- **addTag**: Validates tag length and tag count limit before adding
+- **addChild**: Validates children count limit before adding
+
+#### World/Scene System Improvements (Item 12)
+- **MAX_SCENE_TAG_LENGTH**: Added constant (128) for scene tag queries
+- **findInstancesByTag**: Uses MAX_SCENE_TAG_LENGTH constant
+- Updated test to use new constant name
+
+#### Production Quality Features
+- **Graceful Failure**: HandleManager returns invalid handle instead of throwing
+- **Sleep Duration Validation**: Prevents excessive blocking and busy-waiting
+- **Comprehensive Limits**: Instance-specific limits for names, properties, tags, children
+- **Consistent Constants**: Named constants instead of hardcoded values
+- **Resource Protection**: Multiple layers of validation prevent resource exhaustion
+- **Production Robustness**: Defensive programming throughout all modules
+
+#### Build Status
+- All modules compiled successfully with no warnings
+- 12/12 tests passing (100%)
+- 155 test suites total across 12 modules
+
+#### Git
 - **Commit**: Pending
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git

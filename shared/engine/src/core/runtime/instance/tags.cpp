@@ -16,6 +16,16 @@ namespace core {
 namespace runtime {
 
 void Instance::addTag(const std::string& tag) {
+    // Validate tag length
+    if (tag.length() > MAX_TAG_LENGTH) {
+        return;
+    }
+    
+    // Check tag count limit
+    if (m_tags.size() >= MAX_TAGS_PER_INSTANCE) {
+        return;
+    }
+    
     // Check if tag already exists
     auto it = std::find(m_tags.begin(), m_tags.end(), tag);
     if (it == m_tags.end()) {
@@ -24,6 +34,16 @@ void Instance::addTag(const std::string& tag) {
 }
 
 void Instance::addTag(std::string&& tag) noexcept {
+    // Validate tag length
+    if (tag.length() > MAX_TAG_LENGTH) {
+        return;
+    }
+    
+    // Check tag count limit
+    if (m_tags.size() >= MAX_TAGS_PER_INSTANCE) {
+        return;
+    }
+    
     // Check if tag already exists
     auto it = std::find(m_tags.begin(), m_tags.end(), tag);
     if (it == m_tags.end()) {

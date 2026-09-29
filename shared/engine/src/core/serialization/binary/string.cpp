@@ -43,7 +43,7 @@ bool BinaryMemorySerializer::serialize(std::string& value) {
         if (!serialize(size)) return false;
         
         // Sanity check for reasonable string size
-        if (size > 1024 * 1024) { // 1MB limit for safety
+        if (size > MAX_SERIALIZED_STRING_LENGTH) {
             return false;
         }
         

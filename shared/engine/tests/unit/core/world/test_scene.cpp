@@ -415,7 +415,7 @@ void test_tag_length() {
     assert(normalResults.size() == 1);
     
     // Tag exceeding limit should return empty
-    std::string longTag(poko::core::world::MAX_TAG_LENGTH + 100, 'A');
+    std::string longTag(poko::core::world::MAX_SCENE_TAG_LENGTH + 100, 'A');
     auto longTagResults = scene.findInstancesByTag(longTag);
     assert(longTagResults.size() == 0);
     

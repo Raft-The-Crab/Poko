@@ -42,8 +42,8 @@ namespace handles {
         // ============================================================================
         // Check capacity limit to prevent unbounded memory growth
         if (m_entries.size() >= MAX_HANDLES) {
-            throw std::runtime_error("HandleManager: Maximum handle capacity reached (" + 
-                std::to_string(MAX_HANDLES) + " handles)");
+            // Return invalid handle instead of throwing
+            return Handle();
         }
         
         index = static_cast<HandleIndex>(m_entries.size());

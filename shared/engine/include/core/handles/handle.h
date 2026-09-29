@@ -55,6 +55,9 @@ constexpr HandleIndex INVALID_HANDLE_INDEX = MAX_HANDLE_INDEX + 1;
 /// Maximum generation value (will wrap after 2^32 allocations/frees)
 constexpr HandleGeneration MAX_GENERATION = 0xFFFFFFFF;
 
+/// Maximum handle manager capacity (for safety)
+constexpr size_t MAX_HANDLE_CAPACITY = 1000000;
+
 // ============================================================================
 // Handle Structure
 // ============================================================================

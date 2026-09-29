@@ -58,9 +58,9 @@ constexpr size_t MAX_SCENES_PER_WORLD = 10000;
 constexpr size_t MAX_SCENE_NAME_LENGTH = 256;
 
 /**
- * @brief Maximum tag length (for safety)
+ * @brief Maximum tag length for scene queries (for safety)
  */
-constexpr size_t MAX_TAG_LENGTH = 128;
+constexpr size_t MAX_SCENE_TAG_LENGTH = 128;
 
 // ============================================================================
 // Scene Class
