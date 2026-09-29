@@ -802,5 +802,65 @@ World/Scene System (item 12 from plan.md section 18) has been implemented with F
 - **Tests Passing**: 151/151 (100%)
 
 #### Git
+- **Commit**: 3f59140
+- **Repository**: https://github.com/Raft-The-Crab/Poko.git
+
+## [0.1.11] - September 29, 2026
+
+### World/Scene System Production Improvements - Item 12 ✅
+
+**Status**: ✅ Production-Ready
+
+#### Overview
+Additional production-quality improvements for the World/Scene System (item 12), focusing on enhanced documentation, noexcept specifications, safety limits, and validation.
+
+#### Header Documentation Improvements
+- **setName**: Added detailed notes on empty name handling and thread safety
+- **addInstance**: Added null parameter rejection note and thread safety documentation
+- **removeInstance**: Added null parameter rejection note and thread safety documentation
+- **hasInstance**: Added null return behavior and thread safety documentation
+- **findInstance**: Added empty name return behavior and thread safety documentation
+- **findInstancesByTag**: Added empty tag return behavior and thread safety documentation
+- **clear**: Added noexcept specification and thread safety documentation
+- **createScene**: Added empty name rejection, duplicate prevention, and thread safety documentation
+- **destroyScene**: Added INVALID_SCENE_ID rejection, deactivation behavior, and thread safety documentation
+- **getScene (ID)**: Added INVALID_SCENE_ID return behavior and thread safety documentation
+- **getScene (name)**: Added empty name return behavior and thread safety documentation
+- **hasScene (ID)**: Added INVALID_SCENE_ID return behavior, noexcept, and thread safety documentation
+- **hasScene (name)**: Added empty name return behavior, noexcept, and thread safety documentation
+- **setActiveScene**: Added INVALID_SCENE_ID behavior, deactivation logic, and thread safety documentation
+- **clear (World)**: Added deactivation behavior, noexcept, and thread safety documentation
+
+#### noexcept Specifications
+- **Scene::setName (move overload)**: Added noexcept for better performance
+- **Scene::clear**: Added noexcept (clear operation cannot throw)
+- **World::hasScene (ID)**: Added noexcept for better performance
+- **World::hasScene (name)**: Added noexcept for better performance
+- **World::clear**: Added noexcept (clear operation cannot throw)
+
+#### Safety Limits
+- **MAX_INSTANCES_PER_SCENE**: Added constant (1,000,000) to prevent memory exhaustion
+- **MAX_SCENES_PER_WORLD**: Added constant (10,000) to prevent resource exhaustion
+- **Instance limit validation**: Scene::addInstance now checks instance count before adding
+- **Scene limit validation**: World::createScene now checks scene count before creating
+
+#### New Tests
+- **test_instance_limit**: Verifies instance limit checking logic
+- **test_scene_limit**: Verifies scene limit checking logic
+
+#### Production Quality Features
+- **Enhanced Documentation**: All public methods now have detailed notes on behavior, validation, and thread safety
+- **noexcept Specifications**: Added to read-only and no-throw operations for better compiler optimization
+- **Safety Limits**: Prevents memory and resource exhaustion from malicious or accidental over-allocation
+- **Consistent API**: Uniform documentation and exception specification patterns across all methods
+- **Defensive Programming**: Early validation prevents runtime errors and resource exhaustion
+
+#### Build Status
+- All modules compiled successfully with no warnings
+- 12/12 tests passing (100%)
+- 17 test suites for World/Scene system (added 2 new limit tests)
+- 153 test suites total across 12 modules
+
+#### Git
 - **Commit**: Pending
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git

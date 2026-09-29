@@ -41,6 +41,11 @@ Scene* World::createScene(const std::string& name) {
         return nullptr;
     }
     
+    // Check scene limit
+    if (m_scenes.size() >= MAX_SCENES_PER_WORLD) {
+        return nullptr;
+    }
+    
     auto* scene = new Scene(name);
     m_scenes.push_back(scene);
     m_sceneMap[scene->getId()] = scene;
@@ -145,7 +150,7 @@ const Scene* World::getScene(const std::string& name) const {
     return it->second;
 }
 
-bool World::hasScene(SceneID sceneId) const {
+bool World::hasScene(SceneID sceneId) const noexcept {
     if (sceneId == INVALID_SCENE_ID) {
         return false;
     }
@@ -154,7 +159,7 @@ bool World::hasScene(SceneID sceneId) const {
     return m_sceneMap.find(sceneId) != m_sceneMap.end();
 }
 
-bool World::hasScene(const std::string& name) const {
+bool World::hasScene(const std::string& name) const noexcept {
     if (name.empty()) {
         return false;
     }
@@ -195,7 +200,7 @@ void World::setActiveScene(SceneID sceneId) {
     }
 }
 
-void World::clear() {
+void World::clear() noexcept {
     std::lock_guard<std::mutex> lock(m_mutex);
     
     // Deactivate active scene

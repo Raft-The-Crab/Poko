@@ -28,6 +28,11 @@ bool Scene::addInstance(runtime::Instance* instance) {
         return false;
     }
     
+    // Check instance limit
+    if (m_instances.size() >= MAX_INSTANCES_PER_SCENE) {
+        return false;
+    }
+    
     m_instances.push_back(instance);
     return true;
 }
@@ -92,7 +97,7 @@ std::vector<runtime::Instance*> Scene::findInstancesByTag(const std::string& tag
     return result;
 }
 
-void Scene::clear() {
+void Scene::clear() noexcept {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_instances.clear();
 }

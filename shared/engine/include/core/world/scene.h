@@ -42,6 +42,16 @@ using SceneID = uint64_t;
  */
 constexpr SceneID INVALID_SCENE_ID = 0;
 
+/**
+ * @brief Maximum number of instances per scene (for safety)
+ */
+constexpr size_t MAX_INSTANCES_PER_SCENE = 1000000;
+
+/**
+ * @brief Maximum number of scenes per world (for safety)
+ */
+constexpr size_t MAX_SCENES_PER_WORLD = 10000;
+
 // ============================================================================
 // Scene Class
 // ============================================================================
@@ -76,26 +86,39 @@ public:
     
     /**
      * @brief Set scene name
+     * @param name New name (empty name assigns "UnnamedScene")
+     * @note Thread-safe with mutex protection
      */
     void setName(const std::string& name);
-    void setName(std::string&& name);
+    
+    /**
+     * @brief Set scene name (move overload)
+     * @param name New name (moved, empty name assigns "UnnamedScene")
+     * @note Thread-safe with mutex protection
+     */
+    void setName(std::string&& name) noexcept;
     
     /**
      * @brief Add an instance to the scene
-     * @param instance Instance to add
-     * @return true if added, false if already in scene
+     * @param instance Instance to add (null instance rejected)
+     * @return true if added, false if already in scene or null
+     * @note Thread-safe with mutex protection
      */
     bool addInstance(runtime::Instance* instance);
     
     /**
      * @brief Remove an instance from the scene
-     * @param instance Instance to remove
-     * @return true if removed, false if not in scene
+     * @param instance Instance to remove (null instance rejected)
+     * @return true if removed, false if not in scene or null
+     * @note Thread-safe with mutex protection
      */
     bool removeInstance(runtime::Instance* instance);
     
     /**
      * @brief Check if instance is in scene
+     * @param instance Instance to check (null returns false)
+     * @return true if instance is in scene, false if not or null
+     * @note Thread-safe with mutex protection
      */
     [[nodiscard]] bool hasInstance(runtime::Instance* instance) const;
     
@@ -111,18 +134,25 @@ public:
     
     /**
      * @brief Find instance by name
+     * @param name Instance name to find (empty name returns nullptr)
+     * @return Instance pointer or nullptr if not found or name is empty
+     * @note Thread-safe with mutex protection
      */
     [[nodiscard]] runtime::Instance* findInstance(const std::string& name) const;
     
     /**
      * @brief Find instances by tag
+     * @param tag Tag to search for (empty tag returns empty vector)
+     * @return Vector of instances with the tag
+     * @note Thread-safe with mutex protection
      */
     [[nodiscard]] std::vector<runtime::Instance*> findInstancesByTag(const std::string& tag) const;
     
     /**
      * @brief Clear all instances from scene
+     * @note Thread-safe with mutex protection
      */
-    void clear();
+    void clear() noexcept;
     
     /**
      * @brief Check if scene is active
@@ -165,35 +195,54 @@ public:
     
     /**
      * @brief Create a new scene
-     * @param name Scene name
-     * @return Scene pointer or nullptr if name is empty
+     * @param name Scene name (empty name rejected)
+     * @return Scene pointer or nullptr if name is empty or duplicate
+     * @note Thread-safe with mutex protection
      */
     [[nodiscard]] Scene* createScene(const std::string& name);
     
     /**
      * @brief Destroy a scene
-     * @param sceneId Scene ID to destroy
-     * @return true if destroyed, false if not found
+     * @param sceneId Scene ID to destroy (INVALID_SCENE_ID rejected)
+     * @return true if destroyed, false if not found or invalid
+     * @note Deactivates scene if it was active
+     * @note Thread-safe with mutex protection
      */
     bool destroyScene(SceneID sceneId);
     
     /**
      * @brief Get scene by ID
+     * @param sceneId Scene ID (INVALID_SCENE_ID returns nullptr)
+     * @return Scene pointer or nullptr if not found
+     * @note Thread-safe with mutex protection
      */
     [[nodiscard]] Scene* getScene(SceneID sceneId);
     [[nodiscard]] const Scene* getScene(SceneID sceneId) const;
     
     /**
      * @brief Get scene by name
+     * @param name Scene name (empty name returns nullptr)
+     * @return Scene pointer or nullptr if not found
+     * @note Thread-safe with mutex protection
      */
     [[nodiscard]] Scene* getScene(const std::string& name);
     [[nodiscard]] const Scene* getScene(const std::string& name) const;
     
     /**
-     * @brief Check if scene exists
+     * @brief Check if scene exists by ID
+     * @param sceneId Scene ID (INVALID_SCENE_ID returns false)
+     * @return true if scene exists, false otherwise
+     * @note Thread-safe with mutex protection
      */
-    [[nodiscard]] bool hasScene(SceneID sceneId) const;
-    [[nodiscard]] bool hasScene(const std::string& name) const;
+    [[nodiscard]] bool hasScene(SceneID sceneId) const noexcept;
+    
+    /**
+     * @brief Check if scene exists by name
+     * @param name Scene name (empty name returns false)
+     * @return true if scene exists, false otherwise
+     * @note Thread-safe with mutex protection
+     */
+    [[nodiscard]] bool hasScene(const std::string& name) const noexcept;
     
     /**
      * @brief Get all scenes
@@ -213,13 +262,18 @@ public:
     
     /**
      * @brief Set active scene
+     * @param sceneId Scene ID to activate (INVALID_SCENE_ID clears active scene)
+     * @note Deactivates previous active scene and activates new scene
+     * @note Thread-safe with mutex protection
      */
     void setActiveScene(SceneID sceneId);
     
     /**
      * @brief Clear all scenes
+     * @note Deactivates active scene before clearing
+     * @note Thread-safe with mutex protection
      */
-    void clear();
+    void clear() noexcept;
     
 private:
     std::vector<Scene*> m_scenes;

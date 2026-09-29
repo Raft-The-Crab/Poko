@@ -46,7 +46,7 @@ void Scene::setName(const std::string& name) {
     m_name = name.empty() ? "UnnamedScene" : name;
 }
 
-void Scene::setName(std::string&& name) {
+void Scene::setName(std::string&& name) noexcept {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_name = name.empty() ? "UnnamedScene" : std::move(name);
 }

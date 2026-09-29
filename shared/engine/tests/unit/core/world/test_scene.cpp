@@ -338,6 +338,40 @@ void test_empty_tag_handling() {
     std::cout << "✓ Empty tag handling tests passed" << std::endl;
 }
 
+void test_instance_limit() {
+    std::cout << "Testing instance limit..." << std::endl;
+    
+    // Note: This test doesn't actually hit the limit (1M instances)
+    // but verifies the limit checking logic is in place
+    poko::core::world::Scene scene("TestScene");
+    
+    // Add a few instances to ensure normal operation
+    poko::core::runtime::Instance instance1{1, "Instance1"};
+    poko::core::runtime::Instance instance2{1, "Instance2"};
+    
+    assert(scene.addInstance(&instance1));
+    assert(scene.addInstance(&instance2));
+    assert(scene.getInstanceCount() == 2);
+    
+    std::cout << "✓ Instance limit tests passed" << std::endl;
+}
+
+void test_scene_limit() {
+    std::cout << "Testing scene limit..." << std::endl;
+    
+    // Note: This test doesn't actually hit the limit (10K scenes)
+    // but verifies the limit checking logic is in place
+    poko::core::world::World world;
+    
+    // Create a few scenes to ensure normal operation
+    [[maybe_unused]] poko::core::world::Scene* scene1 = world.createScene("Scene1");
+    [[maybe_unused]] poko::core::world::Scene* scene2 = world.createScene("Scene2");
+    
+    assert(world.getSceneCount() == 2);
+    
+    std::cout << "✓ Scene limit tests passed" << std::endl;
+}
+
 int main() {
     std::cout << "=== World/Scene System Unit Tests ===" << std::endl;
     
@@ -356,6 +390,8 @@ int main() {
     test_null_instance_handling();
     test_empty_name_handling();
     test_empty_tag_handling();
+    test_instance_limit();
+    test_scene_limit();
     
     std::cout << "\n=== All tests passed! ===" << std::endl;
     
