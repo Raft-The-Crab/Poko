@@ -15,6 +15,17 @@ namespace core {
 namespace components {
 
 bool ComponentRegistry::registerComponent(ComponentID typeId, const char* typeName, ComponentFactory factory) {
+    // Validate inputs
+    if (typeId == INVALID_COMPONENT_ID) {
+        return false;
+    }
+    if (typeName == nullptr || typeName[0] == '\0') {
+        return false;
+    }
+    if (!factory) {
+        return false;
+    }
+    
     std::lock_guard<std::mutex> lock(m_mutex);
     
     if (m_types.find(typeId) != m_types.end()) {

@@ -19,6 +19,10 @@ Property::Property(const PropertyMetadata& metadata)
     , m_value(metadata.defaultValue)
     , m_callback(nullptr)
 {
+    // Validate metadata name
+    if (m_metadata.name.empty()) {
+        m_metadata.name = "UnnamedProperty";
+    }
 }
 
 Property::Property(const PropertyMetadata& metadata, const PropertyValue& value)
@@ -26,6 +30,10 @@ Property::Property(const PropertyMetadata& metadata, const PropertyValue& value)
     , m_value(value)
     , m_callback(nullptr)
 {
+    // Validate metadata name
+    if (m_metadata.name.empty()) {
+        m_metadata.name = "UnnamedProperty";
+    }
 }
 
 Property::Property(const Property& other)

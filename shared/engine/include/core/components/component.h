@@ -305,11 +305,17 @@ private:
 
 /**
  * @brief Generate a unique component ID from type
+ * 
+ * Uses std::hash<std::type_index> to generate a stable, portable component ID
+ * for each type. The ID is consistent within a single process run.
+ * 
+ * @tparam T Component type
+ * @return ComponentID Unique identifier for the component type
  */
 template<typename T>
-ComponentID generateComponentID() {
+ComponentID generateComponentID() noexcept {
     static const std::type_index typeIndex(typeid(T));
-    static ComponentID id = static_cast<ComponentID>(std::hash<std::type_index>{}(typeIndex));
+    static const ComponentID id = static_cast<ComponentID>(std::hash<std::type_index>{}(typeIndex));
     return id;
 }
 

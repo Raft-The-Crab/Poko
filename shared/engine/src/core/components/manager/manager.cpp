@@ -15,9 +15,17 @@ namespace core {
 namespace components {
 
 bool ComponentManager::attachComponent(uint64_t instanceId, std::unique_ptr<Component> component) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    // Validate inputs
+    if (!component) {
+        return false;
+    }
     
     ComponentID typeId = component->getTypeID();
+    if (typeId == INVALID_COMPONENT_ID) {
+        return false;
+    }
+    
+    std::lock_guard<std::mutex> lock(m_mutex);
     
     // Find or create component map for this instance
     auto& components = m_instanceComponents[instanceId];
@@ -32,6 +40,11 @@ bool ComponentManager::attachComponent(uint64_t instanceId, std::unique_ptr<Comp
 }
 
 bool ComponentManager::detachComponent(uint64_t instanceId, ComponentID typeId) {
+    // Validate inputs
+    if (typeId == INVALID_COMPONENT_ID) {
+        return false;
+    }
+    
     std::lock_guard<std::mutex> lock(m_mutex);
     
     auto instanceIt = m_instanceComponents.find(instanceId);
