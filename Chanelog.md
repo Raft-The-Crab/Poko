@@ -609,3 +609,53 @@ Additional production-quality improvements across all Engine Core Modules (items
 #### Git
 - **Commit**: e242a4c
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git
+
+## [0.1.7] - September 29, 2026
+
+### Additional Production Improvements - Items 1-11 ✅
+
+**Status**: ✅ Production-Ready
+
+#### Overview
+Additional production-quality improvements across multiple Engine Core Modules, focusing on type safety, null pointer validation, and default value handling.
+
+#### Core Serialization Improvements
+- **Type size assertions**: Added static_assert for all integer type sizes (int8_t, int16_t, int32_t, int64_t)
+- **Cross-platform safety**: Ensures correct type sizes for cross-platform compatibility
+- **Improved type safety**: Compile-time validation of type sizes prevents undefined behavior
+
+#### Runtime Object System Improvements
+- **Default name validation**: Added validation in Instance constructor to ensure names are not empty
+- **Automatic naming**: Instances with empty names are automatically assigned "UnnamedInstance"
+- **Consistency**: Ensures all instances have valid, non-empty names
+
+#### Core Events Improvements
+- **Callback validation**: Added validation in Signal::connect to reject null callbacks
+- **Undefined behavior prevention**: Prevents null pointer dereferences during signal emission
+- **Invalid ID handling**: Returns invalid connection ID (0) for null callbacks
+
+#### Core Jobs Improvements
+- **Job validation**: Added validation in JobSystem::submit to reject null jobs
+- **Undefined behavior prevention**: Prevents null pointer dereferences during job execution
+- **Invalid ID handling**: Returns INVALID_JOB_ID for null jobs
+
+#### Core Logging Improvements
+- **Sink validation**: Added validation in Logger::addSink to reject null sinks
+- **Undefined behavior prevention**: Prevents null pointer dereferences during logging
+- **Robustness**: Ensures all registered sinks are valid
+
+#### Production Quality Features
+- **Type Safety**: Compile-time assertions for type sizes
+- **Null Pointer Validation**: Comprehensive checks throughout all modules
+- **Default Values**: Automatic assignment for empty strings
+- **Robust Error Handling**: Early validation prevents runtime errors
+- **Cross-Platform Compatibility**: Type size assertions ensure portability
+
+#### Build Status
+- All modules compiled successfully with no warnings
+- 11/11 tests passing (100%)
+- 136 test suites total across 11 modules
+
+#### Git
+- **Commit**: 2b5654a
+- **Repository**: https://github.com/Raft-The-Crab/Poko.git
