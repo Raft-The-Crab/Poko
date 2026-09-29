@@ -659,3 +659,40 @@ Additional production-quality improvements across multiple Engine Core Modules, 
 #### Git
 - **Commit**: 2b5654a
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git
+
+## [0.1.8] - September 29, 2026
+
+### Additional Safety Improvements - Items 1-11 ✅
+
+**Status**: ✅ Production-Ready
+
+#### Overview
+Additional safety and validation improvements across Engine Core Modules, focusing on filesystem operations and data deserialization limits.
+
+#### Core Configuration Improvements
+- **Filepath validation**: Added validation in `loadFromFile` to reject empty filepaths
+- **Filepath validation**: Added validation in `saveToFile` to reject empty filepaths
+- **Filesystem safety**: Prevents filesystem operations with invalid paths
+- **Error prevention**: Early validation prevents filesystem errors
+
+#### Core Serialization Improvements
+- **Vector size sanity check**: Added size validation in template `serialize` method for vectors
+- **Memory exhaustion protection**: Limits vector deserialization to 1 million elements for safety
+- **Malicious input protection**: Prevents memory exhaustion attacks from malicious data
+- **Existing limits maintained**: String size limit (1MB) remains in place for consistency
+
+#### Production Quality Features
+- **Filepath Validation**: Prevents filesystem operations with invalid paths
+- **Vector Size Limits**: Prevents memory exhaustion during deserialization
+- **Defensive Programming**: Protects against malicious input data
+- **Resource Limits**: Reasonable limits prevent denial-of-service attacks
+- **Safety First**: Early validation prevents runtime errors and resource exhaustion
+
+#### Build Status
+- All modules compiled successfully with no warnings
+- 11/11 tests passing (100%)
+- 136 test suites total across 11 modules
+
+#### Git
+- **Commit**: d6cdb73
+- **Repository**: https://github.com/Raft-The-Crab/Poko.git
