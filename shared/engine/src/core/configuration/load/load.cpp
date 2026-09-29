@@ -29,6 +29,11 @@ namespace configuration {
  * @note Thread-safe via shared mutex (exclusive lock for writes)
  */
 bool Configuration::loadFromFile(const std::string& filepath) {
+    // Validate filepath
+    if (filepath.empty()) {
+        return false;
+    }
+    
     // Use unique_lock for write operations - exclusive access
     std::unique_lock<std::shared_mutex> lock(m_mutex);
     

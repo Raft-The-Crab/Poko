@@ -93,6 +93,12 @@ public:
         } else {
             uint32_t size = 0;
             if (!serialize(size)) return false;
+            
+            // Sanity check for reasonable vector size (prevent memory exhaustion)
+            if (size > 1024 * 1024) { // 1 million elements limit for safety
+                return false;
+            }
+            
             value.resize(size);
             for (auto& item : value) {
                 if (!serialize(item)) return false;

@@ -28,6 +28,11 @@ namespace configuration {
  * @note Thread-safe via shared mutex (allows concurrent reads)
  */
 bool Configuration::saveToFile(const std::string& filepath) const {
+    // Validate filepath
+    if (filepath.empty()) {
+        return false;
+    }
+    
     // Use shared_lock for read operations - allows concurrent reads
     std::shared_lock<std::shared_mutex> lock(m_mutex);
     
