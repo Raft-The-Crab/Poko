@@ -63,11 +63,30 @@ struct ResourceHandle {
     ResourceHandle() : index(0), generation(0) {}
     ResourceHandle(uint64_t idx, uint32_t gen) : index(idx), generation(gen) {}
     
+    // Check if handle is valid (non-zero index and generation)
+    // Returns: true if handle is valid, false otherwise
+    // Thread-safe: Yes (const operation)
     bool isValid() const noexcept { return index != 0 && generation != 0; }
     
     // Hash function for unordered containers
+    // Returns: Hash value combining index and generation
+    // Thread-safe: Yes (const operation)
     size_t hash() const noexcept {
         return static_cast<size_t>(index) ^ (static_cast<size_t>(generation) << 32);
+    }
+    
+    // Compare handles for equality
+    // Returns: true if handles have same index and generation
+    // Thread-safe: Yes (const operation)
+    bool operator==(const ResourceHandle& other) const noexcept {
+        return index == other.index && generation == other.generation;
+    }
+    
+    // Compare handles for inequality
+    // Returns: true if handles differ in index or generation
+    // Thread-safe: Yes (const operation)
+    bool operator!=(const ResourceHandle& other) const noexcept {
+        return !(*this == other);
     }
 };
 

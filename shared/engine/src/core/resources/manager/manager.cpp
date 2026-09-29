@@ -182,6 +182,7 @@ ResourceHandle ResourceManager::loadResource(const std::string& filepath, const 
 }
 
 bool ResourceManager::unloadResource(ResourceHandle handle) {
+    // Validate handle
     if (!handle.isValid()) {
         return false;
     }
@@ -190,12 +191,12 @@ bool ResourceManager::unloadResource(ResourceHandle handle) {
     
     auto it = m_resourcesByIndex.find(handle.index);
     if (it == m_resourcesByIndex.end()) {
-        return false;
+        return false; // Resource not found
     }
     
     auto& resource = it->second;
     
-    // Check generation
+    // Check generation to prevent stale handle use
     if (resource->getHandle().generation != handle.generation) {
         return false; // Stale handle
     }
@@ -212,6 +213,7 @@ bool ResourceManager::unloadResource(ResourceHandle handle) {
 }
 
 bool ResourceManager::unloadResource(const std::string& name) {
+    // Validate name
     if (name.empty()) {
         return false;
     }
@@ -220,7 +222,7 @@ bool ResourceManager::unloadResource(const std::string& name) {
     
     auto it = m_resourcesByName.find(name);
     if (it == m_resourcesByName.end()) {
-        return false;
+        return false; // Resource not found
     }
     
     auto& resource = it->second;
@@ -238,6 +240,7 @@ bool ResourceManager::unloadResource(const std::string& name) {
 }
 
 ResourceBase* ResourceManager::getResource(ResourceHandle handle) {
+    // Validate handle
     if (!handle.isValid()) {
         return nullptr;
     }
@@ -246,12 +249,12 @@ ResourceBase* ResourceManager::getResource(ResourceHandle handle) {
     
     auto it = m_resourcesByIndex.find(handle.index);
     if (it == m_resourcesByIndex.end()) {
-        return nullptr;
+        return nullptr; // Resource not found
     }
     
     auto& resource = it->second;
     
-    // Check generation
+    // Check generation to prevent stale handle use
     if (resource->getHandle().generation != handle.generation) {
         return nullptr; // Stale handle
     }
@@ -260,6 +263,7 @@ ResourceBase* ResourceManager::getResource(ResourceHandle handle) {
 }
 
 const ResourceBase* ResourceManager::getResource(ResourceHandle handle) const {
+    // Validate handle
     if (!handle.isValid()) {
         return nullptr;
     }
@@ -268,12 +272,12 @@ const ResourceBase* ResourceManager::getResource(ResourceHandle handle) const {
     
     auto it = m_resourcesByIndex.find(handle.index);
     if (it == m_resourcesByIndex.end()) {
-        return nullptr;
+        return nullptr; // Resource not found
     }
     
     const auto& resource = it->second;
     
-    // Check generation
+    // Check generation to prevent stale handle use
     if (resource->getHandle().generation != handle.generation) {
         return nullptr; // Stale handle
     }
@@ -282,6 +286,7 @@ const ResourceBase* ResourceManager::getResource(ResourceHandle handle) const {
 }
 
 ResourceBase* ResourceManager::getResource(const std::string& name) {
+    // Validate name
     if (name.empty()) {
         return nullptr;
     }
@@ -290,13 +295,14 @@ ResourceBase* ResourceManager::getResource(const std::string& name) {
     
     auto it = m_resourcesByName.find(name);
     if (it == m_resourcesByName.end()) {
-        return nullptr;
+        return nullptr; // Resource not found
     }
     
     return it->second.get();
 }
 
 const ResourceBase* ResourceManager::getResource(const std::string& name) const {
+    // Validate name
     if (name.empty()) {
         return nullptr;
     }
@@ -305,13 +311,14 @@ const ResourceBase* ResourceManager::getResource(const std::string& name) const 
     
     auto it = m_resourcesByName.find(name);
     if (it == m_resourcesByName.end()) {
-        return nullptr;
+        return nullptr; // Resource not found
     }
     
     return it->second.get();
 }
 
 bool ResourceManager::hasResource(ResourceHandle handle) const {
+    // Validate handle
     if (!handle.isValid()) {
         return false;
     }
@@ -320,9 +327,10 @@ bool ResourceManager::hasResource(ResourceHandle handle) const {
     
     auto it = m_resourcesByIndex.find(handle.index);
     if (it == m_resourcesByIndex.end()) {
-        return false;
+        return false; // Resource not found
     }
     
+    // Check generation to prevent stale handle use
     return it->second->getHandle().generation == handle.generation;
 }
 
@@ -391,6 +399,7 @@ void ResourceManager::clear() noexcept {
 }
 
 bool ResourceManager::reloadResource(ResourceHandle handle) {
+    // Validate handle
     if (!handle.isValid()) {
         return false;
     }
@@ -399,12 +408,12 @@ bool ResourceManager::reloadResource(ResourceHandle handle) {
     
     auto it = m_resourcesByIndex.find(handle.index);
     if (it == m_resourcesByIndex.end()) {
-        return false;
+        return false; // Resource not found
     }
     
     auto& resource = it->second;
     
-    // Check generation
+    // Check generation to prevent stale handle use
     if (resource->getHandle().generation != handle.generation) {
         return false; // Stale handle
     }
@@ -421,6 +430,7 @@ bool ResourceManager::reloadResource(ResourceHandle handle) {
 }
 
 bool ResourceManager::reloadResource(const std::string& name) {
+    // Validate name
     if (name.empty()) {
         return false;
     }
@@ -429,7 +439,7 @@ bool ResourceManager::reloadResource(const std::string& name) {
     
     auto it = m_resourcesByName.find(name);
     if (it == m_resourcesByName.end()) {
-        return false;
+        return false; // Resource not found
     }
     
     auto& resource = it->second;
@@ -446,6 +456,7 @@ bool ResourceManager::reloadResource(const std::string& name) {
 }
 
 ResourceState ResourceManager::getResourceState(ResourceHandle handle) const {
+    // Validate handle
     if (!handle.isValid()) {
         return ResourceState::Failed;
     }
@@ -454,12 +465,12 @@ ResourceState ResourceManager::getResourceState(ResourceHandle handle) const {
     
     auto it = m_resourcesByIndex.find(handle.index);
     if (it == m_resourcesByIndex.end()) {
-        return ResourceState::Failed;
+        return ResourceState::Failed; // Resource not found
     }
     
     const auto& resource = it->second;
     
-    // Check generation
+    // Check generation to prevent stale handle use
     if (resource->getHandle().generation != handle.generation) {
         return ResourceState::Failed; // Stale handle
     }
@@ -468,6 +479,7 @@ ResourceState ResourceManager::getResourceState(ResourceHandle handle) const {
 }
 
 ResourceState ResourceManager::getResourceState(const std::string& name) const {
+    // Validate name
     if (name.empty()) {
         return ResourceState::Failed;
     }
@@ -476,13 +488,14 @@ ResourceState ResourceManager::getResourceState(const std::string& name) const {
     
     auto it = m_resourcesByName.find(name);
     if (it == m_resourcesByName.end()) {
-        return ResourceState::Failed;
+        return ResourceState::Failed; // Resource not found
     }
     
     return it->second->getState();
 }
 
 bool ResourceManager::getResourceInfo(ResourceHandle handle, ResourceInfo& info) const {
+    // Validate handle
     if (!handle.isValid()) {
         return false;
     }
@@ -491,12 +504,12 @@ bool ResourceManager::getResourceInfo(ResourceHandle handle, ResourceInfo& info)
     
     auto it = m_resourcesByIndex.find(handle.index);
     if (it == m_resourcesByIndex.end()) {
-        return false;
+        return false; // Resource not found
     }
     
     const auto& resource = it->second;
     
-    // Check generation
+    // Check generation to prevent stale handle use
     if (resource->getHandle().generation != handle.generation) {
         return false; // Stale handle
     }
@@ -512,6 +525,7 @@ bool ResourceManager::getResourceInfo(ResourceHandle handle, ResourceInfo& info)
 }
 
 bool ResourceManager::getResourceInfo(const std::string& name, ResourceInfo& info) const {
+    // Validate name
     if (name.empty()) {
         return false;
     }
@@ -520,7 +534,7 @@ bool ResourceManager::getResourceInfo(const std::string& name, ResourceInfo& inf
     
     auto it = m_resourcesByName.find(name);
     if (it == m_resourcesByName.end()) {
-        return false;
+        return false; // Resource not found
     }
     
     const auto& resource = it->second;
