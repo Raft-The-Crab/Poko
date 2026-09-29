@@ -38,6 +38,17 @@ void Configuration::set(const std::string& key, const ConfigValue& value) {
     m_values[key] = value;
 }
 
+void Configuration::set(std::string&& key, ConfigValue&& value) noexcept {
+    // Reject empty keys as they are not meaningful
+    if (key.empty()) {
+        return;
+    }
+    
+    // Use unique_lock for write operations - exclusive access
+    std::unique_lock<std::shared_mutex> lock(m_mutex);
+    m_values[std::move(key)] = std::move(value);
+}
+
 } // namespace configuration
 } // namespace core
 } // namespace poko

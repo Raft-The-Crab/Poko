@@ -85,6 +85,21 @@ bool test_binary_memory_serializer_primitives() {
         assert(readFloat == floatVal);
     }
     
+    // Test bool
+    {
+        BinaryMemorySerializer writer(1024);
+        bool boolVal = true;
+        assert(writer.serialize(boolVal));
+        
+        const uint8_t* data = writer.getData();
+        size_t size = writer.getSize();
+        
+        BinaryMemorySerializer reader(data, size);
+        bool readBool = false;
+        assert(reader.serialize(readBool));
+        assert(readBool == boolVal);
+    }
+    
     // Test double
     {
         BinaryMemorySerializer writer(1024);
@@ -100,8 +115,7 @@ bool test_binary_memory_serializer_primitives() {
         assert(readDouble == doubleVal);
     }
     
-    // Bool serialization has a known issue - skip for now
-    std::cout << "  PASSED (bool test skipped - known issue)" << std::endl;
+    std::cout << "  PASSED" << std::endl;
     return true;
 }
 

@@ -27,7 +27,7 @@ namespace configuration {
  * @note Empty keys always return false
  * @note Thread-safe via shared mutex (allows concurrent reads)
  */
-bool Configuration::has(const std::string& key) const {
+bool Configuration::has(const std::string& key) const noexcept {
     // Empty keys are considered non-existent
     if (key.empty()) {
         return false;
@@ -52,7 +52,7 @@ bool Configuration::has(const std::string& key) const {
  * @note Only removes user-set values, not defaults
  * @note Thread-safe via shared mutex (exclusive lock for writes)
  */
-bool Configuration::remove(const std::string& key) {
+bool Configuration::remove(const std::string& key) noexcept {
     // Empty keys cannot be removed
     if (key.empty()) {
         return false;

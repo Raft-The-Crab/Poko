@@ -81,6 +81,16 @@ public:
      * @note Thread-safe
      */
     void set(const std::string& key, const ConfigValue& value);
+    
+    /**
+     * @brief Set a configuration value (move overload)
+     * 
+     * @param key Configuration key (moved)
+     * @param value Configuration value (moved)
+     * 
+     * @note Thread-safe
+     */
+    void set(std::string&& key, ConfigValue&& value) noexcept;
 
     /**
      * @brief Get a configuration value
@@ -158,7 +168,7 @@ public:
      * 
      * @note Thread-safe
      */
-    [[nodiscard]] bool has(const std::string& key) const;
+    [[nodiscard]] bool has(const std::string& key) const noexcept;
 
     /**
      * @brief Remove a configuration value
@@ -168,7 +178,7 @@ public:
      * 
      * @note Thread-safe
      */
-    bool remove(const std::string& key);
+    bool remove(const std::string& key) noexcept;
     
     /**
      * @brief Clear all configuration values

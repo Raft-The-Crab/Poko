@@ -16,8 +16,17 @@ namespace core {
 namespace serialization {
 
 bool BinaryMemorySerializer::serialize(bool& value) {
-    uint8_t byte = value ? 1 : 0;
-    return serialize(byte);
+    if (isWriting()) {
+        uint8_t byte = value ? 1 : 0;
+        return writeBytes(&byte, sizeof(byte));
+    } else {
+        uint8_t byte = 0;
+        if (!readBytes(&byte, sizeof(byte))) {
+            return false;
+        }
+        value = (byte != 0);
+        return true;
+    }
 }
 
 bool BinaryMemorySerializer::serialize(int8_t& value) {

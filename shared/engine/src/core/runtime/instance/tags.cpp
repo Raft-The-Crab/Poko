@@ -23,14 +23,22 @@ void Instance::addTag(const std::string& tag) {
     }
 }
 
-void Instance::removeTag(const std::string& tag) {
+void Instance::addTag(std::string&& tag) noexcept {
+    // Check if tag already exists
+    auto it = std::find(m_tags.begin(), m_tags.end(), tag);
+    if (it == m_tags.end()) {
+        m_tags.push_back(std::move(tag));
+    }
+}
+
+void Instance::removeTag(const std::string& tag) noexcept {
     auto it = std::find(m_tags.begin(), m_tags.end(), tag);
     if (it != m_tags.end()) {
         m_tags.erase(it);
     }
 }
 
-bool Instance::hasTag(const std::string& tag) const {
+bool Instance::hasTag(const std::string& tag) const noexcept {
     return std::find(m_tags.begin(), m_tags.end(), tag) != m_tags.end();
 }
 

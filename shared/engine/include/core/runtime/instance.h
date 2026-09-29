@@ -136,6 +136,12 @@ public:
     void setName(const std::string& name);
     
     /**
+     * @brief Set instance name (move overload)
+     * @param name New name (moved)
+     */
+    void setName(std::string&& name) noexcept;
+    
+    /**
      * @brief Get lifecycle state
      * @return Current state
      */
@@ -169,13 +175,13 @@ public:
      * @brief Add child instance
      * @param child Child handle
      */
-    void addChild(handles::Handle child);
+    void addChild(handles::Handle child) noexcept;
     
     /**
      * @brief Remove child instance
      * @param child Child handle
      */
-    void removeChild(handles::Handle child);
+    void removeChild(handles::Handle child) noexcept;
     
     // ============================================================================
     // Properties
@@ -189,24 +195,31 @@ public:
     void setProperty(const std::string& key, const std::string& value);
     
     /**
+     * @brief Set a property (move overload)
+     * @param key Property key (moved)
+     * @param value Property value (moved)
+     */
+    void setProperty(std::string&& key, std::string&& value) noexcept;
+    
+    /**
      * @brief Get a property
      * @param key Property key
      * @return Property value (empty if not found)
      */
-    [[nodiscard]] std::string getProperty(const std::string& key) const;
+    [[nodiscard]] std::string getProperty(const std::string& key) const noexcept;
     
     /**
      * @brief Check if property exists
      * @param key Property key
      * @return True if property exists
      */
-    [[nodiscard]] bool hasProperty(const std::string& key) const;
+    [[nodiscard]] bool hasProperty(const std::string& key) const noexcept;
     
     /**
      * @brief Remove a property
      * @param key Property key
      */
-    void removeProperty(const std::string& key);
+    void removeProperty(const std::string& key) noexcept;
     
     // ============================================================================
     // Tags
@@ -219,17 +232,23 @@ public:
     void addTag(const std::string& tag);
     
     /**
+     * @brief Add a tag (move overload)
+     * @param tag Tag to add (moved)
+     */
+    void addTag(std::string&& tag) noexcept;
+    
+    /**
      * @brief Remove a tag
      * @param tag Tag to remove
      */
-    void removeTag(const std::string& tag);
+    void removeTag(const std::string& tag) noexcept;
     
     /**
      * @brief Check if has tag
      * @param tag Tag to check
      * @return True if has tag
      */
-    [[nodiscard]] bool hasTag(const std::string& tag) const;
+    [[nodiscard]] bool hasTag(const std::string& tag) const noexcept;
     
     /**
      * @brief Get all tags

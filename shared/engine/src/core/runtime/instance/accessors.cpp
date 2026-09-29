@@ -30,6 +30,10 @@ void Instance::setName(const std::string& name) {
     m_name = name;
 }
 
+void Instance::setName(std::string&& name) noexcept {
+    m_name = std::move(name);
+}
+
 InstanceState Instance::getState() const noexcept {
     return m_state;
 }

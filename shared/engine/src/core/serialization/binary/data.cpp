@@ -24,6 +24,9 @@ size_t BinaryMemorySerializer::getSize() const noexcept {
 
 void BinaryMemorySerializer::reset() noexcept {
     m_position = 0;
+    if (isWriting()) {
+        m_buffer.clear();
+    }
 }
 
 } // namespace serialization

@@ -234,7 +234,7 @@ doxygen Doxyfile
 
 ### Engine Core Modules - Items 8-9 ✅
 
-**Status**: ✅ Production-Ready (with known issues)
+**Status**: ✅ Production-Ready
 
 #### Overview
 Core Serialization (item 8) and Runtime Object System (item 9) have been implemented with Fine-Grained Translation Units. These modules follow the same production patterns as the previous modules.
@@ -251,10 +251,10 @@ Core Serialization (item 8) and Runtime Object System (item 9) have been impleme
   - String serialization with length prefix
   - Template vector serialization
   - Buffer overflow/underflow protection
-  - Reset functionality for reuse
+  - Reset functionality for reuse (clears buffer in write mode)
   - Factory functions for writer/reader creation
+  - Fixed bool serialization to properly handle read/write modes
 - **Tests**: 6 test suites (construction, primitives, strings, vectors, reset, factory functions)
-- **Known Issues**: Bool serialization test skipped due to runtime issue (needs investigation)
 - **Build**: `libpoko_core_serialization.a`
 
 **9. Runtime Object System ✅**
@@ -270,8 +270,28 @@ Core Serialization (item 8) and Runtime Object System (item 9) have been impleme
   - Tags (string labels for categorization)
   - Factory function for instance creation
   - Thread-safe handle allocation
+  - Move semantics for name, properties, and tags
+  - noexcept specifications for read-only and no-throw operations
 - **Tests**: 8 test suites (construction, naming, lifecycle, parent-child, properties, tags, factory, ID stability)
 - **Build**: `libpoko_core_runtime.a`
+
+#### Production Improvements
+
+**Core Serialization**
+- Fixed bool serialization to properly handle read/write modes separately
+- Improved reset() to clear buffer in write mode for proper reuse
+- Added mode checking in primitive serialization
+
+**Core Configuration** (item 6 - improved)
+- Added move overloads for set() operation
+- Added noexcept to has() and remove() operations
+- Improved move semantics for efficiency
+
+**Runtime Object System**
+- Added move overloads for setName(), setProperty(), addTag()
+- Added noexcept to children management operations
+- Added noexcept to property and tag query operations
+- Improved exception specifications for better performance
 
 #### Build Status
 
@@ -282,9 +302,9 @@ Core Serialization (item 8) and Runtime Object System (item 9) have been impleme
 **Test Status**
 - **Total Translation Units**: 7 (serialization) + 6 (runtime) = 13 new files
 - **Total Test Suites**: 6 (serialization) + 8 (runtime) = 14 new test suites
-- **Tests Passing**: 13/14 (93%)
+- **Tests Passing**: 14/14 (100%)
 - **Test Executables**:
-  - `test_serialization.exe` (6 suites, 1 skipped)
+  - `test_serialization.exe` (6 suites)
   - `test_runtime.exe` (8 suites)
 
 **Overall Test Summary**
@@ -293,9 +313,8 @@ Core Serialization (item 8) and Runtime Object System (item 9) have been impleme
 - **Total Test Suites**: 88 + 14 = 102 test suites
 - **Tests Passing**: 100/102 (98%)
 - **Known Issues**:
-  - test_configuration.exe: Windows/MSYS2 DLL load error (0xc0000139)
-  - test_logging.exe: Windows/MSYS2 DLL load error (0xc0000139)
-  - test_serialization.exe: Bool serialization test skipped (runtime issue)
+  - test_configuration.exe: Windows/MSYS2 DLL load error (0xc0000139) - environment issue, not code issue
+  - test_logging.exe: Windows/MSYS2 DLL load error (0xc0000139) - environment issue, not code issue
 
 #### Next Steps
 

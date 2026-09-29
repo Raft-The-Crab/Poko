@@ -18,7 +18,11 @@ void Instance::setProperty(const std::string& key, const std::string& value) {
     m_properties[key] = value;
 }
 
-std::string Instance::getProperty(const std::string& key) const {
+void Instance::setProperty(std::string&& key, std::string&& value) noexcept {
+    m_properties[std::move(key)] = std::move(value);
+}
+
+std::string Instance::getProperty(const std::string& key) const noexcept {
     auto it = m_properties.find(key);
     if (it != m_properties.end()) {
         return it->second;
@@ -26,11 +30,11 @@ std::string Instance::getProperty(const std::string& key) const {
     return "";
 }
 
-bool Instance::hasProperty(const std::string& key) const {
+bool Instance::hasProperty(const std::string& key) const noexcept {
     return m_properties.find(key) != m_properties.end();
 }
 
-void Instance::removeProperty(const std::string& key) {
+void Instance::removeProperty(const std::string& key) noexcept {
     m_properties.erase(key);
 }
 

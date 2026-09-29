@@ -15,7 +15,7 @@ namespace poko {
 namespace core {
 namespace runtime {
 
-void Instance::addChild(handles::Handle child) {
+void Instance::addChild(handles::Handle child) noexcept {
     // Check if child already exists
     auto it = std::find(m_children.begin(), m_children.end(), child);
     if (it == m_children.end()) {
@@ -23,7 +23,7 @@ void Instance::addChild(handles::Handle child) {
     }
 }
 
-void Instance::removeChild(handles::Handle child) {
+void Instance::removeChild(handles::Handle child) noexcept {
     auto it = std::find(m_children.begin(), m_children.end(), child);
     if (it != m_children.end()) {
         m_children.erase(it);
