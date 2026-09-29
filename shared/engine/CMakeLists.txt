@@ -122,6 +122,26 @@ target_include_directories(poko_core_configuration
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
+# Core logging library
+add_library(poko_core_logging
+    src/core/logging/utility/utility.cpp
+    src/core/logging/interface/interface.cpp
+    src/core/logging/constructor/constructor.cpp
+    src/core/logging/log/log.cpp
+    src/core/logging/sink/sink.cpp
+    src/core/logging/level/level.cpp
+    src/core/logging/filter/filter.cpp
+    src/core/logging/flush/flush.cpp
+    src/core/logging/format/format.cpp
+    src/core/logging/console/console.cpp
+    src/core/logging/file/file.cpp
+)
+
+target_include_directories(poko_core_logging
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
 # Platform-specific settings
 if(WIN32)
     target_compile_definitions(poko_core_memory PRIVATE _WIN32)
@@ -130,6 +150,7 @@ if(WIN32)
     target_compile_definitions(poko_core_events PRIVATE _WIN32)
     target_compile_definitions(poko_core_jobs PRIVATE _WIN32)
     target_compile_definitions(poko_core_configuration PRIVATE _WIN32)
+    target_compile_definitions(poko_core_logging PRIVATE _WIN32)
 endif()
 
 # Production build flags
@@ -140,6 +161,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_options(poko_core_events PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_jobs PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_configuration PRIVATE -O3 -DNDEBUG)
+    target_compile_options(poko_core_logging PRIVATE -O3 -DNDEBUG)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_memory PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_handles PRIVATE -g -O0 -DDEBUG)
@@ -147,6 +169,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_events PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_jobs PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_configuration PRIVATE -g -O0 -DDEBUG)
+    target_compile_options(poko_core_logging PRIVATE -g -O0 -DDEBUG)
 endif()
 
 # Enable testing
@@ -195,8 +218,15 @@ add_executable(test_configuration
 target_link_libraries(test_configuration PRIVATE poko_core_configuration)
 add_test(NAME test_configuration COMMAND test_configuration)
 
+add_executable(test_logging
+    tests/unit/core/logging/test_logging.cpp
+)
+
+target_link_libraries(test_logging PRIVATE poko_core_logging)
+add_test(NAME test_logging COMMAND test_logging)
+
 # Installation
-install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration
+install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration poko_core_logging
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
