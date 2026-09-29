@@ -15,10 +15,18 @@ namespace core {
 namespace runtime {
 
 void Instance::setProperty(const std::string& key, const std::string& value) {
+    // Validate key
+    if (key.empty()) {
+        return;
+    }
     m_properties[key] = value;
 }
 
-void Instance::setProperty(std::string&& key, std::string&& value) noexcept {
+void Instance::setProperty(std::string&& key, std::string&& value) {
+    // Validate key
+    if (key.empty()) {
+        return;
+    }
     m_properties[std::move(key)] = std::move(value);
 }
 

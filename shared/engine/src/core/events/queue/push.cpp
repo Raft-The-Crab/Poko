@@ -15,6 +15,11 @@ namespace core {
 namespace events {
 
 void EventQueue::push(std::unique_ptr<Event> event) {
+    // Validate event
+    if (!event) {
+        return;
+    }
+    
     std::lock_guard<std::mutex> lock(m_mutex);
     
     // Insert in priority order (higher priority comes first)

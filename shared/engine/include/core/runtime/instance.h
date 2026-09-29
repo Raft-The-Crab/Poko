@@ -199,7 +199,7 @@ public:
      * @param key Property key (moved)
      * @param value Property value (moved)
      */
-    void setProperty(std::string&& key, std::string&& value) noexcept;
+    void setProperty(std::string&& key, std::string&& value);
     
     /**
      * @brief Get a property

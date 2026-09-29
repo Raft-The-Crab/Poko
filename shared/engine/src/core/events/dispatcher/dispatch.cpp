@@ -15,6 +15,11 @@ namespace core {
 namespace events {
 
 size_t EventDispatcher::dispatch(Event* event) {
+    // Validate event
+    if (!event) {
+        return 0;
+    }
+    
     std::lock_guard<std::mutex> lock(m_mutex);
     
     size_t handledCount = 0;
