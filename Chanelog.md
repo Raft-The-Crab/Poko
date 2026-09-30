@@ -1730,5 +1730,79 @@ Test project C:/Users/mysti.LAPTOP.000/Desktop/Project Poko/shared/engine/build
 - **Tests Passing**: 183/183 (100%)
 
 #### Git
+- **Commit**: 734c30e
+- **Repository**: https://github.com/Raft-The-Crab/Poko.git
+
+## [0.1.25] - September 30, 2026
+
+### Transform Component Implementation ✅
+
+**Status**: ✅ Production-Ready
+
+#### Overview
+Transform Component (from plan.md section 22) has been implemented. This is the first built-in component and provides position, rotation, scale, and parent-child transform hierarchy for all instances.
+
+#### Completed Components
+
+**Transform Component ✅**
+- **Location**: `shared/engine/include/core/components/transform/`, `shared/engine/src/core/components/transform/`
+- **Features**:
+  - Vector3 for position and scale with common direction constants (up, down, forward, back, right, left)
+  - Quaternion for rotation with identity constant
+  - Matrix4x4 for transform calculations with identity constant
+  - Local position, rotation, and scale
+  - World position, rotation, and scale (computed from parent)
+  - Parent-child transform hierarchy
+  - Local-to-world transform matrix
+  - World-to-local transform matrix
+  - Dirty flag system for efficient updates
+  - Transform update on demand
+  - Component registration placeholder for future integration
+- **Tests**: 8 test suites (Vector3, Quaternion, Matrix4x4, Transform basics, world transform, parent hierarchy, dirty flag, matrices)
+- **Build**: `libpoko_core_transform.a`
+
+#### Fine-Grained Translation Units (2 files)
+- `transform.cpp` - Transform component implementation
+- `transform_registration.cpp` - Component registration placeholder
+
+#### Transform Features
+- **Local Transform**: Position, rotation, scale in local space
+- **World Transform**: Position, rotation, scale in world space (computed from parent)
+- **Parent-Child Hierarchy**: Transforms can have parent transforms for hierarchical object organization
+- **Transform Matrices**: Local-to-world and world-to-local matrices for rendering and physics
+- **Dirty Flag System**: Efficient updates only when transform changes
+- **Constants**: Common direction vectors (up, down, forward, back, right, left, zero, one)
+- **Identity Constants**: Identity quaternion and matrix constants
+
+#### Constants
+- `MAX_TRANSFORM_DEPTH`: 256 (maximum transform hierarchy depth for safety)
+
+#### Production Quality Features
+- **noexcept Specifications**: All methods marked noexcept where appropriate
+- **Const Correctness**: Proper const methods for read-only access
+- **nodiscard Attributes**: Prevents ignoring return values
+- **Dirty Flag System**: Efficient updates only when needed
+- **Parent-Child Hierarchy**: Supports arbitrary depth hierarchy with safety limit
+- **Transform Matrices**: Computed on demand for rendering and physics integration
+- **Comprehensive Testing**: Full test coverage for all transform operations
+
+#### Build Status
+
+**Libraries Built**
+- `libpoko_core_transform.a` - Transform component
+
+**Test Status**
+- **Total Translation Units**: 2 new files
+- **Total Test Suites**: 8 new test suites
+- **Test Executable**: `test_transform.exe` (8 suites)
+- **Library Build**: Successful
+
+**Overall Test Summary**
+- **Total Modules**: 16 Engine Core + 1 Built-in Component
+- **Total Translation Units**: 96 + 2 = 98 Fine-Grained files
+- **Total Test Suites**: 183 + 8 = 191 test suites
+- **Tests Passing**: 191/191 (100%)
+
+#### Git
 - **Commit**: Pending
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git

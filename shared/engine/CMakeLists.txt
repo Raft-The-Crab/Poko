@@ -282,6 +282,17 @@ target_include_directories(poko_core_profiler
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
+# Transform component library
+add_library(poko_core_transform
+    src/core/components/transform/transform.cpp
+    src/core/components/transform/transform_registration.cpp
+)
+
+target_include_directories(poko_core_transform
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
 # Platform-specific settings
 if(WIN32)
     target_compile_definitions(poko_core_memory PRIVATE _WIN32)
@@ -300,6 +311,7 @@ if(WIN32)
     target_compile_definitions(poko_core_platform PRIVATE _WIN32)
     target_compile_definitions(poko_core_diagnostics PRIVATE _WIN32)
     target_compile_definitions(poko_core_profiler PRIVATE _WIN32)
+    target_compile_definitions(poko_core_transform PRIVATE _WIN32)
 endif()
 
 # Production build flags
@@ -320,6 +332,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_options(poko_core_platform PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_diagnostics PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_profiler PRIVATE -O3 -DNDEBUG)
+    target_compile_options(poko_core_transform PRIVATE -O3 -DNDEBUG)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_memory PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_handles PRIVATE -g -O0 -DDEBUG)
@@ -337,6 +350,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_platform PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_diagnostics PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_profiler PRIVATE -g -O0 -DDEBUG)
+    target_compile_options(poko_core_transform PRIVATE -g -O0 -DDEBUG)
 endif()
 
 # Enable testing
@@ -456,8 +470,15 @@ add_executable(test_profiler
 target_link_libraries(test_profiler PRIVATE poko_core_profiler Catch2::Catch2)
 add_test(NAME test_profiler COMMAND test_profiler)
 
+add_executable(test_transform
+    tests/unit/core/components/transform/test_transform.cpp
+)
+
+target_link_libraries(test_transform PRIVATE poko_core_transform Catch2::Catch2)
+add_test(NAME test_transform COMMAND test_transform)
+
 # Installation
-install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration poko_core_logging poko_core_serialization poko_core_runtime poko_core_properties poko_core_components poko_core_world poko_core_resources poko_core_platform poko_core_diagnostics poko_core_profiler
+install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration poko_core_logging poko_core_serialization poko_core_runtime poko_core_properties poko_core_components poko_core_world poko_core_resources poko_core_platform poko_core_diagnostics poko_core_profiler poko_core_transform
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
