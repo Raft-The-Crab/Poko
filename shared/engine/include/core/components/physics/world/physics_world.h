@@ -234,6 +234,27 @@ public:
     ) const noexcept;
 
     /**
+     * @brief Sphere overlap query
+     */
+    [[nodiscard]] size_t overlapSphere(
+        const Vector3& center,
+        float radius,
+        std::vector<OverlapResult>& results,
+        const QueryFilter& filter = QueryFilter()
+    ) const noexcept;
+
+    /**
+     * @brief Capsule overlap query
+     */
+    [[nodiscard]] size_t overlapCapsule(
+        const Vector3& pointA,
+        const Vector3& pointB,
+        float radius,
+        std::vector<OverlapResult>& results,
+        const QueryFilter& filter = QueryFilter()
+    ) const noexcept;
+
+    /**
      * @brief Get event buffer
      */
     [[nodiscard]] EventBuffer& getEventBuffer() noexcept {
@@ -256,6 +277,9 @@ private:
     std::vector<ShapeDefinition> shapes;
     std::vector<Material> materials;
     std::vector<ConstraintDefinition> constraints;
+
+    // Body to colliders mapping (for trigger system)
+    std::unordered_map<uint32_t, std::vector<ColliderHandle>> bodyToColliders;
     
     // Handle management
     std::vector<uint32_t> bodyGenerations;

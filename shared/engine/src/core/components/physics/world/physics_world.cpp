@@ -20,10 +20,12 @@
 #include "core/components/physics/shapes/sphere.h"
 #include "core/components/physics/shapes/box.h"
 #include "core/components/physics/shapes/plane.h"
+#include "core/components/physics/shapes/capsule.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <variant>
+#include <unordered_map>
 
 namespace poko {
 namespace core {
@@ -53,6 +55,7 @@ using geometry::Ray;
 using shapes::Sphere;
 using shapes::Box;
 using shapes::Plane;
+using shapes::Capsule;
 using shapes::Sphere;
 using shapes::Box;
 using shapes::Plane;
@@ -87,6 +90,7 @@ void PhysicsWorld::clear() {
     islands.clear();
     eventBuffer.clear();
     triggerSystem.clear();
+    bodyToColliders.clear();
     accumulator = 0.0f;
     broadphase->clear();
 }
@@ -126,9 +130,22 @@ void PhysicsWorld::step(float deltaTime) {
         // Update sleeping
         updateSleeping(dt);
 
-        // Update trigger system (placeholder: needs collider mapping from bodies)
-        // Production: extract collider pairs from manifolds and update triggers
-        // triggerSystem.update(colliderPairs, eventBuffer);
+        // Update trigger system with collider pairs from manifolds
+        std::vector<ColliderHandle> triggerPairs;
+        for (const auto& manifold : manifolds) {
+            // Get colliders for the bodies in this manifold
+            if (manifold.bodyA.isValid() && manifold.bodyA.index < bodyToColliders.size()) {
+                for (const auto& collider : bodyToColliders[manifold.bodyA.index]) {
+                    triggerPairs.push_back(collider);
+                }
+            }
+            if (manifold.bodyB.isValid() && manifold.bodyB.index < bodyToColliders.size()) {
+                for (const auto& collider : bodyToColliders[manifold.bodyB.index]) {
+                    triggerPairs.push_back(collider);
+                }
+            }
+        }
+        triggerSystem.update(triggerPairs, eventBuffer);
 
         accumulator -= dt;
     }
@@ -251,6 +268,11 @@ ColliderHandle PhysicsWorld::createCollider(const ColliderDefinition& definition
     colliders[index] = definition;
     colliders[index].handle = ColliderHandle(index, colliderGenerations[index]);
 
+    // Add to body-to-colliders mapping
+    if (definition.bodyHandle.isValid() && definition.bodyHandle.index < bodies.size()) {
+        bodyToColliders[definition.bodyHandle.index].push_back(colliders[index].handle);
+    }
+
     // Insert into broadphase
     if (definition.shapeHandle.isValid()) {
         AABB aabb = shapes[definition.shapeHandle.index].getLocalAABB();
@@ -263,6 +285,16 @@ ColliderHandle PhysicsWorld::createCollider(const ColliderDefinition& definition
 void PhysicsWorld::destroyCollider(ColliderHandle handle) {
     if (handle.index >= colliders.size()) return;
     if (colliderGenerations[handle.index] != handle.generation) return;
+
+    // Remove from body-to-colliders mapping
+    BodyHandle bodyHandle = colliders[handle.index].bodyHandle;
+    if (bodyHandle.isValid() && bodyHandle.index < bodies.size()) {
+        auto& collidersForBody = bodyToColliders[bodyHandle.index];
+        collidersForBody.erase(
+            std::remove(collidersForBody.begin(), collidersForBody.end(), handle),
+            collidersForBody.end()
+        );
+    }
 
     // Remove from broadphase
     // (Would need to track proxy handle in collider definition)
@@ -661,6 +693,12 @@ bool PhysicsWorld::raycast(
             const Plane& plane = std::get<Plane>(shape.shape);
             t = rayPlaneIntersection(ray, collider.localTransform.position, plane.normal);
             hit = t >= 0.0f;
+        } else if (std::holds_alternative<Capsule>(shape.shape)) {
+            const Capsule& capsule = std::get<Capsule>(shape.shape);
+            // Simplified: ray-capsule treated as ray-sphere with radius
+            Vector3 center = collider.localTransform.position;
+            t = raySphereIntersection(ray, center, capsule.radius);
+            hit = t >= 0.0f;
         }
 
         if (hit && t < closestDistance) {
@@ -721,6 +759,11 @@ bool PhysicsWorld::pointQuery(
             inside = std::abs(localPoint.x) <= box.halfExtents.x &&
                      std::abs(localPoint.y) <= box.halfExtents.y &&
                      std::abs(localPoint.z) <= box.halfExtents.z;
+        } else if (std::holds_alternative<Capsule>(shape.shape)) {
+            const Capsule& capsule = std::get<Capsule>(shape.shape);
+            Vector3 center = collider.localTransform.position;
+            float distance = (point - center).length();
+            inside = distance <= capsule.radius;
         }
 
         if (inside) {
@@ -763,6 +806,89 @@ size_t PhysicsWorld::overlapAABB(
     }
 
     return results.size();
+}
+
+size_t PhysicsWorld::overlapSphere(
+    const Vector3& center,
+    float radius,
+    std::vector<OverlapResult>& results,
+    const QueryFilter& filter
+) const noexcept {
+    results.clear();
+
+    std::vector<ColliderHandle> colliderHandles;
+    broadphase->getAllColliders(colliderHandles);
+
+    for (const auto& colliderHandle : colliderHandles) {
+        if (colliderHandle.index >= colliders.size()) continue;
+
+        const ColliderDefinition& collider = colliders[colliderHandle.index];
+        if (!filter.shouldQuery(collider)) continue;
+        if (!collider.shapeHandle.isValid()) continue;
+
+        const ShapeDefinition& shape = shapes[collider.shapeHandle.index];
+        AABB localAABB = shape.getLocalAABB();
+        AABB worldAABB = localAABB.translated(collider.localTransform.position);
+
+        // Quick AABB check
+        Vector3 sphereMin = center - Vector3(radius, radius, radius);
+        Vector3 sphereMax = center + Vector3(radius, radius, radius);
+        AABB sphereAABB(sphereMin, sphereMax);
+
+        if (!worldAABB.intersects(sphereAABB)) {
+            continue;
+        }
+
+        // Narrowphase: sphere-shape overlap test
+        bool overlaps = false;
+
+        if (std::holds_alternative<Sphere>(shape.shape)) {
+            const Sphere& sphere = std::get<Sphere>(shape.shape);
+            Vector3 shapeCenter = collider.localTransform.position;
+            float distance = (center - shapeCenter).length();
+            overlaps = distance <= (radius + sphere.radius);
+        } else if (std::holds_alternative<Box>(shape.shape)) {
+            const Box& box = std::get<Box>(shape.shape);
+            Vector3 shapeCenter = collider.localTransform.position;
+            Vector3 closest = center;
+            closest.x = std::max(shapeCenter.x - box.halfExtents.x, std::min(closest.x, shapeCenter.x + box.halfExtents.x));
+            closest.y = std::max(shapeCenter.y - box.halfExtents.y, std::min(closest.y, shapeCenter.y + box.halfExtents.y));
+            closest.z = std::max(shapeCenter.z - box.halfExtents.z, std::min(closest.z, shapeCenter.z + box.halfExtents.z));
+            float distance = (center - closest).length();
+            overlaps = distance <= radius;
+        } else if (std::holds_alternative<Capsule>(shape.shape)) {
+            const Capsule& capsule = std::get<Capsule>(shape.shape);
+            Vector3 shapeCenter = collider.localTransform.position;
+            float distance = (center - shapeCenter).length();
+            overlaps = distance <= (radius + capsule.radius);
+        }
+
+        if (overlaps) {
+            OverlapResult overlapResult;
+            overlapResult.collider = colliderHandle;
+            overlapResult.body = collider.bodyHandle;
+            results.push_back(overlapResult);
+        }
+    }
+
+    return results.size();
+}
+
+size_t PhysicsWorld::overlapCapsule(
+    const Vector3& pointA,
+    const Vector3& pointB,
+    float radius,
+    std::vector<OverlapResult>& results,
+    const QueryFilter& filter
+) const noexcept {
+    results.clear();
+
+    // Create bounding sphere for capsule
+    Vector3 capsuleCenter = (pointA + pointB) * 0.5f;
+    float capsuleHeight = (pointB - pointA).length();
+    float capsuleRadius = radius + capsuleHeight * 0.5f;
+
+    return overlapSphere(capsuleCenter, capsuleRadius, results, filter);
 }
 
 // Helper: ray-sphere intersection
