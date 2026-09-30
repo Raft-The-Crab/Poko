@@ -18,6 +18,7 @@
 #include "../transforms/transform.h"
 #include <functional>
 #include <unordered_map>
+#include <cstdint>
 
 namespace poko {
 namespace core {
@@ -69,12 +70,26 @@ public:
      * @brief Check if algorithm is registered
      */
     [[nodiscard]] bool hasAlgorithm(ShapeType typeA, ShapeType typeB) const;
-    
+
+    /**
+     * @brief Clear all algorithms
+     */
+    void clear() noexcept {
+        algorithms.clear();
+    }
+
+    /**
+     * @brief Get algorithm count
+     */
+    [[nodiscard]] size_t getAlgorithmCount() const noexcept {
+        return algorithms.size();
+    }
+
 private:
     using PairKey = uint64_t;
-    
+
     static PairKey makePairKey(ShapeType typeA, ShapeType typeB) noexcept;
-    
+
     std::unordered_map<PairKey, PairAlgorithm> algorithms;
 };
 

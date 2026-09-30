@@ -14,6 +14,8 @@
 #include "../core/handle.h"
 #include "../math/vectors/vector3.h"
 #include "../math/vectors/quaternion.h"
+#include "../transforms/transform.h"
+#include <cmath>
 
 namespace poko {
 namespace core {
@@ -25,6 +27,7 @@ using core::ConstraintHandle;
 using core::BodyHandle;
 using math::Vector3;
 using math::Quaternion;
+using transforms::Transform;
 
 /**
  * @brief Constraint type
@@ -52,7 +55,7 @@ public:
     Vector3 anchorB;
     bool collideConnected;
     bool enabled;
-    
+
     /**
      * @brief Constructor
      */
@@ -65,6 +68,13 @@ public:
         , anchorB(0.0f, 0.0f, 0.0f)
         , collideConnected(false)
         , enabled(true) {}
+
+    /**
+     * @brief Check if constraint is valid
+     */
+    [[nodiscard]] bool isValid() const noexcept {
+        return bodyA.isValid() && bodyB.isValid() && type != ConstraintType::Unknown;
+    }
 };
 
 /**
@@ -74,12 +84,16 @@ class DistanceConstraintDefinition : public ConstraintDefinition {
 public:
     float distance;
     float damping;
-    
+
     DistanceConstraintDefinition() noexcept
         : ConstraintDefinition()
         , distance(1.0f)
         , damping(0.5f) {
         type = ConstraintType::Distance;
+    }
+
+    [[nodiscard]] bool isValid() const noexcept {
+        return ConstraintDefinition::isValid() && distance > 0.0f && damping >= 0.0f && damping <= 1.0f;
     }
 };
 
@@ -90,12 +104,18 @@ class FixedConstraintDefinition : public ConstraintDefinition {
 public:
     Quaternion referenceRotationA;
     Quaternion referenceRotationB;
-    
+
     FixedConstraintDefinition() noexcept
         : ConstraintDefinition()
         , referenceRotationA(Quaternion::identity())
         , referenceRotationB(Quaternion::identity()) {
         type = ConstraintType::Fixed;
+    }
+
+    [[nodiscard]] bool isValid() const noexcept {
+        return ConstraintDefinition::isValid() &&
+               std::abs(referenceRotationA.lengthSquared() - 1.0f) < 0.01f &&
+               std::abs(referenceRotationB.lengthSquared() - 1.0f) < 0.01f;
     }
 };
 
@@ -106,6 +126,58 @@ class BallSocketConstraintDefinition : public ConstraintDefinition {
 public:
     BallSocketConstraintDefinition() noexcept : ConstraintDefinition() {
         type = ConstraintType::BallSocket;
+    }
+
+    [[nodiscard]] bool isValid() const noexcept {
+        return ConstraintDefinition::isValid();
+    }
+};
+
+/**
+ * @brief Hinge constraint definition
+ */
+class HingeConstraintDefinition : public ConstraintDefinition {
+public:
+    Vector3 axis;
+    float lowerLimit;
+    float upperLimit;
+
+    HingeConstraintDefinition() noexcept
+        : ConstraintDefinition()
+        , axis(0.0f, 1.0f, 0.0f)
+        , lowerLimit(-3.14159f)
+        , upperLimit(3.14159f) {
+        type = ConstraintType::Hinge;
+    }
+
+    [[nodiscard]] bool isValid() const noexcept {
+        return ConstraintDefinition::isValid() &&
+               axis.lengthSquared() > 0.0001f &&
+               lowerLimit <= upperLimit;
+    }
+};
+
+/**
+ * @brief Prismatic (slider) constraint definition
+ */
+class PrismaticConstraintDefinition : public ConstraintDefinition {
+public:
+    Vector3 axis;
+    float lowerLimit;
+    float upperLimit;
+
+    PrismaticConstraintDefinition() noexcept
+        : ConstraintDefinition()
+        , axis(0.0f, 1.0f, 0.0f)
+        , lowerLimit(-100.0f)
+        , upperLimit(100.0f) {
+        type = ConstraintType::Prismatic;
+    }
+
+    [[nodiscard]] bool isValid() const noexcept {
+        return ConstraintDefinition::isValid() &&
+               axis.lengthSquared() > 0.0001f &&
+               lowerLimit <= upperLimit;
     }
 };
 
