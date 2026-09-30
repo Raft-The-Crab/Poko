@@ -341,6 +341,7 @@ add_library(poko_core_physics_system
     src/core/components/physics/broadphase/dynamic_aabb_tree.cpp
     # Narrowphase
     src/core/components/physics/narrowphase/collision_dispatcher.cpp
+    src/core/components/physics/narrowphase/pair_algorithms/pair_algorithms.cpp
     # Contacts
     src/core/components/physics/contacts/contact_manifold.cpp
     # Solver

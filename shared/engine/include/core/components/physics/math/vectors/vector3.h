@@ -116,6 +116,14 @@ public:
         };
     }
     
+    [[nodiscard]] Vector3 abs() const noexcept {
+        return Vector3{
+            x < 0.0f ? -x : x,
+            y < 0.0f ? -y : y,
+            z < 0.0f ? -z : z
+        };
+    }
+    
     [[nodiscard]] constexpr bool isZero() const noexcept {
         return x == 0.0f && y == 0.0f && z == 0.0f;
     }

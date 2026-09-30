@@ -8,7 +8,7 @@
  * Unauthorized copying, modification, or distribution is prohibited.
  */
 
-#include "../../include/core/components/physics/solver/sequential_impulse.h"
+#include "../../../include/core/components/physics/solver/sequential_impulse.h"
 #include <algorithm>
 
 namespace poko {

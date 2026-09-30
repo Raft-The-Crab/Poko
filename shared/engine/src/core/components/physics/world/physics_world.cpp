@@ -8,8 +8,8 @@
  * Unauthorized copying, modification, or distribution is prohibited.
  */
 
-#include "../../include/core/components/physics/world/physics_world.h"
-#include "../../include/core/components/physics/bounds/aabb.h"
+#include "../../../include/core/components/physics/world/physics_world.h"
+#include "../../../include/core/components/physics/bounds/aabb.h"
 #include <algorithm>
 
 using bounds::AABB;
