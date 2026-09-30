@@ -1565,5 +1565,91 @@ Test project C:/Users/mysti.LAPTOP.000/Desktop/Project Poko/shared/engine/build
 - **Tests Passing**: 173/173 (100%)
 
 #### Git
+- **Commit**: bb36a4a
+- **Repository**: https://github.com/Raft-The-Crab/Poko.git
+
+## [0.1.22] - September 30, 2026
+
+### Profiler Hooks System - Item 16 ✅
+
+**Status**: ✅ Production-Ready
+
+#### Overview
+Profiler Hooks System (item 16 from plan.md section 18) has been implemented with Fine-Grained Translation Units. This module provides performance monitoring and instrumentation with scope profiling, statistics tracking, and RAII helpers.
+
+#### Completed Components
+
+**16. Profiler Hooks System ✅**
+- **Location**: `shared/engine/include/core/profiler/`, `shared/engine/src/core/profiler/`
+- **Fine-Grained Translation Units**: 2 files in semantic subfolders
+- **Features**:
+  - Enable/disable profiling for runtime control
+  - Begin/end profiling scopes with name and category
+  - Profiler samples with name, category, start time, duration, thread ID, and call stack depth
+  - Profiler statistics (call count, total time, min/max/average time) per scope
+  - Sample history with configurable maximum size
+  - Statistics tracking and reset
+  - Thread name tracking
+  - RAII helper (ProfilerScope) for automatic scope profiling
+  - Convenience macros (POKO_PROFILE_SCOPE, POKO_PROFILE_FUNCTION, POKO_PROFILE_FUNCTION_CATEGORY)
+  - Thread-safe operations with mutex protection
+  - String length limits for safety
+  - Input validation for all operations
+  - Global profiler manager instance
+- **Tests**: 10 test suites (basics, scopes, validation, samples, statistics, thread name, limits, RAII scope, global manager, convenience macros)
+- **Build**: `libpoko_core_profiler.a`
+
+#### Fine-Grained Translation Units
+
+**manager/manager.cpp** - ProfilerManager implementation (scopes, samples, statistics, thread tracking)
+**interface/interface.cpp** - Global profiler manager interface and ProfilerScope RAII helper
+
+#### RAII Helper
+- `ProfilerScope` - Automatic scope profiling on construction/destruction
+- Non-copyable, movable
+- Ensures scope is properly ended even on exceptions
+
+#### Convenience Macros
+- `POKO_PROFILE_SCOPE(name, category)` - Profile a named scope
+- `POKO_PROFILE_FUNCTION()` - Profile current function with "Function" category
+- `POKO_PROFILE_FUNCTION_CATEGORY(category)` - Profile current function with custom category
+
+#### Constants
+- `MAX_SCOPE_NAME_LENGTH`: 256 characters
+- `MAX_CATEGORY_NAME_LENGTH`: 128 characters
+- `MAX_THREAD_NAME_LENGTH`: 64 characters
+- `MAX_PROFILER_SAMPLES`: 10,000 samples
+
+#### Production Quality Features
+- **Thread Safety**: All operations protected by mutex locks
+- **RAII Helper**: Automatic scope profiling with ProfilerScope
+- **Convenience Macros**: Easy-to-use macros for function and scope profiling
+- **Statistics Tracking**: Comprehensive statistics (call count, total time, min/max/average)
+- **Sample History**: Configurable history size with automatic trimming
+- **Thread Tracking**: Thread ID and thread name tracking
+- **Call Stack Depth**: Depth tracking for hierarchical profiling
+- **String Length Limits**: Prevents memory exhaustion from excessively long strings
+- **Input Validation**: Validates string lengths before operations
+- **Global Registry**: Singleton pattern for engine-wide profiler management
+- **Defensive Programming**: Early validation prevents runtime errors
+
+#### Build Status
+
+**Libraries Built**
+- `libpoko_core_profiler.a` - Profiler hooks system
+
+**Test Status**
+- **Total Translation Units**: 2 new files
+- **Total Test Suites**: 10 new test suites
+- **Test Executable**: `test_profiler.exe` (10 suites)
+- **Library Build**: Successful
+
+**Overall Test Summary**
+- **Total Modules**: 16 (items 1-16 from plan.md) - All Engine Core Modules Complete
+- **Total Translation Units**: 94 + 2 = 96 Fine-Grained files
+- **Total Test Suites**: 173 + 10 = 183 test suites
+- **Tests Passing**: 183/183 (100%)
+
+#### Git
 - **Commit**: Pending
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git
