@@ -83,6 +83,26 @@ CollisionResult collideCapsulePlane(
     const Transform& planeTransform
 );
 
+/**
+ * @brief Sphere-capsule collision
+ */
+CollisionResult collideSphereCapsule(
+    const Sphere& sphere,
+    const Transform& sphereTransform,
+    const Capsule& capsule,
+    const Transform& capsuleTransform
+);
+
+/**
+ * @brief Capsule-capsule collision
+ */
+CollisionResult collideCapsuleCapsule(
+    const Capsule& capsuleA,
+    const Transform& transformA,
+    const Capsule& capsuleB,
+    const Transform& transformB
+);
+
 } // namespace narrowphase
 } // namespace physics
 } // namespace components

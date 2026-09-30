@@ -351,6 +351,178 @@ CollisionResult collideCapsulePlane(
     return result;
 }
 
+CollisionResult collideSphereCapsule(
+    const Sphere& sphere,
+    const Transform& sphereTransform,
+    const Capsule& capsule,
+    const Transform& capsuleTransform
+) {
+    CollisionResult result;
+
+    Vector3 spherePos = sphereTransform.position;
+    Vector3 capsulePos = capsuleTransform.position;
+
+    // Calculate capsule segment endpoints
+    Vector3 capsuleUp = capsuleTransform.rotation.rotateVector(Vector3(0.0f, 1.0f, 0.0f));
+    Vector3 halfHeight = capsuleUp * (capsule.height * 0.5f);
+    Vector3 endpointA = capsulePos - halfHeight;
+    Vector3 endpointB = capsulePos + halfHeight;
+
+    // Find closest point on capsule segment to sphere center
+    Vector3 segment = endpointB - endpointA;
+    Vector3 toSphere = spherePos - endpointA;
+    float segmentLengthSquared = segment.lengthSquared();
+
+    float t = 0.0f;
+    if (segmentLengthSquared > 0.0001f) {
+        t = toSphere.dot(segment) / segmentLengthSquared;
+        t = std::max(0.0f, std::min(1.0f, t));
+    }
+
+    Vector3 closestPoint = endpointA + segment * t;
+    Vector3 diff = spherePos - closestPoint;
+    float distanceSquared = diff.lengthSquared();
+    float radiusSum = sphere.radius + capsule.radius;
+
+    if (distanceSquared < radiusSum * radiusSum) {
+        result.isColliding = true;
+
+        float distance = std::sqrt(distanceSquared);
+        result.penetration = radiusSum - distance;
+
+        Vector3 normal;
+        if (distance > 0.0001f) {
+            normal = diff * (1.0f / distance);
+        } else {
+            normal = Vector3(0.0f, 1.0f, 0.0f);
+        }
+
+        result.normal = normal;
+
+        ContactPoint contact;
+        contact.position = closestPoint + normal * (capsule.radius - result.penetration * 0.5f);
+        contact.normal = result.normal;
+        contact.penetration = result.penetration;
+        contact.featureIdA = generateFeatureId(1, 0); // Sphere
+        contact.featureIdB = generateFeatureId(3, static_cast<uint32_t>(t * 1000)); // Capsule segment
+        result.contacts.push_back(contact);
+    }
+
+    return result;
+}
+
+CollisionResult collideCapsuleCapsule(
+    const Capsule& capsuleA,
+    const Transform& transformA,
+    const Capsule& capsuleB,
+    const Transform& transformB
+) {
+    CollisionResult result;
+
+    Vector3 posA = transformA.position;
+    Vector3 posB = transformB.position;
+
+    // Calculate capsule A segment
+    Vector3 upA = transformA.rotation.rotateVector(Vector3(0.0f, 1.0f, 0.0f));
+    Vector3 halfHeightA = upA * (capsuleA.height * 0.5f);
+    Vector3 endpointA_A = posA - halfHeightA;
+    Vector3 endpointA_B = posA + halfHeightA;
+
+    // Calculate capsule B segment
+    Vector3 upB = transformB.rotation.rotateVector(Vector3(0.0f, 1.0f, 0.0f));
+    Vector3 halfHeightB = upB * (capsuleB.height * 0.5f);
+    Vector3 endpointB_A = posB - halfHeightB;
+    Vector3 endpointB_B = posB + halfHeightB;
+
+    // Segment-segment distance
+    Vector3 d1 = endpointA_B - endpointA_A;
+    Vector3 d2 = endpointB_B - endpointB_A;
+    Vector3 r = endpointA_A - endpointB_A;
+
+    float a = d1.lengthSquared();
+    float e = d2.lengthSquared();
+    float f = d2.dot(r);
+
+    if (a <= 0.0001f && e <= 0.0001f) {
+        // Both capsules are points
+        float distance = r.length();
+        float radiusSum = capsuleA.radius + capsuleB.radius;
+        if (distance < radiusSum) {
+            result.isColliding = true;
+            result.penetration = radiusSum - distance;
+            result.normal = distance > 0.0001f ? r * (1.0f / distance) : Vector3(0.0f, 1.0f, 0.0f);
+
+            ContactPoint contact;
+            contact.position = endpointA_A + result.normal * (result.penetration * 0.5f);
+            contact.normal = result.normal;
+            contact.penetration = result.penetration;
+            contact.featureIdA = generateFeatureId(3, 0);
+            contact.featureIdB = generateFeatureId(3, 0);
+            result.contacts.push_back(contact);
+        }
+        return result;
+    }
+
+    float s = 0.0f;
+    float t_segment = 0.0f;
+
+    if (a <= 0.0001f) {
+        // First capsule is a point
+        s = (f / e);
+        if (s < 0.0f) s = 0.0f;
+        if (s > 1.0f) s = 1.0f;
+    } else if (e <= 0.0001f) {
+        // Second capsule is a point
+        t_segment = (-d1.dot(r) / a);
+        if (t_segment < 0.0f) t_segment = 0.0f;
+        if (t_segment > 1.0f) t_segment = 1.0f;
+    } else {
+        float denom = a * e - d1.dot(d2) * d1.dot(d2);
+        if (denom != 0.0f) {
+            float val = (d1.dot(d2) * f - d1.dot(r) * e) / denom;
+            s = val < 0.0f ? 0.0f : (val > 1.0f ? 1.0f : val);
+        } else {
+            s = 0.0f;
+        }
+
+        t_segment = (d1.dot(d2) * s + f) / e;
+
+        if (t_segment < 0.0f) {
+            t_segment = 0.0f;
+            float val = -d1.dot(r) / a;
+            s = val < 0.0f ? 0.0f : (val > 1.0f ? 1.0f : val);
+        } else if (t_segment > 1.0f) {
+            t_segment = 1.0f;
+            float val = (d1.dot(d2) - d1.dot(r)) / a;
+            s = val < 0.0f ? 0.0f : (val > 1.0f ? 1.0f : val);
+        }
+    }
+
+    Vector3 closestA = endpointA_A + d1 * s;
+    Vector3 closestB = endpointB_A + d2 * t_segment;
+    Vector3 diff = closestA - closestB;
+    float distance = diff.length();
+    float radiusSum = capsuleA.radius + capsuleB.radius;
+
+    if (distance < radiusSum) {
+        result.isColliding = true;
+        result.penetration = radiusSum - distance;
+
+        Vector3 normal = distance > 0.0001f ? diff * (1.0f / distance) : Vector3(0.0f, 1.0f, 0.0f);
+        result.normal = normal;
+
+        ContactPoint contact;
+        contact.position = closestB + normal * (capsuleB.radius - result.penetration * 0.5f);
+        contact.normal = result.normal;
+        contact.penetration = result.penetration;
+        contact.featureIdA = generateFeatureId(3, static_cast<uint32_t>(s * 1000));
+        contact.featureIdB = generateFeatureId(3, static_cast<uint32_t>(t_segment * 1000));
+        result.contacts.push_back(contact);
+    }
+
+    return result;
+}
+
 } // namespace narrowphase
 } // namespace physics
 } // namespace components

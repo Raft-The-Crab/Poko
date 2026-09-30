@@ -56,26 +56,29 @@ void SequentialImpulseSolver::solveVelocityConstraints(
                 continue;
             }
 
-            // Get body indices (in a real implementation, this would be more sophisticated)
-            // For now, we skip actual body lookup since the BodyDefinition is not directly accessible
-            // In production, we'd have a body array indexed by handle
+            // Find body indices
+            size_t bodyAIndex = manifold.bodyA.index;
+            size_t bodyBIndex = manifold.bodyB.index;
+
+            if (bodyAIndex >= bodies.size() || bodyBIndex >= bodies.size()) {
+                continue;
+            }
+
+            BodyDefinition& bodyA = bodies[bodyAIndex];
+            BodyDefinition& bodyB = bodies[bodyBIndex];
 
             for (uint32_t i = 0; i < manifold.contactCount; ++i) {
-                // Placeholder for contact solving
-                // solveContactConstraint would be called here with actual body references
-                (void)i;
+                solveContactConstraint(manifold, i, bodyA, bodyB);
             }
         }
 
         // Solve constraints
         for (auto& row : constraintRows) {
+            // Find body indices from constraint row (would need constraint-to-body mapping)
+            // For now, skip since we don't have body references in constraint rows
             (void)row;
-            // Placeholder for constraint row solving
-            // solveConstraintRow would be called here with actual body references
         }
     }
-
-    (void)bodies;
 }
 
 void SequentialImpulseSolver::solvePositionConstraints(
@@ -151,10 +154,24 @@ void SequentialImpulseSolver::solveContactConstraint(
     // K = 1/mA + 1/mB + (rA × n) · IA^-1 · (rA × n) + (rB × n) · IB^-1 · (rB × n)
     // effectiveMass = 1 / K
 
-    // Simplified effective mass (assuming uniform mass distribution)
     float invMassA = bodyA.mass > 0.0f ? 1.0f / bodyA.mass : 0.0f;
     float invMassB = bodyB.mass > 0.0f ? 1.0f / bodyB.mass : 0.0f;
-    float effectiveMass = 1.0f / (invMassA + invMassB);
+
+    // Angular contribution to effective mass
+    // Simplified: treat inertia as scalar (I = 2/5 * m * r^2 for sphere)
+    // In production, this would use the full 3x3 inverse inertia tensor
+    float inertiaA = bodyA.mass > 0.0f ? (0.4f * bodyA.mass * 0.1f * 0.1f) : 0.0f; // Assume 0.1m radius
+    float inertiaB = bodyB.mass > 0.0f ? (0.4f * bodyB.mass * 0.1f * 0.1f) : 0.0f;
+    float invInertiaA = inertiaA > 0.0f ? 1.0f / inertiaA : 0.0f;
+    float invInertiaB = inertiaB > 0.0f ? 1.0f / inertiaB : 0.0f;
+
+    Vector3 rA_cross_n = rA.cross(contact.normal);
+    Vector3 rB_cross_n = rB.cross(contact.normal);
+
+    float angularTermA = rA_cross_n.lengthSquared() * invInertiaA;
+    float angularTermB = rB_cross_n.lengthSquared() * invInertiaB;
+
+    float effectiveMass = 1.0f / (invMassA + invMassB + angularTermA + angularTermB);
 
     // Calculate normal impulse
     // j = -effectiveMass * (vNormal + restitution * vNormal_initial)
@@ -170,29 +187,69 @@ void SequentialImpulseSolver::solveContactConstraint(
     contact.normalImpulse = std::max(0.0f, oldImpulse + j);
     j = contact.normalImpulse - oldImpulse;
 
-    // Apply normal impulse
+    // Apply normal impulse (linear and angular)
     Vector3 impulse = contact.normal * j;
     bodyA.linearVelocity = bodyA.linearVelocity - impulse * invMassA;
     bodyB.linearVelocity = bodyB.linearVelocity + impulse * invMassB;
 
-    // Friction (simplified Coulomb friction)
-    // Calculate tangent impulse based on vTangent
+    // Apply angular impulse: τ = r × F
+    Vector3 angularImpulseA = rA.cross(impulse * -1.0f);
+    Vector3 angularImpulseB = rB.cross(impulse);
+    bodyA.angularVelocity = bodyA.angularVelocity + angularImpulseA * invInertiaA;
+    bodyB.angularVelocity = bodyB.angularVelocity + angularImpulseB * invInertiaB;
+
+    // Friction (Coulomb friction with two tangent directions)
     float tangentSpeed = vTangent.length();
     if (tangentSpeed > 0.0001f) {
-        Vector3 tangentDir = vTangent.normalized();
-        float jt = -effectiveMass * tangentSpeed;
+        // Build tangent basis
+        Vector3 tangent1 = vTangent.normalized();
+        Vector3 tangent2 = contact.normal.cross(tangent1);
+        if (tangent2.lengthSquared() < 0.0001f) {
+            tangent2 = Vector3(0.0f, 1.0f, 0.0f).cross(tangent1);
+        }
+        tangent2 = tangent2.normalized();
 
-        // Clamp friction impulse
+        // Calculate effective mass for tangent directions
+        Vector3 rA_cross_t1 = rA.cross(tangent1);
+        Vector3 rB_cross_t1 = rB.cross(tangent1);
+        float angularTermA_t1 = rA_cross_t1.lengthSquared() * invInertiaA;
+        float angularTermB_t1 = rB_cross_t1.lengthSquared() * invInertiaB;
+        float effectiveMassT1 = 1.0f / (invMassA + invMassB + angularTermA_t1 + angularTermB_t1);
+
+        Vector3 rA_cross_t2 = rA.cross(tangent2);
+        Vector3 rB_cross_t2 = rB.cross(tangent2);
+        float angularTermA_t2 = rA_cross_t2.lengthSquared() * invInertiaA;
+        float angularTermB_t2 = rB_cross_t2.lengthSquared() * invInertiaB;
+        float effectiveMassT2 = 1.0f / (invMassA + invMassB + angularTermA_t2 + angularTermB_t2);
+
+        // Calculate tangent impulses
+        float jt1 = -effectiveMassT1 * vRel.dot(tangent1);
+        float jt2 = -effectiveMassT2 * vRel.dot(tangent2);
+
+        // Clamp friction impulses
         float maxFriction = manifold.friction * contact.normalImpulse;
-        jt = std::max(-maxFriction, std::min(maxFriction, jt));
+        float frictionMagnitude = std::sqrt(jt1 * jt1 + jt2 * jt2);
+        if (frictionMagnitude > maxFriction) {
+            float scale = maxFriction / frictionMagnitude;
+            jt1 *= scale;
+            jt2 *= scale;
+        }
 
-        Vector3 frictionImpulse = tangentDir * jt;
+        // Apply friction impulses
+        Vector3 frictionImpulse = tangent1 * jt1 + tangent2 * jt2;
         bodyA.linearVelocity = bodyA.linearVelocity - frictionImpulse * invMassA;
         bodyB.linearVelocity = bodyB.linearVelocity + frictionImpulse * invMassB;
-    }
 
-    (void)manifold;
-    (void)contactIndex;
+        // Apply angular friction impulses
+        Vector3 angularFrictionA = rA.cross(frictionImpulse * -1.0f);
+        Vector3 angularFrictionB = rB.cross(frictionImpulse);
+        bodyA.angularVelocity = bodyA.angularVelocity + angularFrictionA * invInertiaA;
+        bodyB.angularVelocity = bodyB.angularVelocity + angularFrictionB * invInertiaB;
+
+        // Store tangent impulses for warm starting
+        contact.tangent1Impulse = jt1;
+        contact.tangent2Impulse = jt2;
+    }
 }
 
 void SequentialImpulseSolver::solveConstraintRow(
