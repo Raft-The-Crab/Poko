@@ -144,10 +144,89 @@ struct PhysicsWorldSettings {
     // ============================================================================
     // Debug
     // ============================================================================
-    
+
     bool enableDebugVisualization = false;
     bool enableProfiling = false;
     bool enableValidation = true;
+
+    /**
+     * @brief Validate settings
+     */
+    [[nodiscard]] bool isValid() const noexcept {
+        return fixedDelta > 0.0f &&
+               maxSubsteps > 0 &&
+               maxAccumulator > 0.0f &&
+               timeScale > 0.0f &&
+               velocityIterations > 0 &&
+               positionIterations > 0 &&
+               maxContactsPerPair > 0 &&
+               maxLinearVelocity > 0.0f &&
+               maxAngularVelocity > 0.0f &&
+               sleepThreshold >= 0.0f &&
+               sleepTime >= 0.0f &&
+               maxBodies > 0 &&
+               maxColliders > 0 &&
+               maxShapes > 0 &&
+               maxContacts > 0 &&
+               maxPairs > 0 &&
+               maxConstraints > 0 &&
+               maxIslands > 0 &&
+               maxBroadphaseNodes > 0;
+    }
+
+    /**
+     * @brief Clamp values to safe ranges
+     */
+    void clamp() noexcept {
+        if (fixedDelta <= 0.0f) fixedDelta = 1.0f / 60.0f;
+        if (maxSubsteps == 0) maxSubsteps = 8;
+        if (maxAccumulator <= 0.0f) maxAccumulator = 0.2f;
+        if (timeScale <= 0.0f) timeScale = 1.0f;
+        if (velocityIterations == 0) velocityIterations = 8;
+        if (positionIterations == 0) positionIterations = 3;
+        if (maxContactsPerPair == 0) maxContactsPerPair = 4;
+        if (maxLinearVelocity <= 0.0f) maxLinearVelocity = 100.0f;
+        if (maxAngularVelocity <= 0.0f) maxAngularVelocity = 100.0f;
+        if (sleepThreshold < 0.0f) sleepThreshold = 0.01f;
+        if (sleepTime < 0.0f) sleepTime = 1.0f;
+    }
+
+    /**
+     * @brief Apply quality preset
+     */
+    void setQualityPreset(QualityLevel level) noexcept {
+        qualityLevel = level;
+        switch (level) {
+            case QualityLevel::Performance:
+                velocityIterations = 4;
+                positionIterations = 1;
+                maxContactsPerPair = 2;
+                determinismMode = DeterminismMode::Performance;
+                break;
+            case QualityLevel::Balanced:
+                velocityIterations = 8;
+                positionIterations = 3;
+                maxContactsPerPair = 4;
+                determinismMode = DeterminismMode::Performance;
+                break;
+            case QualityLevel::Quality:
+                velocityIterations = 16;
+                positionIterations = 6;
+                maxContactsPerPair = 6;
+                determinismMode = DeterminismMode::Deterministic;
+                break;
+            case QualityLevel::Custom:
+                // Keep current values
+                break;
+        }
+    }
+
+    /**
+     * @brief Get effective delta time
+     */
+    [[nodiscard]] float getEffectiveDelta() const noexcept {
+        return fixedDelta * timeScale;
+    }
 };
 
 } // namespace core
