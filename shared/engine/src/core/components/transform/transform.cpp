@@ -10,6 +10,7 @@
 
 #include "core/components/transform/transform.h"
 #include <cmath>
+#include <algorithm>
 
 namespace poko {
 namespace core {
@@ -35,7 +36,10 @@ Transform::Transform() noexcept
 }
 
 void Transform::setLocalPosition(const Vector3& position) noexcept {
-    m_localPosition = position;
+    // Clamp position to safe range
+    m_localPosition.x = std::max(-MAX_POSITION, std::min(MAX_POSITION, position.x));
+    m_localPosition.y = std::max(-MAX_POSITION, std::min(MAX_POSITION, position.y));
+    m_localPosition.z = std::max(-MAX_POSITION, std::min(MAX_POSITION, position.z));
     markDirty();
 }
 
@@ -45,7 +49,10 @@ void Transform::setLocalRotation(const Quaternion& rotation) noexcept {
 }
 
 void Transform::setLocalScale(const Vector3& scale) noexcept {
-    m_localScale = scale;
+    // Clamp scale to safe range
+    m_localScale.x = std::max(MIN_SCALE, std::min(MAX_SCALE, scale.x));
+    m_localScale.y = std::max(MIN_SCALE, std::min(MAX_SCALE, scale.y));
+    m_localScale.z = std::max(MIN_SCALE, std::min(MAX_SCALE, scale.z));
     markDirty();
 }
 

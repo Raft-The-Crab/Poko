@@ -11,6 +11,7 @@
 #include "core/components/transform/transform.h"
 #include <cassert>
 #include <iostream>
+#include <cmath>
 
 using namespace poko::core::components::transform;
 
@@ -39,6 +40,56 @@ void test_vector3() {
     assert(Vector3::right().x == 1.0f);
     assert(Vector3::left().x == -1.0f);
     
+    // Vector operations
+    Vector3 v3(1.0f, 2.0f, 3.0f);
+    Vector3 v4(4.0f, 5.0f, 6.0f);
+    
+    Vector3 sum = v3 + v4;
+    assert(sum.x == 5.0f);
+    assert(sum.y == 7.0f);
+    assert(sum.z == 9.0f);
+    
+    Vector3 diff = v4 - v3;
+    assert(diff.x == 3.0f);
+    assert(diff.y == 3.0f);
+    assert(diff.z == 3.0f);
+    
+    Vector3 scaled = v3 * 2.0f;
+    assert(scaled.x == 2.0f);
+    assert(scaled.y == 4.0f);
+    assert(scaled.z == 6.0f);
+    
+    Vector3 divided = v4 / 2.0f;
+    assert(divided.x == 2.0f);
+    assert(divided.y == 2.5f);
+    assert(divided.z == 3.0f);
+    
+    // Dot product
+    float dot = v3.dot(v4);
+    assert(dot == 32.0f); // 1*4 + 2*5 + 3*6 = 4 + 10 + 18 = 32
+    
+    // Cross product
+    Vector3 cross = v3.cross(v4);
+    assert(cross.x == -3.0f); // 2*6 - 3*5 = 12 - 15 = -3
+    assert(cross.y == 6.0f);  // 3*4 - 1*6 = 12 - 6 = 6
+    assert(cross.z == -3.0f); // 1*5 - 2*4 = 5 - 8 = -3
+    
+    // Length
+    float lenSq = v3.lengthSquared();
+    assert(lenSq == 14.0f); // 1 + 4 + 9 = 14
+    
+    float len = v3.length();
+    assert(len > 3.7f && len < 3.8f); // sqrt(14) ≈ 3.74
+    
+    // Normalize
+    Vector3 normalized = v3.normalized();
+    float normLen = normalized.length();
+    assert(normLen > 0.99f && normLen < 1.01f); // Should be approximately 1
+    
+    // Distance
+    float dist = v3.distanceTo(v4);
+    assert(dist > 5.1f && dist < 5.2f); // sqrt(27) ≈ 5.2
+    
     std::cout << "✓ Vector3 tests passed" << std::endl;
 }
 
@@ -65,6 +116,45 @@ void test_quaternion() {
     assert(identity.x == 0.0f);
     assert(identity.y == 0.0f);
     assert(identity.z == 0.0f);
+    
+    // Quaternion multiplication
+    Quaternion q3(1.0f, 0.0f, 0.0f, 0.0f);
+    Quaternion q4(0.0f, 1.0f, 0.0f, 0.0f);
+    Quaternion product = q3 * q4;
+    assert(product.w == 0.0f);
+    assert(product.x == 1.0f);
+    assert(product.y == 0.0f);
+    assert(product.z == 0.0f);
+    
+    // Length
+    float lenSq = q2.lengthSquared();
+    assert(lenSq > 0.99f && lenSq < 1.01f); // 0.5^2 * 4 = 1.0
+    
+    float len = q2.length();
+    assert(len > 0.99f && len < 1.01f); // Should be approximately 1
+    
+    // Normalize
+    Quaternion q5(2.0f, 0.0f, 0.0f, 0.0f);
+    Quaternion normalized = q5.normalized();
+    float normLen = normalized.length();
+    assert(normLen > 0.99f && normLen < 1.01f); // Should be approximately 1
+    
+    // Conjugate
+    Quaternion q6(1.0f, 2.0f, 3.0f, 4.0f);
+    Quaternion conj = q6.conjugate();
+    assert(conj.w == 1.0f);
+    assert(conj.x == -2.0f);
+    assert(conj.y == -3.0f);
+    assert(conj.z == -4.0f);
+    
+    // Rotate vector
+    Quaternion rotation(0.707f, 0.0f, 0.707f, 0.0f); // 90 degree rotation around Y
+    Vector3 v(1.0f, 0.0f, 0.0f);
+    Vector3 rotated = rotation.rotateVector(v);
+    // 90 degree rotation around Y should rotate (1,0,0) to (0,0,-1)
+    assert(rotated.x > -0.1f && rotated.x < 0.1f);
+    assert(rotated.y > -0.1f && rotated.y < 0.1f);
+    assert(rotated.z < -0.9f);
     
     std::cout << "✓ Quaternion tests passed" << std::endl;
 }
@@ -244,6 +334,28 @@ void test_transform_matrices() {
     std::cout << "✓ Transform matrices tests passed" << std::endl;
 }
 
+void test_transform_validation() {
+    std::cout << "Testing Transform validation..." << std::endl;
+    
+    Transform transform;
+    
+    // Test position clamping
+    transform.setLocalPosition(Vector3(MAX_POSITION * 2.0f, 0.0f, 0.0f));
+    assert(transform.getLocalPosition().x == MAX_POSITION);
+    
+    transform.setLocalPosition(Vector3(-MAX_POSITION * 2.0f, 0.0f, 0.0f));
+    assert(transform.getLocalPosition().x == -MAX_POSITION);
+    
+    // Test scale clamping
+    transform.setLocalScale(Vector3(MAX_SCALE * 2.0f, 1.0f, 1.0f));
+    assert(transform.getLocalScale().x == MAX_SCALE);
+    
+    transform.setLocalScale(Vector3(MIN_SCALE / 2.0f, 1.0f, 1.0f));
+    assert(transform.getLocalScale().x == MIN_SCALE);
+    
+    std::cout << "✓ Transform validation tests passed" << std::endl;
+}
+
 int main() {
     std::cout << "=== Transform Component Unit Tests ===" << std::endl;
     
@@ -255,6 +367,7 @@ int main() {
     test_transform_parent();
     test_transform_dirty();
     test_transform_matrices();
+    test_transform_validation();
     
     std::cout << "\n=== All tests passed! ===" << std::endl;
     
