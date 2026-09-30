@@ -403,6 +403,49 @@ private:
      * @brief Ray-plane intersection helper
      */
     [[nodiscard]] float rayPlaneIntersection(const Ray& ray, const Vector3& planePoint, const Vector3& planeNormal) const noexcept;
+
+    /**
+     * @brief Ray-capsule intersection helper (exact)
+     */
+    [[nodiscard]] float rayCapsuleIntersection(
+        const Ray& ray,
+        const Vector3& capsuleA,
+        const Vector3& capsuleB,
+        float capsuleRadius
+    ) const noexcept;
+
+    /**
+     * @brief Point in capsule test helper (exact)
+     */
+    [[nodiscard]] bool pointInCapsule(
+        const Vector3& point,
+        const Vector3& capsuleA,
+        const Vector3& capsuleB,
+        float capsuleRadius
+    ) const noexcept;
+
+    /**
+     * @brief Sphere-capsule overlap test helper (exact)
+     */
+    [[nodiscard]] bool sphereCapsuleOverlap(
+        const Vector3& sphereCenter,
+        float sphereRadius,
+        const Vector3& capsuleA,
+        const Vector3& capsuleB,
+        float capsuleRadius
+    ) const noexcept;
+
+    /**
+     * @brief Capsule-capsule overlap test helper (exact)
+     */
+    [[nodiscard]] bool capsuleCapsuleOverlap(
+        const Vector3& capsuleA_A,
+        const Vector3& capsuleA_B,
+        float capsuleA_Radius,
+        const Vector3& capsuleB_A,
+        const Vector3& capsuleB_B,
+        float capsuleB_Radius
+    ) const noexcept;
 };
 
 } // namespace world

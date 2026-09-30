@@ -808,9 +808,10 @@ bool PhysicsWorld::raycast(
             hit = t >= 0.0f;
         } else if (std::holds_alternative<Capsule>(shape.shape)) {
             const Capsule& capsule = std::get<Capsule>(shape.shape);
-            // Simplified: ray-capsule treated as ray-sphere with radius
-            Vector3 center = collider.localTransform.position;
-            t = raySphereIntersection(ray, center, capsule.radius);
+            // Exact ray-capsule intersection
+            Vector3 capsuleA = collider.localTransform.position + Vector3(0.0f, capsule.height * 0.5f, 0.0f);
+            Vector3 capsuleB = collider.localTransform.position - Vector3(0.0f, capsule.height * 0.5f, 0.0f);
+            t = rayCapsuleIntersection(ray, capsuleA, capsuleB, capsule.radius);
             hit = t >= 0.0f;
         }
 
@@ -874,9 +875,10 @@ bool PhysicsWorld::pointQuery(
                      std::abs(localPoint.z) <= box.halfExtents.z;
         } else if (std::holds_alternative<Capsule>(shape.shape)) {
             const Capsule& capsule = std::get<Capsule>(shape.shape);
-            Vector3 center = collider.localTransform.position;
-            float distance = (point - center).length();
-            inside = distance <= capsule.radius;
+            // Exact point-in-capsule test
+            Vector3 capsuleA = collider.localTransform.position + Vector3(0.0f, capsule.height * 0.5f, 0.0f);
+            Vector3 capsuleB = collider.localTransform.position - Vector3(0.0f, capsule.height * 0.5f, 0.0f);
+            inside = pointInCapsule(point, capsuleA, capsuleB, capsule.radius);
         }
 
         if (inside) {
@@ -971,9 +973,10 @@ size_t PhysicsWorld::overlapSphere(
             overlaps = distance <= radius;
         } else if (std::holds_alternative<Capsule>(shape.shape)) {
             const Capsule& capsule = std::get<Capsule>(shape.shape);
-            Vector3 shapeCenter = collider.localTransform.position;
-            float distance = (center - shapeCenter).length();
-            overlaps = distance <= (radius + capsule.radius);
+            // Exact sphere-capsule overlap test
+            Vector3 capsuleA = collider.localTransform.position + Vector3(0.0f, capsule.height * 0.5f, 0.0f);
+            Vector3 capsuleB = collider.localTransform.position - Vector3(0.0f, capsule.height * 0.5f, 0.0f);
+            overlaps = sphereCapsuleOverlap(center, radius, capsuleA, capsuleB, capsule.radius);
         }
 
         if (overlaps) {
@@ -996,12 +999,47 @@ size_t PhysicsWorld::overlapCapsule(
 ) const noexcept {
     results.clear();
 
-    // Create bounding sphere for capsule
-    Vector3 capsuleCenter = (pointA + pointB) * 0.5f;
-    float capsuleHeight = (pointB - pointA).length();
-    float capsuleRadius = radius + capsuleHeight * 0.5f;
+    std::vector<ColliderHandle> colliderHandles;
+    broadphase->getAllColliders(colliderHandles);
 
-    return overlapSphere(capsuleCenter, capsuleRadius, results, filter);
+    for (const auto& colliderHandle : colliderHandles) {
+        if (colliderHandle.index >= colliders.size()) continue;
+
+        const ColliderDefinition& collider = colliders[colliderHandle.index];
+        if (!filter.shouldQuery(collider)) continue;
+        if (!collider.shapeHandle.isValid()) continue;
+
+        const ShapeDefinition& shape = shapes[collider.shapeHandle.index];
+        bool overlaps = false;
+
+        if (std::holds_alternative<Sphere>(shape.shape)) {
+            const Sphere& sphere = std::get<Sphere>(shape.shape);
+            Vector3 shapeCenter = collider.localTransform.position;
+            overlaps = sphereCapsuleOverlap(shapeCenter, sphere.radius, pointA, pointB, radius);
+        } else if (std::holds_alternative<Box>(shape.shape)) {
+            // Box-capsule: use sphere approximation for now (would need closest point test)
+            const Box& box = std::get<Box>(shape.shape);
+            Vector3 shapeCenter = collider.localTransform.position;
+            float maxExtent = std::max({box.halfExtents.x, box.halfExtents.y, box.halfExtents.z});
+            float distance = (shapeCenter - ((pointA + pointB) * 0.5f)).length();
+            overlaps = distance <= (maxExtent + radius + (pointB - pointA).length() * 0.5f);
+        } else if (std::holds_alternative<Capsule>(shape.shape)) {
+            const Capsule& capsule = std::get<Capsule>(shape.shape);
+            // Exact capsule-capsule overlap test
+            Vector3 capsuleA = collider.localTransform.position + Vector3(0.0f, capsule.height * 0.5f, 0.0f);
+            Vector3 capsuleB = collider.localTransform.position - Vector3(0.0f, capsule.height * 0.5f, 0.0f);
+            overlaps = capsuleCapsuleOverlap(pointA, pointB, radius, capsuleA, capsuleB, capsule.radius);
+        }
+
+        if (overlaps) {
+            OverlapResult overlapResult;
+            overlapResult.collider = colliderHandle;
+            overlapResult.body = collider.bodyHandle;
+            results.push_back(overlapResult);
+        }
+    }
+
+    return results.size();
 }
 
 // Helper: ray-sphere intersection
@@ -1063,6 +1101,196 @@ float PhysicsWorld::rayPlaneIntersection(const Ray& ray, const Vector3& planePoi
 
     float t = (planeNormal.dot(planePoint - ray.origin)) / denom;
     return t >= 0.0f ? t : -1.0f;
+}
+
+// Helper: point to line segment distance squared
+[[nodiscard]] static float pointToSegmentDistanceSquared(
+    const Vector3& point,
+    const Vector3& segmentA,
+    const Vector3& segmentB
+) noexcept {
+    Vector3 ab = segmentB - segmentA;
+    Vector3 ap = point - segmentA;
+
+    float abLengthSquared = ab.lengthSquared();
+    if (abLengthSquared < 0.0001f) {
+        return ap.lengthSquared();
+    }
+
+    float t = ap.dot(ab) / abLengthSquared;
+    t = std::max(0.0f, std::min(1.0f, t));
+
+    Vector3 closest = segmentA + ab * t;
+    return (point - closest).lengthSquared();
+}
+
+// Helper: ray-capsule intersection (exact)
+float PhysicsWorld::rayCapsuleIntersection(
+    const Ray& ray,
+    const Vector3& capsuleA,
+    const Vector3& capsuleB,
+    float capsuleRadius
+) const noexcept {
+    Vector3 capsuleAxis = capsuleB - capsuleA;
+    float capsuleHeightSquared = capsuleAxis.lengthSquared();
+
+    if (capsuleHeightSquared < 0.0001f) {
+        // Degenerate capsule, treat as sphere
+        return raySphereIntersection(ray, capsuleA, capsuleRadius);
+    }
+
+    // Normalize capsule axis
+    Vector3 capsuleDir = capsuleAxis / std::sqrt(capsuleHeightSquared);
+    float halfHeight = std::sqrt(capsuleHeightSquared) * 0.5f;
+    Vector3 capsuleCenter = (capsuleA + capsuleB) * 0.5f;
+
+    // Transform ray to capsule's local space
+    Vector3 rayOriginLocal = ray.origin - capsuleCenter;
+    Vector3 rayDirLocal = ray.direction;
+
+    // Project ray onto capsule axis
+    float t0 = rayOriginLocal.dot(capsuleDir);
+    float t1 = t0 + rayDirLocal.dot(capsuleDir);
+
+    // Clamp to capsule's height range
+    t0 = std::max(-halfHeight, std::min(halfHeight, t0));
+    t1 = std::max(-halfHeight, std::min(halfHeight, t1));
+
+    // Check intersection with infinite cylinder
+    Vector3 closestPoint = capsuleCenter + capsuleDir * ((t0 + t1) * 0.5f);
+    Vector3 toRayOrigin = ray.origin - closestPoint;
+
+    float a = ray.direction.lengthSquared();
+    float b = 2.0f * toRayOrigin.dot(ray.direction);
+    float c = toRayOrigin.lengthSquared() - capsuleRadius * capsuleRadius;
+    float discriminant = b * b - 4.0f * a * c;
+
+    if (discriminant < 0.0f) return -1.0f;
+
+    float t = (-b - std::sqrt(discriminant)) / (2.0f * a);
+    if (t < 0.0f) return -1.0f;
+
+    // Check if intersection point is within capsule height
+    Vector3 intersectionPoint = ray.origin + ray.direction * t;
+    float projection = (intersectionPoint - capsuleCenter).dot(capsuleDir);
+
+    if (std::abs(projection) <= halfHeight) {
+        return t;
+    }
+
+    // Check intersection with end spheres
+    float tSphereA = raySphereIntersection(ray, capsuleA, capsuleRadius);
+    float tSphereB = raySphereIntersection(ray, capsuleB, capsuleRadius);
+
+    if (tSphereA >= 0.0f && tSphereB >= 0.0f) {
+        return std::min(tSphereA, tSphereB);
+    } else if (tSphereA >= 0.0f) {
+        return tSphereA;
+    } else if (tSphereB >= 0.0f) {
+        return tSphereB;
+    }
+
+    return -1.0f;
+}
+
+// Helper: point in capsule test (exact)
+bool PhysicsWorld::pointInCapsule(
+    const Vector3& point,
+    const Vector3& capsuleA,
+    const Vector3& capsuleB,
+    float capsuleRadius
+) const noexcept {
+    float distanceSquared = pointToSegmentDistanceSquared(point, capsuleA, capsuleB);
+    return distanceSquared <= capsuleRadius * capsuleRadius;
+}
+
+// Helper: sphere-capsule overlap test (exact)
+bool PhysicsWorld::sphereCapsuleOverlap(
+    const Vector3& sphereCenter,
+    float sphereRadius,
+    const Vector3& capsuleA,
+    const Vector3& capsuleB,
+    float capsuleRadius
+) const noexcept {
+    float distanceSquared = pointToSegmentDistanceSquared(sphereCenter, capsuleA, capsuleB);
+    float combinedRadius = sphereRadius + capsuleRadius;
+    return distanceSquared <= combinedRadius * combinedRadius;
+}
+
+// Helper: capsule-capsule overlap test (exact)
+bool PhysicsWorld::capsuleCapsuleOverlap(
+    const Vector3& capsuleA_A,
+    const Vector3& capsuleA_B,
+    float capsuleA_Radius,
+    const Vector3& capsuleB_A,
+    const Vector3& capsuleB_B,
+    float capsuleB_Radius
+) const noexcept {
+    // Segment-segment distance
+    Vector3 d1 = capsuleA_B - capsuleA_A;
+    Vector3 d2 = capsuleB_B - capsuleB_A;
+    Vector3 r = capsuleA_A - capsuleB_A;
+
+    float a = d1.lengthSquared();
+    float e = d2.lengthSquared();
+    float f = d2.dot(r);
+
+    if (a <= 0.0001f && e <= 0.0001f) {
+        // Both capsules are points
+        return r.lengthSquared() <= (capsuleA_Radius + capsuleB_Radius) * (capsuleA_Radius + capsuleB_Radius);
+    }
+
+    if (a <= 0.0001f) {
+        // First capsule is a point
+        float s = (f / e);
+        if (s < 0.0f) s = 0.0f;
+        if (s > 1.0f) s = 1.0f;
+        Vector3 closestB = capsuleB_A + d2 * s;
+        float distance = (capsuleA_A - closestB).length();
+        return distance <= capsuleA_Radius + capsuleB_Radius;
+    }
+
+    if (e <= 0.0001f) {
+        // Second capsule is a point
+        float t = (-d1.dot(r) / a);
+        if (t < 0.0f) t = 0.0f;
+        if (t > 1.0f) t = 1.0f;
+        Vector3 closestA = capsuleA_A + d1 * t;
+        float distance = (closestA - capsuleB_A).length();
+        return distance <= capsuleA_Radius + capsuleB_Radius;
+    }
+
+    float c = d1.dot(r);
+    float b = d1.dot(d2);
+    float denom = a * e - b * b;
+
+    float s = 0.0f;
+    float t_segment = 0.0f;
+
+    if (denom != 0.0f) {
+        float val = (b * f - c * e) / denom;
+        s = val < 0.0f ? 0.0f : (val > 1.0f ? 1.0f : val);
+    } else {
+        s = 0.0f;
+    }
+
+    t_segment = (b * s + f) / e;
+
+    if (t_segment < 0.0f) {
+        t_segment = 0.0f;
+        float val = -c / a;
+        s = val < 0.0f ? 0.0f : (val > 1.0f ? 1.0f : val);
+    } else if (t_segment > 1.0f) {
+        t_segment = 1.0f;
+        float val = (b - c) / a;
+        s = val < 0.0f ? 0.0f : (val > 1.0f ? 1.0f : val);
+    }
+
+    Vector3 closestA = capsuleA_A + d1 * s;
+    Vector3 closestB = capsuleB_A + d2 * t_segment;
+    float distance = (closestA - closestB).length();
+
+    return distance <= capsuleA_Radius + capsuleB_Radius;
 }
 
 } // namespace world
