@@ -358,12 +358,27 @@ private:
      */
     template<typename T>
     uint32_t allocateHandle(std::vector<T>& storage, std::vector<uint32_t>& generations, std::vector<uint32_t>& freeList);
-    
+
     /**
      * @brief Free handle
      */
     template<typename T>
     void freeHandle(std::vector<T>& storage, std::vector<uint32_t>& generations, std::vector<uint32_t>& freeList, uint32_t index);
+
+    /**
+     * @brief Ray-sphere intersection helper
+     */
+    [[nodiscard]] float raySphereIntersection(const Ray& ray, const Vector3& center, float radius) const noexcept;
+
+    /**
+     * @brief Ray-box intersection helper
+     */
+    [[nodiscard]] float rayBoxIntersection(const Ray& ray, const Vector3& center, const Vector3& halfExtents) const noexcept;
+
+    /**
+     * @brief Ray-plane intersection helper
+     */
+    [[nodiscard]] float rayPlaneIntersection(const Ray& ray, const Vector3& planePoint, const Vector3& planeNormal) const noexcept;
 };
 
 } // namespace world

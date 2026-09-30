@@ -17,9 +17,13 @@
 #include "core/components/physics/constraints/constraint_row.h"
 #include "core/components/physics/core/command.h"
 #include "core/components/physics/geometry/ray.h"
+#include "core/components/physics/shapes/sphere.h"
+#include "core/components/physics/shapes/box.h"
+#include "core/components/physics/shapes/plane.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <variant>
 
 namespace poko {
 namespace core {
@@ -46,6 +50,12 @@ using core::ApplyImpulseCommand;
 using core::WakeCommand;
 using core::SleepCommand;
 using geometry::Ray;
+using shapes::Sphere;
+using shapes::Box;
+using shapes::Plane;
+using shapes::Sphere;
+using shapes::Box;
+using shapes::Plane;
 
 PhysicsWorld::PhysicsWorld(const PhysicsWorldSettings& settings_)
     : settings(settings_)
@@ -615,11 +625,60 @@ bool PhysicsWorld::raycast(
     RaycastResult& result,
     const QueryFilter& filter
 ) const noexcept {
-    // Placeholder: raycast requires narrowphase integration
-    // Production implementation would use actual ray-shape intersection
-    (void)ray;
-    (void)filter;
     result.hit = false;
+    result.distance = 0.0f;
+
+    std::vector<ColliderHandle> colliderHandles;
+    broadphase->getAllColliders(colliderHandles);
+
+    float closestDistance = std::numeric_limits<float>::max();
+    ColliderHandle closestCollider;
+
+    for (const auto& colliderHandle : colliderHandles) {
+        if (colliderHandle.index >= colliders.size()) continue;
+
+        const ColliderDefinition& collider = colliders[colliderHandle.index];
+        if (!filter.shouldQuery(collider)) continue;
+        if (!collider.shapeHandle.isValid()) continue;
+
+        const ShapeDefinition& shape = shapes[collider.shapeHandle.index];
+
+        // Narrowphase: ray-shape intersection
+        float t = std::numeric_limits<float>::max();
+        bool hit = false;
+
+        // Check shape type and perform appropriate intersection test
+        if (std::holds_alternative<Sphere>(shape.shape)) {
+            const Sphere& sphere = std::get<Sphere>(shape.shape);
+            Vector3 center = collider.localTransform.position;
+            t = raySphereIntersection(ray, center, sphere.radius);
+            hit = t >= 0.0f;
+        } else if (std::holds_alternative<Box>(shape.shape)) {
+            const Box& box = std::get<Box>(shape.shape);
+            t = rayBoxIntersection(ray, collider.localTransform.position, box.halfExtents);
+            hit = t >= 0.0f;
+        } else if (std::holds_alternative<Plane>(shape.shape)) {
+            const Plane& plane = std::get<Plane>(shape.shape);
+            t = rayPlaneIntersection(ray, collider.localTransform.position, plane.normal);
+            hit = t >= 0.0f;
+        }
+
+        if (hit && t < closestDistance) {
+            closestDistance = t;
+            closestCollider = colliderHandle;
+        }
+    }
+
+    if (closestCollider.isValid()) {
+        result.hit = true;
+        result.collider = closestCollider;
+        result.body = colliders[closestCollider.index].bodyHandle;
+        result.distance = closestDistance;
+        result.point = ray.origin + ray.direction * closestDistance;
+        result.normal = Vector3(0.0f, 1.0f, 0.0f); // Simplified: would compute actual normal
+        return true;
+    }
+
     return false;
 }
 
@@ -628,12 +687,49 @@ bool PhysicsWorld::pointQuery(
     OverlapResult& result,
     const QueryFilter& filter
 ) const noexcept {
-    // Placeholder: point query requires narrowphase integration
-    // Production implementation would use actual point-in-shape tests
-    (void)point;
-    (void)filter;
-    result.collider = ColliderHandle();
-    result.body = BodyHandle();
+    std::vector<ColliderHandle> colliderHandles;
+    broadphase->getAllColliders(colliderHandles);
+
+    for (const auto& colliderHandle : colliderHandles) {
+        if (colliderHandle.index >= colliders.size()) continue;
+
+        const ColliderDefinition& collider = colliders[colliderHandle.index];
+        if (!filter.shouldQuery(collider)) continue;
+        if (!collider.shapeHandle.isValid()) continue;
+
+        const ShapeDefinition& shape = shapes[collider.shapeHandle.index];
+        AABB localAABB = shape.getLocalAABB();
+        AABB worldAABB = localAABB.translated(collider.localTransform.position);
+
+        // Quick AABB check
+        if (!worldAABB.contains(point)) {
+            continue;
+        }
+
+        // Narrowphase: point-in-shape test
+        bool inside = false;
+
+        if (std::holds_alternative<Sphere>(shape.shape)) {
+            const Sphere& sphere = std::get<Sphere>(shape.shape);
+            Vector3 center = collider.localTransform.position;
+            float distance = (point - center).length();
+            inside = distance <= sphere.radius;
+        } else if (std::holds_alternative<Box>(shape.shape)) {
+            const Box& box = std::get<Box>(shape.shape);
+            Vector3 center = collider.localTransform.position;
+            Vector3 localPoint = point - center;
+            inside = std::abs(localPoint.x) <= box.halfExtents.x &&
+                     std::abs(localPoint.y) <= box.halfExtents.y &&
+                     std::abs(localPoint.z) <= box.halfExtents.z;
+        }
+
+        if (inside) {
+            result.collider = colliderHandle;
+            result.body = collider.bodyHandle;
+            return true;
+        }
+    }
+
     return false;
 }
 
@@ -642,12 +738,92 @@ size_t PhysicsWorld::overlapAABB(
     std::vector<OverlapResult>& results,
     const QueryFilter& filter
 ) const noexcept {
-    // Placeholder: overlap query requires broadphase integration
-    // Production implementation would use actual AABB overlap tests
-    (void)aabb;
-    (void)filter;
     results.clear();
-    return 0;
+
+    std::vector<ColliderHandle> colliderHandles;
+    broadphase->getAllColliders(colliderHandles);
+
+    for (const auto& colliderHandle : colliderHandles) {
+        if (colliderHandle.index >= colliders.size()) continue;
+
+        const ColliderDefinition& collider = colliders[colliderHandle.index];
+        if (!filter.shouldQuery(collider)) continue;
+        if (!collider.shapeHandle.isValid()) continue;
+
+        const ShapeDefinition& shape = shapes[collider.shapeHandle.index];
+        AABB localAABB = shape.getLocalAABB();
+        AABB worldAABB = localAABB.translated(collider.localTransform.position);
+
+        if (worldAABB.intersects(aabb)) {
+            OverlapResult overlapResult;
+            overlapResult.collider = colliderHandle;
+            overlapResult.body = collider.bodyHandle;
+            results.push_back(overlapResult);
+        }
+    }
+
+    return results.size();
+}
+
+// Helper: ray-sphere intersection
+float PhysicsWorld::raySphereIntersection(const Ray& ray, const Vector3& center, float radius) const noexcept {
+    Vector3 oc = ray.origin - center;
+    float a = ray.direction.dot(ray.direction);
+    float b = 2.0f * oc.dot(ray.direction);
+    float c = oc.dot(oc) - radius * radius;
+    float discriminant = b * b - 4 * a * c;
+
+    if (discriminant < 0.0f) {
+        return -1.0f;
+    }
+
+    float t = (-b - std::sqrt(discriminant)) / (2.0f * a);
+    return t >= 0.0f ? t : -1.0f;
+}
+
+// Helper: ray-box intersection
+float PhysicsWorld::rayBoxIntersection(const Ray& ray, const Vector3& center, const Vector3& halfExtents) const noexcept {
+    Vector3 min = center - halfExtents;
+    Vector3 max = center + halfExtents;
+
+    float tmin = 0.0f;
+    float tmax = std::numeric_limits<float>::max();
+
+    for (int i = 0; i < 3; ++i) {
+        if (std::abs(ray.direction.getComponent(i)) < 0.0001f) {
+            if (ray.origin.getComponent(i) < min.getComponent(i) || ray.origin.getComponent(i) > max.getComponent(i)) {
+                return -1.0f;
+            }
+        } else {
+            float invD = 1.0f / ray.direction.getComponent(i);
+            float t1 = (min.getComponent(i) - ray.origin.getComponent(i)) * invD;
+            float t2 = (max.getComponent(i) - ray.origin.getComponent(i)) * invD;
+
+            if (invD < 0.0f) {
+                std::swap(t1, t2);
+            }
+
+            tmin = std::max(tmin, t1);
+            tmax = std::min(tmax, t2);
+
+            if (tmin > tmax) {
+                return -1.0f;
+            }
+        }
+    }
+
+    return tmin >= 0.0f ? tmin : -1.0f;
+}
+
+// Helper: ray-plane intersection
+float PhysicsWorld::rayPlaneIntersection(const Ray& ray, const Vector3& planePoint, const Vector3& planeNormal) const noexcept {
+    float denom = planeNormal.dot(ray.direction);
+    if (std::abs(denom) < 0.0001f) {
+        return -1.0f; // Parallel
+    }
+
+    float t = (planeNormal.dot(planePoint - ray.origin)) / denom;
+    return t >= 0.0f ? t : -1.0f;
 }
 
 } // namespace world
