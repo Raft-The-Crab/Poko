@@ -11,7 +11,7 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_CORE_SETTINGS_H
 #define POKO_CORE_COMPONENTS_PHYSICS_CORE_SETTINGS_H
 
-#include "../math/vector3.h"
+#include "core/components/physics/math/vectors/vector3.h"
 #include <cstdint>
 
 namespace poko {

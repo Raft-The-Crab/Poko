@@ -8,7 +8,7 @@
  * Unauthorized copying, modification, or distribution is prohibited.
  */
 
-#include "../../../include/core/components/physics/simulation/island.h"
+#include "core/components/physics/simulation/island.h"
 #include <algorithm>
 
 namespace poko {

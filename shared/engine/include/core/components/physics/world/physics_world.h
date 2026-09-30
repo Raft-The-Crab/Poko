@@ -11,20 +11,20 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_WORLD_PHYSICS_WORLD_H
 #define POKO_CORE_COMPONENTS_PHYSICS_WORLD_PHYSICS_WORLD_H
 
-#include "../core/settings.h"
-#include "../core/command.h"
-#include "../core/handle.h"
-#include "../bodies/body_definition.h"
-#include "../colliders/collider_definition.h"
-#include "../shapes/shape_definition.h"
-#include "../materials/material.h"
-#include "../broadphase/ibroadphase.h"
-#include "../broadphase/dynamic_aabb_tree.h"
-#include "../narrowphase/collision_dispatcher.h"
-#include "../contacts/contact_manifold.h"
-#include "../constraints/constraint_definition.h"
-#include "../solver/sequential_impulse.h"
-#include "../simulation/island.h"
+#include "core/components/physics/core/settings.h"
+#include "core/components/physics/core/command.h"
+#include "core/components/physics/core/handle.h"
+#include "core/components/physics/bodies/body_definition.h"
+#include "core/components/physics/colliders/collider_definition.h"
+#include "core/components/physics/shapes/shape_definition.h"
+#include "core/components/physics/materials/material.h"
+#include "core/components/physics/broadphase/ibroadphase.h"
+#include "core/components/physics/broadphase/dynamic_aabb_tree.h"
+#include "core/components/physics/narrowphase/collision_dispatcher.h"
+#include "core/components/physics/contacts/contact_manifold.h"
+#include "core/components/physics/constraints/constraint_definition.h"
+#include "core/components/physics/solver/sequential_impulse.h"
+#include "core/components/physics/simulation/island.h"
 #include <vector>
 #include <memory>
 #include <unordered_map>
@@ -74,6 +74,11 @@ public:
      * @brief Destructor
      */
     ~PhysicsWorld();
+
+    /**
+     * @brief Clear all data
+     */
+    void clear();
     
     /**
      * @brief Step simulation

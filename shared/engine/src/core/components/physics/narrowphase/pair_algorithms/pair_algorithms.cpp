@@ -8,7 +8,7 @@
  * Unauthorized copying, modification, or distribution is prohibited.
  */
 
-#include "../../../include/core/components/physics/narrowphase/pair_algorithms/pair_algorithms.h"
+#include "core/components/physics/narrowphase/pair_algorithms/pair_algorithms.h"
 #include <algorithm>
 #include <variant>
 
@@ -17,6 +17,9 @@ namespace core {
 namespace components {
 namespace physics {
 namespace narrowphase {
+
+using math::Vector3;
+using math::Quaternion;
 
 CollisionResult collideSphereSphere(
     const Sphere& sphereA,

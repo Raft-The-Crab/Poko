@@ -11,10 +11,10 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_BODIES_BODY_DEFINITION_H
 #define POKO_CORE_COMPONENTS_PHYSICS_BODIES_BODY_DEFINITION_H
 
-#include "../transforms/transform.h"
-#include "../math/vectors/vector3.h"
-#include "../math/vectors/quaternion.h"
-#include "../core/handle.h"
+#include "core/components/physics/transforms/transform.h"
+#include "core/components/physics/math/vectors/vector3.h"
+#include "core/components/physics/math/vectors/quaternion.h"
+#include "core/components/physics/core/handle.h"
 
 namespace poko {
 namespace core {

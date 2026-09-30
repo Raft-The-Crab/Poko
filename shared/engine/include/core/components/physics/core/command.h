@@ -11,9 +11,9 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_CORE_COMMAND_H
 #define POKO_CORE_COMPONENTS_PHYSICS_CORE_COMMAND_H
 
-#include "handle.h"
-#include "../math/vector3.h"
-#include "../math/quaternion.h"
+#include "core/components/physics/core/handle.h"
+#include "core/components/physics/math/vectors/vector3.h"
+#include "core/components/physics/math/vectors/quaternion.h"
 #include <cstdint>
 #include <vector>
 

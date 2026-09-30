@@ -11,7 +11,7 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_BOUNDS_AABB_H
 #define POKO_CORE_COMPONENTS_PHYSICS_BOUNDS_AABB_H
 
-#include "../math/vectors/vector3.h"
+#include "core/components/physics/math/vectors/vector3.h"
 #include <cmath>
 
 namespace poko {
@@ -103,21 +103,19 @@ public:
     [[nodiscard]] bool containsMin(const Vector3& point) const noexcept {
         return point.x >= min.x && point.y >= min.y && point.z >= min.z;
     }
-    
+
     /**
      * @brief Check if AABB contains max point
      */
     [[nodiscard]] bool containsMax(const Vector3& point) const noexcept {
         return point.x <= max.x && point.y <= max.y && point.z <= max.z;
     }
-    
+
     /**
-     * @brief Check if AABB contains point
+     * @brief Check if AABB contains another AABB
      */
-    [[nodiscard]] bool contains(const Vector3& point) const noexcept {
-        return point.x >= min.x && point.x <= max.x &&
-               point.y >= min.y && point.y <= max.y &&
-               point.z >= min.z && point.z <= max.z;
+    [[nodiscard]] bool contains(const AABB& other) const noexcept {
+        return containsMin(other.min) && containsMax(other.max);
     }
 };
 

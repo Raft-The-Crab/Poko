@@ -11,9 +11,9 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_SOLVER_SEQUENTIAL_IMPULSE_H
 #define POKO_CORE_COMPONENTS_PHYSICS_SOLVER_SEQUENTIAL_IMPULSE_H
 
-#include "../contacts/contact_manifold.h"
-#include "../constraints/constraint_row.h"
-#include "../bodies/body_definition.h"
+#include "core/components/physics/contacts/contact_manifold.h"
+#include "core/components/physics/constraints/constraint_row.h"
+#include "core/components/physics/bodies/body_definition.h"
 #include <vector>
 
 namespace poko {
@@ -94,7 +94,7 @@ private:
      */
     void solveContactConstraint(
         ContactManifold& manifold,
-        SolverContact& contact,
+        size_t contactIndex,
         BodyDefinition& bodyA,
         BodyDefinition& bodyB
     );

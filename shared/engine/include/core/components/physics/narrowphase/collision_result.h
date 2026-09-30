@@ -11,7 +11,8 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_NARROWPHASE_COLLISION_RESULT_H
 #define POKO_CORE_COMPONENTS_PHYSICS_NARROWPHASE_COLLISION_RESULT_H
 
-#include "../math/vectors/vector3.h"
+#include "core/components/physics/math/vectors/vector3.h"
+#include <cstdint>
 #include <vector>
 
 namespace poko {

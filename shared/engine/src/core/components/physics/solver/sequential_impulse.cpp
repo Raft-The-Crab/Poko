@@ -8,7 +8,7 @@
  * Unauthorized copying, modification, or distribution is prohibited.
  */
 
-#include "../../../include/core/components/physics/solver/sequential_impulse.h"
+#include "core/components/physics/solver/sequential_impulse.h"
 #include <algorithm>
 
 namespace poko {
@@ -89,7 +89,7 @@ void SequentialImpulseSolver::warmStart(
 
 void SequentialImpulseSolver::solveContactConstraint(
     ContactManifold& manifold,
-    SolverContact& contact,
+    size_t contactIndex,
     BodyDefinition& bodyA,
     BodyDefinition& bodyB
 ) {
@@ -99,9 +99,9 @@ void SequentialImpulseSolver::solveContactConstraint(
     // - Normal impulse
     // - Friction impulses
     // - Apply impulses to bodies
-    
+
     (void)manifold;
-    (void)contact;
+    (void)contactIndex;
     (void)bodyA;
     (void)bodyB;
 }

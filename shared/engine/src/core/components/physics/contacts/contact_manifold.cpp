@@ -8,7 +8,7 @@
  * Unauthorized copying, modification, or distribution is prohibited.
  */
 
-#include "../../../include/core/components/physics/contacts/contact_manifold.h"
+#include "core/components/physics/contacts/contact_manifold.h"
 #include <algorithm>
 
 namespace poko {

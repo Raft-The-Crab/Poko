@@ -8,17 +8,17 @@
  * Unauthorized copying, modification, or distribution is prohibited.
  */
 
-#include "../../../include/core/components/physics/world/physics_world.h"
-#include "../../../include/core/components/physics/bounds/aabb.h"
+#include "core/components/physics/world/physics_world.h"
+#include "core/components/physics/bounds/aabb.h"
 #include <algorithm>
-
-using bounds::AABB;
 
 namespace poko {
 namespace core {
 namespace components {
 namespace physics {
 namespace world {
+
+using bounds::AABB;
 
 PhysicsWorld::PhysicsWorld(const PhysicsWorldSettings& settings_)
     : settings(settings_)
@@ -28,6 +28,27 @@ PhysicsWorld::PhysicsWorld(const PhysicsWorldSettings& settings_)
 
 PhysicsWorld::~PhysicsWorld() {
     clear();
+}
+
+void PhysicsWorld::clear() {
+    bodies.clear();
+    colliders.clear();
+    shapes.clear();
+    materials.clear();
+    constraints.clear();
+    bodyGenerations.clear();
+    colliderGenerations.clear();
+    shapeGenerations.clear();
+    materialGenerations.clear();
+    constraintGenerations.clear();
+    bodyFreeList.clear();
+    colliderFreeList.clear();
+    shapeFreeList.clear();
+    materialFreeList.clear();
+    constraintFreeList.clear();
+    manifolds.clear();
+    islands.clear();
+    accumulator = 0.0f;
 }
 
 void PhysicsWorld::step(float deltaTime) {

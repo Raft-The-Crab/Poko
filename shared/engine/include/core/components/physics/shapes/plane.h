@@ -11,8 +11,10 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_SHAPES_PLANE_H
 #define POKO_CORE_COMPONENTS_PHYSICS_SHAPES_PLANE_H
 
-#include "../primitives/shape_type.h"
-#include "../math/vectors/vector3.h"
+#include "core/components/physics/shapes/primitives/shape_type.h"
+#include "core/components/physics/math/vectors/vector3.h"
+#include "core/components/physics/matrices/matrix3x3.h"
+#include <limits>
 
 namespace poko {
 namespace core {
@@ -22,6 +24,7 @@ namespace shapes {
 
 using math::Vector3;
 using primitives::ShapeType;
+using matrices::Matrix3x3;
 
 /**
  * @brief Plane collision shape (infinite)
@@ -53,6 +56,30 @@ public:
      */
     [[nodiscard]] bool isValid() const noexcept {
         return normal.isNormalized(0.001f);
+    }
+
+    /**
+     * @brief Get local AABB (infinite for plane)
+     */
+    [[nodiscard]] AABB getLocalAABB() const noexcept {
+        // Return a large AABB as approximation
+        return AABB::fromCenterExtent(Vector3::zero(), Vector3(100000.0f, 100000.0f, 100000.0f));
+    }
+
+    /**
+     * @brief Calculate mass (always infinite for static plane)
+     */
+    [[nodiscard]] float calculateMass(float density) const noexcept {
+        (void)density;
+        return std::numeric_limits<float>::infinity();
+    }
+
+    /**
+     * @brief Calculate inertia tensor (always zero for static plane)
+     */
+    [[nodiscard]] Matrix3x3 calculateInertiaTensor(float mass) const noexcept {
+        (void)mass;
+        return Matrix3x3::zero();
     }
 };
 

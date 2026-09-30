@@ -11,8 +11,8 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_TRANSFORMS_TRANSFORM_H
 #define POKO_CORE_COMPONENTS_PHYSICS_TRANSFORMS_TRANSFORM_H
 
-#include "../math/vectors/vector3.h"
-#include "../math/vectors/quaternion.h"
+#include "core/components/physics/math/vectors/vector3.h"
+#include "core/components/physics/math/vectors/quaternion.h"
 
 namespace poko {
 namespace core {

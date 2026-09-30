@@ -306,34 +306,35 @@ target_include_directories(poko_core_renderable
 
 target_link_libraries(poko_core_renderable PRIVATE poko_core_components)
 
-# Physics component library
-add_library(poko_core_physics
-    src/core/components/physics/physics.cpp
-    src/core/components/physics/physics_registration.cpp
-    # Material
-    src/core/components/physics/material/set_density.cpp
-    # Velocity
-    src/core/components/physics/velocity/set_linear_velocity.cpp
-    src/core/components/physics/velocity/set_angular_velocity.cpp
-    # Mass
-    src/core/components/physics/mass/calculate_mass.cpp
-    src/core/components/physics/mass/calculate_inertia.cpp
-    # Collision
-    src/core/components/physics/collision/should_collide.cpp
-    # Force
-    src/core/components/physics/force/apply_force.cpp
-    src/core/components/physics/force/apply_force_at_point.cpp
-    src/core/components/physics/force/apply_torque.cpp
-    src/core/components/physics/force/apply_impulse.cpp
-    src/core/components/physics/force/apply_impulse_at_point.cpp
-    src/core/components/physics/force/clear_accumulated_forces.cpp
-    # Damping
-    src/core/components/physics/damping/apply_damping.cpp
-    # Limits
-    src/core/components/physics/limits/clamp_velocities.cpp
-    # Integration
-    src/core/components/physics/integration/integrate_velocity.cpp
-)
+## Physics component library - removed, replaced by physics_system
+## add_library(poko_core_physics
+##     src/core/components/physics/physics.cpp
+##     src/core/components/physics/physics_registration.cpp
+##     # Material
+##     src/core/components/physics/material/set_density.cpp
+##     # Velocity
+##     src/core/components/physics/velocity/set_linear_velocity.cpp
+##     src/core/components/physics/velocity/set_angular_velocity.cpp
+##     # Mass
+##     src/core/components/physics/mass/calculate_mass.cpp
+##     src/core/components/physics/mass/calculate_inertia.cpp
+##     # Collision
+##     src/core/components/physics/collision/should_collide.cpp
+##     # Force
+##     src/core/components/physics/force/apply_force.cpp
+##     src/core/components/physics/force/apply_force_at_point.cpp
+##     src/core/components/physics/force/apply_torque.cpp
+##     src/core/components/physics/force/apply_impulse.cpp
+##     src/core/components/physics/force/apply_impulse_at_point.cpp
+##     src/core/components/physics/force/clear_accumulated_forces.cpp
+##     # Damping
+##     src/core/components/physics/damping/apply_damping.cpp
+##     # Limits
+##     src/core/components/physics/limits/clamp_velocities.cpp
+##     # Integration
+##     src/core/components/physics/integration/integrate_velocity.cpp
+## )
+# target_include_directories(poko_core_physics PUBLIC include)
 
 # Physics subsystem library
 add_library(poko_core_physics_system
@@ -357,13 +358,6 @@ target_include_directories(poko_core_physics_system PUBLIC include)
 add_library(poko_core_physics_shapes INTERFACE)
 target_include_directories(poko_core_physics_shapes INTERFACE include)
 
-target_include_directories(poko_core_physics
-    PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-)
-
-target_link_libraries(poko_core_physics PRIVATE poko_core_components)
-
 # Platform-specific settings
 if(WIN32)
     target_compile_definitions(poko_core_memory PRIVATE _WIN32)
@@ -384,7 +378,7 @@ if(WIN32)
     target_compile_definitions(poko_core_profiler PRIVATE _WIN32)
     target_compile_definitions(poko_core_transform PRIVATE _WIN32)
     target_compile_definitions(poko_core_renderable PRIVATE _WIN32)
-    target_compile_definitions(poko_core_physics PRIVATE _WIN32)
+    target_compile_definitions(poko_core_physics_system PRIVATE _WIN32)
 endif()
 
 # Production build flags
@@ -407,7 +401,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_options(poko_core_profiler PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_transform PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_renderable PRIVATE -O3 -DNDEBUG)
-    target_compile_options(poko_core_physics PRIVATE -O3 -DNDEBUG)
+    target_compile_options(poko_core_physics_system PRIVATE -O3 -DNDEBUG)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_memory PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_handles PRIVATE -g -O0 -DDEBUG)
@@ -427,7 +421,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_profiler PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_transform PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_renderable PRIVATE -g -O0 -DDEBUG)
-    target_compile_options(poko_core_physics PRIVATE -g -O0 -DDEBUG)
+    target_compile_options(poko_core_physics_system PRIVATE -g -O0 -DDEBUG)
 endif()
 
 # Enable testing
@@ -592,12 +586,12 @@ add_test(NAME test_renderable COMMAND test_renderable)
 # add_executable(test_physics
 #     tests/unit/core/components/physics/test_physics.cpp
 # )
-# target_link_libraries(test_physics PRIVATE poko_core_physics Catch2::Catch2)
+# target_link_libraries(test_physics PRIVATE poko_core_physics_system Catch2::Catch2)
 # set_target_properties(test_physics PROPERTIES WIN32_EXECUTABLE FALSE)
 # add_test(NAME test_physics COMMAND test_physics)
 
 # Installation
-install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration poko_core_logging poko_core_serialization poko_core_runtime poko_core_properties poko_core_components poko_core_world poko_core_resources poko_core_platform poko_core_diagnostics poko_core_profiler poko_core_transform poko_core_renderable poko_core_physics
+install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration poko_core_logging poko_core_serialization poko_core_runtime poko_core_properties poko_core_components poko_core_world poko_core_resources poko_core_platform poko_core_diagnostics poko_core_profiler poko_core_transform poko_core_renderable poko_core_physics_system
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin

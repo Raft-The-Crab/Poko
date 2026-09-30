@@ -11,9 +11,9 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_BROADPHASE_DYNAMIC_AABB_TREE_H
 #define POKO_CORE_COMPONENTS_PHYSICS_BROADPHASE_DYNAMIC_AABB_TREE_H
 
-#include "ibroadphase.h"
-#include "../bounds/aabb.h"
-#include "../math/vectors/vector3.h"
+#include "core/components/physics/broadphase/ibroadphase.h"
+#include "core/components/physics/bounds/aabb.h"
+#include "core/components/physics/math/vectors/vector3.h"
 #include <vector>
 #include <memory>
 
@@ -134,9 +134,9 @@ private:
     int32_t balance(int32_t node);
     
     /**
-     * @brief Rotate node
+     * @brief Rotate node with specific child
      */
-    int32_t rotate(int32_t node);
+    int32_t rotate(int32_t node, int32_t child);
     
     /**
      * @brief Get height
@@ -157,6 +157,11 @@ private:
      * @brief Collect pairs from node
      */
     void collectPairs(int32_t node, std::vector<CollisionPair>& outPairs);
+
+    /**
+     * @brief Collect pairs between two nodes
+     */
+    void collectPairs(int32_t nodeA, int32_t nodeB, std::vector<CollisionPair>& outPairs);
 };
 
 } // namespace broadphase

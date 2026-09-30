@@ -11,8 +11,8 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_BROADPHASE_IBROADPHASE_H
 #define POKO_CORE_COMPONENTS_PHYSICS_BROADPHASE_IBROADPHASE_H
 
-#include "../bounds/aabb.h"
-#include "../core/handle.h"
+#include "core/components/physics/bounds/aabb.h"
+#include "core/components/physics/core/handle.h"
 #include <vector>
 #include <functional>
 

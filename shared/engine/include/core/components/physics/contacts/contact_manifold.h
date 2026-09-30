@@ -11,9 +11,9 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_CONTACTS_CONTACT_MANIFOLD_H
 #define POKO_CORE_COMPONENTS_PHYSICS_CONTACTS_CONTACT_MANIFOLD_H
 
-#include "../narrowphase/collision_result.h"
-#include "../core/handle.h"
-#include "../math/vectors/vector3.h"
+#include "core/components/physics/narrowphase/collision_result.h"
+#include "core/components/physics/core/handle.h"
+#include "core/components/physics/math/vectors/vector3.h"
 #include <vector>
 
 namespace poko {

@@ -8,9 +8,9 @@
  * Unauthorized copying, modification, or distribution is prohibited.
  */
 
-#include "../../../include/core/components/physics/narrowphase/collision_dispatcher.h"
-#include "../../../include/core/components/physics/narrowphase/pair_algorithms/pair_algorithms.h"
-#include "../../../include/core/components/physics/shapes/primitives/shape_type.h"
+#include "core/components/physics/narrowphase/collision_dispatcher.h"
+#include "core/components/physics/narrowphase/pair_algorithms/pair_algorithms.h"
+#include "core/components/physics/shapes/primitives/shape_type.h"
 #include <variant>
 
 namespace poko {

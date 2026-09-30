@@ -11,8 +11,8 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_SIMULATION_ISLAND_H
 #define POKO_CORE_COMPONENTS_PHYSICS_SIMULATION_ISLAND_H
 
-#include "../core/handle.h"
-#include "../contacts/contact_manifold.h"
+#include "core/components/physics/core/handle.h"
+#include "core/components/physics/contacts/contact_manifold.h"
 #include <vector>
 
 namespace poko {
@@ -23,7 +23,6 @@ namespace simulation {
 
 using core::BodyHandle;
 using core::ConstraintHandle;
-using bodies::BodyDefinition;
 using contacts::ContactManifold;
 
 /**

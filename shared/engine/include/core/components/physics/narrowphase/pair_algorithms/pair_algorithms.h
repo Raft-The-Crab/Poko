@@ -11,13 +11,13 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_NARROWPHASE_PAIR_ALGORITHMS_H
 #define POKO_CORE_COMPONENTS_PHYSICS_NARROWPHASE_PAIR_ALGORITHMS_H
 
-#include "../shapes/sphere.h"
-#include "../shapes/box.h"
-#include "../shapes/capsule.h"
-#include "../shapes/plane.h"
-#include "../transforms/transform.h"
-#include "../math/vectors/vector3.h"
-#include "collision_result.h"
+#include "core/components/physics/shapes/sphere.h"
+#include "core/components/physics/shapes/box.h"
+#include "core/components/physics/shapes/capsule.h"
+#include "core/components/physics/shapes/plane.h"
+#include "core/components/physics/transforms/transform.h"
+#include "core/components/physics/math/vectors/vector3.h"
+#include "core/components/physics/narrowphase/collision_result.h"
 #include <cmath>
 
 namespace poko {

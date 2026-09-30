@@ -11,11 +11,11 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_COLLIDERS_COLLIDER_DEFINITION_H
 #define POKO_CORE_COMPONENTS_PHYSICS_COLLIDERS_COLLIDER_DEFINITION_H
 
-#include "../shapes/shape_definition.h"
-#include "../transforms/transform.h"
-#include "../core/handle.h"
-#include "../math/vectors/vector3.h"
-#include "../math/vectors/quaternion.h"
+#include "core/components/physics/shapes/shape_definition.h"
+#include "core/components/physics/transforms/transform.h"
+#include "core/components/physics/core/handle.h"
+#include "core/components/physics/math/vectors/vector3.h"
+#include "core/components/physics/math/vectors/quaternion.h"
 
 namespace poko {
 namespace core {
@@ -27,6 +27,7 @@ using shapes::ShapeDefinition;
 using transforms::Transform;
 using core::ColliderHandle;
 using core::MaterialHandle;
+using core::ShapeHandle;
 using math::Vector3;
 using math::Quaternion;
 

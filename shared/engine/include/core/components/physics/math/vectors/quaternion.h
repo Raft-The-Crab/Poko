@@ -79,6 +79,18 @@ public:
     [[nodiscard]] Quaternion operator/(float scalar) const noexcept {
         return Quaternion{w / scalar, x / scalar, y / scalar, z / scalar};
     }
+
+    [[nodiscard]] Quaternion operator-() const noexcept {
+        return Quaternion{-w, -x, -y, -z};
+    }
+
+    [[nodiscard]] Quaternion operator+(const Quaternion& other) const noexcept {
+        return Quaternion{w + other.w, x + other.x, y + other.y, z + other.z};
+    }
+
+    [[nodiscard]] Quaternion operator-(const Quaternion& other) const noexcept {
+        return Quaternion{w - other.w, x - other.x, y - other.y, z - other.z};
+    }
     
     [[nodiscard]] constexpr float dot(const Quaternion& other) const noexcept {
         return w * other.w + x * other.x + y * other.y + z * other.z;
@@ -128,7 +140,7 @@ public:
         if (dot > 0.9995f) {
             return (q1 + (q2Temp - q1) * t).normalized();
         }
-        float theta0 = std::acos(std::clamp(dot, -1.0f, 1.0f));
+        float theta0 = std::acos(dot < -1.0f ? -1.0f : (dot > 1.0f ? 1.0f : dot));
         float theta = theta0 * t;
         float sinTheta = std::sin(theta);
         float sinTheta0 = std::sin(theta0);

@@ -11,10 +11,10 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_SHAPES_BOX_H
 #define POKO_CORE_COMPONENTS_PHYSICS_SHAPES_BOX_H
 
-#include "../primitives/shape_type.h"
-#include "../math/vectors/vector3.h"
-#include "../bounds/aabb.h"
-#include "../matrices/matrix3x3.h"
+#include "core/components/physics/shapes/primitives/shape_type.h"
+#include "core/components/physics/math/vectors/vector3.h"
+#include "core/components/physics/bounds/aabb.h"
+#include "core/components/physics/matrices/matrix3x3.h"
 
 namespace poko {
 namespace core {

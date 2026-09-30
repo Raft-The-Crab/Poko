@@ -11,6 +11,8 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_SHAPES_PRIMITIVES_SHAPE_TYPE_H
 #define POKO_CORE_COMPONENTS_PHYSICS_SHAPES_PRIMITIVES_SHAPE_TYPE_H
 
+#include <cstdint>
+
 namespace poko {
 namespace core {
 namespace components {

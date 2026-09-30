@@ -11,14 +11,14 @@
 #ifndef POKO_CORE_COMPONENTS_PHYSICS_SHAPES_SHAPE_DEFINITION_H
 #define POKO_CORE_COMPONENTS_PHYSICS_SHAPES_SHAPE_DEFINITION_H
 
-#include "primitives/shape_type.h"
-#include "sphere.h"
-#include "box.h"
-#include "capsule.h"
-#include "plane.h"
-#include "../core/handle.h"
-#include "../bounds/aabb.h"
-#include "../matrices/matrix3x3.h"
+#include "core/components/physics/shapes/primitives/shape_type.h"
+#include "core/components/physics/shapes/sphere.h"
+#include "core/components/physics/shapes/box.h"
+#include "core/components/physics/shapes/capsule.h"
+#include "core/components/physics/shapes/plane.h"
+#include "core/components/physics/core/handle.h"
+#include "core/components/physics/bounds/aabb.h"
+#include "core/components/physics/matrices/matrix3x3.h"
 #include <variant>
 #include <memory>
 
@@ -51,7 +51,15 @@ public:
     ShapeHandle handle;
     ShapeType type;
     ShapeVariant shape;
-    
+
+    /**
+     * @brief Default constructor (for handle allocation)
+     */
+    ShapeDefinition() noexcept
+        : handle()
+        , type(ShapeType::Unknown)
+        , shape(Box()) {}
+
     /**
      * @brief Constructor
      */
