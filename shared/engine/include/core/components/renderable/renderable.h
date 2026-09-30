@@ -71,12 +71,28 @@ struct BoundingBox {
         , maxX(0.0f), maxY(0.0f), maxZ(0.0f) {}
     
     /**
-     * @brief Construct from min and max
+     * @brief Construct from min and max with validation
      */
     constexpr BoundingBox(float minX_, float minY_, float minZ_,
                         float maxX_, float maxY_, float maxZ_) noexcept
         : minX(minX_), minY(minY_), minZ(minZ_)
         , maxX(maxX_), maxY(maxY_), maxZ(maxZ_) {}
+    
+    /**
+     * @brief Validate and fix bounds (ensures min <= max)
+     */
+    [[nodiscard]] constexpr bool isValid() const noexcept {
+        return minX <= maxX && minY <= maxY && minZ <= maxZ;
+    }
+    
+    /**
+     * @brief Fix invalid bounds by swapping min/max if needed
+     */
+    constexpr void fix() noexcept {
+        if (minX > maxX) { float t = minX; minX = maxX; maxX = t; }
+        if (minY > maxY) { float t = minY; minY = maxY; maxY = t; }
+        if (minZ > maxZ) { float t = minZ; minZ = maxZ; maxZ = t; }
+    }
     
     /**
      * @brief Get center point
@@ -91,6 +107,13 @@ struct BoundingBox {
     [[nodiscard]] constexpr float extentX() const noexcept { return maxX - minX; }
     [[nodiscard]] constexpr float extentY() const noexcept { return maxY - minY; }
     [[nodiscard]] constexpr float extentZ() const noexcept { return maxZ - minZ; }
+    
+    /**
+     * @brief Get volume
+     */
+    [[nodiscard]] constexpr float volume() const noexcept {
+        return extentX() * extentY() * extentZ();
+    }
 };
 
 // ============================================================================
@@ -258,10 +281,10 @@ public:
     // ============================================================================
     
     /**
-     * @brief Set bounding box
+     * @brief Set bounding box with validation
      * @param bounds Bounding box
      */
-    void setBounds(const BoundingBox& bounds) noexcept { m_bounds = bounds; }
+    void setBounds(const BoundingBox& bounds) noexcept;
     
     /**
      * @brief Get bounding box
@@ -352,6 +375,12 @@ constexpr size_t MAX_MATERIAL_NAME_LENGTH = 256;
 
 /// Maximum mesh name length
 constexpr size_t MAX_MESH_NAME_LENGTH = 256;
+
+/// Maximum bounding box extent (for safety)
+constexpr float MAX_BOUND_EXTENT = 100000.0f;
+
+/// Minimum bounding box extent (to prevent zero-size boxes)
+constexpr float MIN_BOUND_EXTENT = 0.0001f;
 
 } // namespace renderable
 

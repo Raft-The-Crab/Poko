@@ -46,6 +46,22 @@ void test_bounding_box() {
     assert(box2.extentY() == 4.0f);
     assert(box2.extentZ() == 6.0f);
     
+    // Volume calculation
+    assert(box2.volume() == 48.0f);
+    
+    // Validity check
+    assert(box2.isValid());
+    
+    // Invalid bounds (min > max)
+    renderable::BoundingBox box3(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, 1.0f);
+    assert(!box3.isValid());
+    
+    // Fix invalid bounds
+    box3.fix();
+    assert(box3.isValid());
+    assert(box3.minX == 1.0f);
+    assert(box3.maxX == 5.0f);
+    
     std::cout << "✓ BoundingBox tests passed" << std::endl;
 }
 
@@ -156,7 +172,7 @@ void test_renderable_bounds() {
     
     renderable::Renderable renderable;
     
-    // Set bounds
+    // Set valid bounds
     renderable::BoundingBox bounds(-5.0f, -5.0f, -5.0f, 5.0f, 5.0f, 5.0f);
     renderable.setBounds(bounds);
     
@@ -165,6 +181,28 @@ void test_renderable_bounds() {
     assert(retrieved.minX == -5.0f);
     assert(retrieved.maxX == 5.0f);
     assert(retrieved.centerX() == 0.0f);
+    
+    // Test invalid bounds (min > max) - should be fixed
+    renderable::BoundingBox invalidBounds(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, 1.0f);
+    renderable.setBounds(invalidBounds);
+    const renderable::BoundingBox& fixed = renderable.getBounds();
+    assert(fixed.isValid());
+    assert(fixed.minX <= fixed.maxX);
+    
+    // Test extent clamping (should clamp to MAX_BOUND_EXTENT)
+    renderable::BoundingBox hugeBounds(-999999.0f, -999999.0f, -999999.0f, 999999.0f, 999999.0f, 999999.0f);
+    renderable.setBounds(hugeBounds);
+    const renderable::BoundingBox& clamped = renderable.getBounds();
+    assert(clamped.minX >= -renderable::MAX_BOUND_EXTENT);
+    assert(clamped.maxX <= renderable::MAX_BOUND_EXTENT);
+    
+    // Test minimum extent (should ensure MIN_BOUND_EXTENT)
+    renderable::BoundingBox tinyBounds(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+    renderable.setBounds(tinyBounds);
+    const renderable::BoundingBox& expanded = renderable.getBounds();
+    assert(expanded.extentX() >= renderable::MIN_BOUND_EXTENT);
+    assert(expanded.extentY() >= renderable::MIN_BOUND_EXTENT);
+    assert(expanded.extentZ() >= renderable::MIN_BOUND_EXTENT);
     
     std::cout << "✓ Renderable bounds tests passed" << std::endl;
 }
@@ -264,6 +302,23 @@ void test_renderable_registration() {
     std::cout << "✓ Renderable registration tests passed" << std::endl;
 }
 
+void test_renderable_constants() {
+    std::cout << "Testing Renderable constants..." << std::endl;
+    
+    // Check resource ID constant
+    assert(renderable::INVALID_RESOURCE_ID == 0);
+    
+    // Check string length limits
+    assert(renderable::MAX_MATERIAL_NAME_LENGTH == 256);
+    assert(renderable::MAX_MESH_NAME_LENGTH == 256);
+    
+    // Check bounds limits
+    assert(renderable::MAX_BOUND_EXTENT == 100000.0f);
+    assert(renderable::MIN_BOUND_EXTENT == 0.0001f);
+    
+    std::cout << "✓ Renderable constants tests passed" << std::endl;
+}
+
 int main() {
     std::cout << "=== Renderable Component Unit Tests ===" << std::endl;
     
@@ -278,6 +333,7 @@ int main() {
     test_renderable_lifecycle();
     test_renderable_user_data();
     test_renderable_registration();
+    test_renderable_constants();
     
     std::cout << "\n=== All tests passed! ===" << std::endl;
     

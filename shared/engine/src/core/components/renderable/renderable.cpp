@@ -9,6 +9,7 @@
  */
 
 #include "core/components/renderable/renderable.h"
+#include <algorithm>
 
 namespace poko {
 namespace core {
@@ -53,6 +54,39 @@ void Renderable::onDestroy() {
     m_meshId = INVALID_RESOURCE_ID;
     m_userData = nullptr;
     m_state = ComponentState::Destroyed;
+}
+
+void Renderable::setBounds(const BoundingBox& bounds) noexcept {
+    m_bounds = bounds;
+    
+    // Fix invalid bounds (ensure min <= max)
+    m_bounds.fix();
+    
+    // Clamp extents to safe range
+    using namespace std;
+    m_bounds.minX = max(m_bounds.minX, -MAX_BOUND_EXTENT);
+    m_bounds.minY = max(m_bounds.minY, -MAX_BOUND_EXTENT);
+    m_bounds.minZ = max(m_bounds.minZ, -MAX_BOUND_EXTENT);
+    m_bounds.maxX = min(m_bounds.maxX, MAX_BOUND_EXTENT);
+    m_bounds.maxY = min(m_bounds.maxY, MAX_BOUND_EXTENT);
+    m_bounds.maxZ = min(m_bounds.maxZ, MAX_BOUND_EXTENT);
+    
+    // Ensure minimum extent to prevent zero-size boxes
+    if (m_bounds.extentX() < MIN_BOUND_EXTENT) {
+        float center = m_bounds.centerX();
+        m_bounds.minX = center - MIN_BOUND_EXTENT * 0.5f;
+        m_bounds.maxX = center + MIN_BOUND_EXTENT * 0.5f;
+    }
+    if (m_bounds.extentY() < MIN_BOUND_EXTENT) {
+        float center = m_bounds.centerY();
+        m_bounds.minY = center - MIN_BOUND_EXTENT * 0.5f;
+        m_bounds.maxY = center + MIN_BOUND_EXTENT * 0.5f;
+    }
+    if (m_bounds.extentZ() < MIN_BOUND_EXTENT) {
+        float center = m_bounds.centerZ();
+        m_bounds.minZ = center - MIN_BOUND_EXTENT * 0.5f;
+        m_bounds.maxZ = center + MIN_BOUND_EXTENT * 0.5f;
+    }
 }
 
 } // namespace renderable
