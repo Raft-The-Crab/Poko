@@ -13,6 +13,7 @@
 
 #include "core/components/physics/shapes/primitives/shape_type.h"
 #include "core/components/physics/math/vectors/vector3.h"
+#include "core/components/physics/bounds/aabb.h"
 #include "core/components/physics/matrices/matrix3x3.h"
 #include <limits>
 
@@ -23,6 +24,7 @@ namespace physics {
 namespace shapes {
 
 using math::Vector3;
+using bounds::AABB;
 using primitives::ShapeType;
 using matrices::Matrix3x3;
 

@@ -13,6 +13,7 @@
 
 #include "core/components/physics/math/vectors/vector3.h"
 #include <cmath>
+#include <algorithm>
 
 namespace poko {
 namespace core {
@@ -116,6 +117,95 @@ public:
      */
     [[nodiscard]] bool contains(const AABB& other) const noexcept {
         return containsMin(other.min) && containsMax(other.max);
+    }
+
+    /**
+     * @brief Ray-AABB intersection (Slab method)
+     */
+    [[nodiscard]] bool intersectsRay(const Vector3& origin, const Vector3& direction, float& tMin, float& tMax) const noexcept {
+        tMin = 0.0f;
+        tMax = 1e30f;
+
+        for (int i = 0; i < 3; ++i) {
+            if (std::abs(direction.getComponent(i)) < 0.0001f) {
+                // Ray is parallel to slab
+                if (origin.getComponent(i) < min.getComponent(i) || origin.getComponent(i) > max.getComponent(i)) {
+                    return false;
+                }
+            } else {
+                float invDir = 1.0f / direction.getComponent(i);
+                float t1 = (min.getComponent(i) - origin.getComponent(i)) * invDir;
+                float t2 = (max.getComponent(i) - origin.getComponent(i)) * invDir;
+
+                if (invDir < 0.0f) {
+                    // Swap
+                    float temp = t1;
+                    t1 = t2;
+                    t2 = temp;
+                }
+
+                tMin = t1 > tMin ? t1 : tMin;
+                tMax = t2 < tMax ? t2 : tMax;
+
+                if (tMax < tMin) {
+                    return false;
+                }
+            }
+        }
+
+        return tMin <= tMax;
+    }
+
+    /**
+     * @brief Translate AABB
+     */
+    [[nodiscard]] AABB translated(const Vector3& offset) const noexcept {
+        return AABB{min + offset, max + offset};
+    }
+
+    /**
+     * @brief Scale AABB
+     */
+    [[nodiscard]] AABB scaled(float scale) const noexcept {
+        Vector3 center = this->center();
+        Vector3 extent = this->extent() * scale;
+        return fromCenterExtent(center, extent);
+    }
+
+    /**
+     * @brief Union of two AABBs
+     */
+    [[nodiscard]] AABB unionWith(const AABB& other) const noexcept {
+        AABB result;
+        result.min.x = min.x < other.min.x ? min.x : other.min.x;
+        result.min.y = min.y < other.min.y ? min.y : other.min.y;
+        result.min.z = min.z < other.min.z ? min.z : other.min.z;
+        result.max.x = max.x > other.max.x ? max.x : other.max.x;
+        result.max.y = max.y > other.max.y ? max.y : other.max.y;
+        result.max.z = max.z > other.max.z ? max.z : other.max.z;
+        return result;
+    }
+
+    /**
+     * @brief Intersection of two AABBs
+     */
+    [[nodiscard]] AABB intersectionWith(const AABB& other) const noexcept {
+        AABB result;
+        result.min.x = min.x > other.min.x ? min.x : other.min.x;
+        result.min.y = min.y > other.min.y ? min.y : other.min.y;
+        result.min.z = min.z > other.min.z ? min.z : other.min.z;
+        result.max.x = max.x < other.max.x ? max.x : other.max.x;
+        result.max.y = max.y < other.max.y ? max.y : other.max.y;
+        result.max.z = max.z < other.max.z ? max.z : other.max.z;
+        return result;
+    }
+
+    /**
+     * @brief Make fat AABB for broadphase
+     */
+    [[nodiscard]] AABB makeFat(float margin) const noexcept {
+        Vector3 offset = Vector3(margin, margin, margin);
+        return AABB{min - offset, max + offset};
     }
 };
 

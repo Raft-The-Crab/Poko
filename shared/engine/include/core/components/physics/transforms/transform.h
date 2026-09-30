@@ -13,6 +13,7 @@
 
 #include "core/components/physics/math/vectors/vector3.h"
 #include "core/components/physics/math/vectors/quaternion.h"
+#include <cmath>
 
 namespace poko {
 namespace core {
@@ -71,6 +72,18 @@ public:
             Vector3::lerp(a.position, b.position, t),
             Quaternion::lerp(a.rotation, b.rotation, t)
         };
+    }
+
+    [[nodiscard]] bool isValid() const noexcept {
+        return std::abs(rotation.lengthSquared() - 1.0f) < 0.01f;
+    }
+
+    [[nodiscard]] Transform withPosition(const Vector3& newPosition) const noexcept {
+        return Transform{newPosition, rotation};
+    }
+
+    [[nodiscard]] Transform withRotation(const Quaternion& newRotation) const noexcept {
+        return Transform{position, newRotation};
     }
 };
 
