@@ -61,7 +61,7 @@ public:
     /**
      * @brief Update sleep time
      */
-    void updateSleepTime(float deltaTime, const std::vector<BodyDefinition>& bodyStorage) noexcept;
+    void updateSleepTime(float deltaTime) noexcept;
     
     /**
      * @brief Wake island
