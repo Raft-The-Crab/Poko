@@ -335,6 +335,19 @@ add_library(poko_core_physics
     src/core/components/physics/integration/integrate_velocity.cpp
 )
 
+# Physics subsystem library
+add_library(poko_core_physics_system
+    # Broadphase
+    src/core/components/physics/broadphase/dynamic_aabb_tree.cpp
+    # Narrowphase
+    src/core/components/physics/narrowphase/narrowphase.cpp
+    # Solver
+    src/core/components/physics/solver/sequential_impulse.cpp
+    # World
+    src/core/components/physics/world/world.cpp
+)
+target_include_directories(poko_core_physics_system PUBLIC include)
+
 target_include_directories(poko_core_physics
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

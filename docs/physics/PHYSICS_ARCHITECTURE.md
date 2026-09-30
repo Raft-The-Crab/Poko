@@ -1,990 +1,1013 @@
-# Poko Physics Engine Architecture
+# Poko Physics Engine - Production Implementation Plan
 
 ## Overview
 
-Poko Physics is a custom rigid-body physics engine designed for AAA/indie games. It provides deterministic simulation, efficient collision detection, a robust constraint solver, and advanced features like CCD, character controllers, and ragdolls.
+This document outlines the complete production implementation plan for the Poko Physics Engine, targeting:
+- **Indie A**: 100% (fully functional, robust, well-tested)
+- **Double A**: 100% (production-grade, optimized, scalable)
+- **Triple A**: 15% (selected advanced features where they provide clear value)
 
-**Target Quality:**
-- 75% Indie-A (core systems fully functional)
-- 25% AAA (advanced features for polish)
+## Table of Contents
 
-**Design Principles:**
-- Production-quality from day one (no placeholders)
-- Fine-grained translation units for incremental builds
-- Thread-safe where applicable
-- SIMD-optimized where beneficial
-- Research-driven architecture (Box2D, Jolt, PhysX, Bullet, Havok)
-
----
-
-## Phase 1: Physics Component (Built-in Component)
-
-**Location:** `shared/engine/include/core/components/physics/`
-
-The Physics Component is a data container attached to instances that stores physics properties. It does not perform simulation—that happens in the Physics Engine subsystem.
-
-### Component Structure
-
-```
-physics/
-├── physics.h                    # Main component class with all properties
-├── math/                        # Physics-specific math types
-│   ├── vector3.h               # 3D vector with physics operations
-│   ├── matrix3x3.h             # 3x3 matrix for inertia tensors
-│   ├── quaternion.h            # Quaternion for rotations
-│   ├── matrix4x4.h             # 4x4 transform matrices
-│   └── bounds.h                # AABB/OBB bounds
-├── body_type.h                 # Body type enums (Static, Dynamic, Kinematic)
-├── shape_type.h                # Shape type enums (Sphere, Box, Capsule, etc.)
-└── material/                   # Material properties
-    ├── friction.h              # Friction coefficient
-    ├── restitution.h           # Bounciness
-    └── density.h               # Mass density
-```
-
-### Source Files (Fine-Grained)
-
-```
-shared/engine/src/core/components/physics/
-├── physics.cpp                 # Constructor and lifecycle
-├── body_type.cpp               # Body type operations
-├── shape_type.cpp              # Shape type operations
-├── material/
-│   ├── set_friction.cpp        # Friction setter with clamping
-│   ├── set_restitution.cpp     # Restitution setter with clamping
-│   └── set_density.cpp         # Density setter with clamping
-├── mass/
-│   ├── set_mass.cpp            # Mass setter with validation
-│   ├── calculate_mass.cpp      # Calculate mass from density and shape
-│   └── calculate_inertia.cpp   # Calculate inertia tensor
-├── velocity/
-│   ├── set_linear_velocity.cpp
-│   ├── set_angular_velocity.cpp
-│   ├── get_linear_velocity.cpp
-│   └── get_angular_velocity.cpp
-├── gravity/
-│   ├── set_gravity_scale.cpp   # Per-body gravity multiplier
-│   └── get_gravity_scale.cpp
-├── collision/
-│   ├── set_collision_layer.cpp
-│   ├── set_collision_mask.cpp
-│   └── should_collide.cpp     # Layer/mask collision check
-├── sleeping/
-│   ├── set_sleep_threshold.cpp
-│   ├── set_awake.cpp
-│   ├── set_sleep.cpp
-│   └── is_sleeping.cpp
-├── force/
-│   ├── apply_force.cpp         # Apply force at center of mass
-│   ├── apply_force_at_point.cpp
-│   ├── apply_torque.cpp
-│   ├── apply_impulse.cpp
-│   └── apply_impulse_at_point.cpp
-├── damping/
-│   ├── set_linear_damping.cpp
-│   ├── set_angular_damping.cpp
-│   └── apply_damping.cpp
-├── ccd/
-│   ├── set_ccd_enabled.cpp
-│   ├── set_ccd_motion_threshold.cpp
-│   └── set_ccd_swept_sphere_radius.cpp
-├── limits/
-│   ├── set_max_linear_velocity.cpp
-│   ├── set_max_angular_velocity.cpp
-│   └── clamp_velocities.cpp
-└── physics_registration.cpp    # Component registration
-```
-
-### Component Properties
-
-**Body Properties:**
-- Body type: Static, Dynamic, Kinematic
-- Shape type: Sphere, Box, Capsule, Plane, ConvexHull, TriangleMesh
-- Mass: Float with min/max limits
-- Inertia tensor: 3x3 matrix (computed from shape and mass)
-- Center of mass: Vector3 (computed from shape)
-
-**Motion Properties:**
-- Linear velocity: Vector3
-- Angular velocity: Vector3
-- Linear damping: Float (0-1)
-- Angular damping: Float (0-1)
-- Gravity scale: Float (default 1.0)
-
-**Material Properties:**
-- Friction: Float (0-1)
-- Restitution: Float (0-1)
-- Density: Float (for mass calculation)
-
-**Collision Properties:**
-- Collision layer: 32-bit mask
-- Collision mask: 32-bit mask (layers to collide with)
-
-**Sleeping Properties:**
-- Sleep threshold: Float (velocity below which body can sleep)
-- Sleep time threshold: Float (time below threshold before sleeping)
-- Is sleeping: Boolean
-
-**CCD Properties:**
-- CCD enabled: Boolean
-- CCD motion threshold: Float (velocity threshold for CCD)
-- CCD swept sphere radius: Float
-
-**Velocity Limits:**
-- Max linear velocity: Float
-- Max angular velocity: Float
+1. [Production Principles](#production-principles)
+2. [Math Module](#math-module)
+3. [Collision Shapes](#collision-shapes)
+4. [Broadphase Collision Detection](#broadphase-collision-detection)
+5. [Narrowphase Collision Detection](#narrowphase-collision-detection)
+6. [Constraint Solver](#constraint-solver)
+7. [Joints](#joints)
+8. [Physics World and Rigid Body System](#physics-world-and-rigid-body-system)
+9. [Sleeping and Island Management](#sleeping-and-island-management)
+10. [Continuous Collision Detection (CCD)](#continuous-collision-detection-ccd)
+11. [Character Controller](#character-controller)
+12. [Ragdoll System](#ragdoll-system)
+13. [Vehicle Physics](#vehicle-physics)
+14. [Raycasting and Triggers](#raycasting-and-triggers)
+15. [Debug Visualization](#debug-visualization)
+16. [Numerical Robustness](#numerical-robustness)
+17. [Performance Optimization](#performance-optimization)
+18. [Testing Strategy](#testing-strategy)
 
 ---
 
-## Phase 2: Physics Math Module
+## Production Principles
 
-**Location:** `shared/engine/include/core/physics/math/`
+### Numerical Robustness
 
-Physics-specific math optimized for physics calculations. These are separate from Transform math to avoid conflicts and allow physics-specific optimizations.
+All math operations must handle:
+- NaN/Inf propagation
+- Near-singular matrices
+- Precision loss accumulation
+- Denormalized numbers
+- Cancellation errors
 
-### Math Types
+**Tolerance Policy**:
+- Use relative tolerances for comparisons
+- Use absolute tolerances for near-zero values
+- Scale tolerances with object size
+- Document all epsilon values
 
-```
-math/
-├── vector3.h                  # Physics 3D vector
-├── vector3.cpp                # Vector operations
-├── matrix3x3.h                # 3x3 matrix (inertia tensors)
-├── matrix3x3.cpp              # Matrix operations
-├── quaternion.h               # Quaternion for rotations
-├── quaternion.cpp             # Quaternion operations
-├── matrix4x4.h                # 4x4 transform matrices
-├── matrix4x4.cpp              # Transform operations
-├── bounds.h                   # AABB/OBB bounds
-├── bounds.cpp                 # Bounds operations
-└── constants.h                # Physics constants (epsilon, tolerance)
-```
+### Memory Layout
 
-### Vector3 Operations
+**SoA (Structure of Arrays)** for hot paths:
+- Position data: `struct Positions { float x[N]; float y[N]; float z[N]; }`
+- Velocity data: `struct Velocities { float vx[N]; float vy[N]; float vz[N]; }`
+- Enables SIMD vectorization
+- Improves cache locality
 
-- Basic: +, -, *, /, dot, cross, length, normalize
-- Physics-specific: lerp, clamp, distance, angle
-- SIMD: Use SSE/AVX when available
+**AoS (Array of Structures)** for cold paths:
+- Collision pairs
+- Contact manifolds
+- Memory overhead acceptable
 
-### Matrix3x3 Operations
+### Alignment
 
-- Basic: +, -, *, transpose, inverse, determinant
-- Physics-specific: diagonal extraction, rotation extraction
-- Inertia: Compute inertia tensor from mass and shape
+All physics types aligned to 16 bytes:
+- Prevents false sharing
+- Enables SIMD operations
+- Improves memory throughput
 
-### Quaternion Operations
+### Fixed-Point Considerations
 
-- Basic: +, -, *, conjugate, normalize, inverse
-- Physics-specific: rotate vector, to euler, from euler
-- Slerp: Spherical interpolation
-
-### Bounds Operations
-
-- AABB: min/max, center, extent, merge, contains, intersects
-- OBB: center, axes, extents, transform, contains, intersects
-
----
-
-## Phase 3: Collision Shapes
-
-**Location:** `shared/engine/include/core/physics/collision/shapes/`
-
-Collision shape definitions for broadphase and narrowphase collision detection.
-
-### Shape Hierarchy
-
-```
-shapes/
-├── shape.h                    # Base shape class
-├── shape.cpp                  # Shape factory
-├── sphere.h                   # Sphere shape
-├── sphere.cpp                 # Sphere implementation
-├── box.h                      # Box shape
-├── box.cpp                    # Box implementation
-├── capsule.h                  # Capsule shape
-├── capsule.cpp                # Capsule implementation
-├── plane.h                    # Infinite plane
-├── plane.cpp                  # Plane implementation
-├── convex_hull.h              # Convex hull
-├── convex_hull.cpp            # Convex hull implementation
-├── triangle_mesh.h            # Triangle mesh (static)
-├── triangle_mesh.cpp          # Triangle mesh implementation
-└── heightfield.h              # Heightfield (terrain)
-    └── heightfield.cpp
-```
-
-### Shape Properties
-
-**Common:**
-- Type enum
-- AABB bounds (computed from shape)
-- Volume (for mass calculation)
-- Center of mass
-
-**Sphere:**
-- Radius
-
-**Box:**
-- Half-extents (x, y, z)
-
-**Capsule:**
-- Radius
-- Height (total height, not half)
-
-**Plane:**
-- Normal
-- Distance from origin
-
-**Convex Hull:**
-- Vertices
-- Faces
-- Edges
-
-**Triangle Mesh:**
-- Vertices
-- Indices
-- BVH for acceleration
+For determinism across platforms:
+- Consider 32.32 fixed-point for positions (large world)
+- Keep floating-point for performance-critical paths
+- Document floating-point behavior
+- Avoid platform-specific optimizations
 
 ---
 
-## Phase 4: Broadphase Collision Detection
+## Math Module
 
-**Location:** `shared/engine/include/core/physics/collision/broadphase/`
+### Vector3
 
-Broadphase quickly eliminates non-overlapping AABB pairs to reduce work for narrowphase.
+**Production Features**:
+- Cross-product matrix: CORRECTED for column-major layout
+- Dot product for projections
+- Length squared (avoids sqrt)
+- Normalization with zero-length protection
+- Distance calculations
+- Vector operations (add, sub, mul, div)
+- Direction constants (up, down, forward, back, right, left)
 
-### Algorithms
+**Cross-Product Matrix Bug Fix**:
+```cpp
+// WRONG (before):
+return Matrix3x3(0.0f, -vec.z, vec.y, vec.z, 0.0f, -vec.x, -vec.y, vec.x, 0.0f);
 
-**Sweep and Prune (SAP):**
-- Incremental sweep on sorted axes
-- Best for scenes with many sleeping objects
-- Poor for many moving objects
-- 1-axis SAP (fastest, less accurate)
-- 3-axis SAP (slower, more accurate)
-
-**Dynamic AABB Tree (BVH):**
-- Tree-based broadphase
-- Good for dynamic scenes
-- Active objects vs tree (Jolt approach)
-- Trivially parallelizable
-
-**Spatial Grid:**
-- Uniform grid over world bounds
-- Fast for uniform distribution
-- Poor for clustered objects
-- Fast updates
-
-**Multi-Box Pruning (MBP):**
-- Grid of SAP regions (PhysX approach)
-- Best of both worlds
-- Requires world bounds
-
-### Structure
-
-```
-broadphase/
-├── broadphase.h              # Broadphase interface
-├── broadphase.cpp            # Broadphase factory
-├── sweep_prune.h             # SAP implementation
-├── sweep_prune.cpp
-├── sweep_prune_1axis.h       # 1-axis SAP
-├── sweep_prune_1axis.cpp
-├── sweep_prune_3axis.h       # 3-axis SAP
-├── sweep_prune_3axis.cpp
-├── dynamic_aabb_tree.h       # BVH implementation
-├── dynamic_aabb_tree.cpp
-├── spatial_grid.h            # Grid implementation
-├── spatial_grid.cpp
-├── multi_box_pruning.h       # MBP implementation
-├── multi_box_pruning.cpp
-├── collision_pair.h          # Candidate pair struct
-└── collision_pair.cpp       # Pair management
+// CORRECT (after):
+return Matrix3x3(0.0f, vec.z, -vec.y, -vec.z, 0.0f, vec.x, vec.y, -vec.x, 0.0f);
 ```
 
-### Selection Strategy
+**Numerical Tolerances**:
+- `EPSILON = 1e-6f` for general comparisons
+- `LENGTH_EPSILON = 1e-4f` for normalization
+- `DOT_EPSILON = 1e-6f` for parallel checks
 
-**Adaptive Broadphase:**
-- Select algorithm based on scene characteristics
-- Metrics: object count, motion, distribution
-- Switch algorithms at runtime
-- Or: support multiple and let user choose
+### Matrix3x3
 
-**Default:**
-- Start with Dynamic AABB Tree (Jolt approach)
-- It's simple, fast, and parallelizable
+**Production Features**:
+- Column-major storage (graphics API compatible)
+- Matrix multiplication
+- Matrix-vector multiplication
+- Transpose operation
+- Determinant calculation
+- Inverse with `tryInverse()` for numerical safety
+- Diagonal matrix constructor
+- Inertia tensor constructor
+- Cross-product matrix (CORRECTED)
+- Identity and zero checks
+
+**Inverse Implementation**:
+```cpp
+// BAD: Silent failure
+Matrix3x3 inverse() const {
+    if (std::abs(det) < 0.0001f) return ZERO;
+    // ...
+}
+
+// GOOD: Explicit failure handling
+bool tryInverse(Matrix3x3& result, float epsilon = 0.0001f) const noexcept {
+    float det = determinant();
+    if (std::abs(det) < epsilon) return false;
+    // ... compute inverse
+    return true;
+}
+```
+
+**Additional Methods**:
+- Orthonormal validation: `isOrthonormal(epsilon)`
+- Orthonormalization: `orthonormalize()`
+- Symmetric check: `isSymmetric(epsilon)`
+- Diagonal check: `isDiagonal(epsilon)`
+- Basis extraction: `getBasisX()`, `getBasisY()`, `getBasisZ()`
+- Basis construction: `fromBasis(x, y, z)`
+
+### Quaternion
+
+**Production Features**:
+- Axis-angle constructor
+- Euler angles constructor (yaw, pitch, roll)
+- Quaternion multiplication (composition)
+- Scalar multiplication and division
+- Dot product, length, normalization
+- Conjugate and inverse
+- Vector rotation: `rotateVector()`
+- Spherical linear interpolation (slerp) - constant angular velocity
+- Linear interpolation (lerp) - faster but not constant velocity
+- Get axis and angle from quaternion
+- Identity and normalized checks
+
+**Slerp Implementation**:
+```cpp
+Quaternion slerp(const Quaternion& q1, const Quaternion& q2, float t) {
+    float dot = q1.dot(q2);
+    
+    // Take shorter path
+    Quaternion q2Temp = q2;
+    if (dot < 0.0f) {
+        q2Temp = -q2;
+        dot = -dot;
+    }
+    
+    // Linear interpolation for very close quaternions
+    if (dot > 0.9995f) {
+        return (q1 + (q2Temp - q1) * t).normalized();
+    }
+    
+    float theta0 = std::acos(std::clamp(dot, -1.0f, 1.0f));
+    float theta = theta0 * t;
+    float sinTheta = std::sin(theta);
+    float sinTheta0 = std::sin(theta0);
+    
+    float s0 = std::cos(theta) - dot * sinTheta / sinTheta0;
+    float s1 = sinTheta / sinTheta0;
+    
+    return q1 * s0 + q2Temp * s1;
+}
+```
+
+### AABB (Axis-Aligned Bounding Box)
+
+**Production Features**:
+- Min-max and center-extent constructors
+- Sphere and box constructors
+- Center, extent, size, volume, surface area calculations
+- Valid and empty checks
+- Expand to include point or AABB
+- Fat AABB expansion (margin for broadphase)
+- Translate and scale operations
+- Point containment test
+- AABB-AABB intersection test
+- AABB-AABB containment test
+- Ray-AABB intersection (Slab method)
+- Union and intersection operations
+
+**Ray-AABB Slab Method**:
+```cpp
+bool rayIntersect(const Vector3& origin, const Vector3& direction,
+                   float& tMin, float& tMax) const noexcept {
+    tMin = 0.0f;
+    tMax = 1e30f;
+    
+    for (int i = 0; i < 3; ++i) {
+        float minVal = (&min.x)[i];
+        float maxVal = (&max.x)[i];
+        float originVal = (&origin.x)[i];
+        float dirVal = (&direction.x)[i];
+        
+        if (std::abs(dirVal) < 0.0001f) {
+            if (originVal < minVal || originVal > maxVal) return false;
+        } else {
+            float t1 = (minVal - originVal) / dirVal;
+            float t2 = (maxVal - originVal) / dirVal;
+            
+            if (t1 > t2) std::swap(t1, t2);
+            
+            tMin = std::max(tMin, t1);
+            tMax = std::min(tMax, t2);
+            
+            if (tMin > tMax) return false;
+        }
+    }
+    
+    return true;
+}
+```
 
 ---
 
-## Phase 5: Narrowphase Collision Detection
+## Collision Shapes
 
-**Location:** `shared/engine/include/core/physics/collision/narrowphase/`
+### Sphere
 
-Narrowphase computes exact collision geometry and contact manifolds.
+**Production Features**:
+- Center and radius
+- AABB calculation (exact)
+- Volume calculation: `(4/3) × π × r³`
+- Mass from density: `mass = volume × density`
+- Inertia tensor: `I = (2/5) × m × r²` (diagonal)
+- Point containment test
+- Sphere-sphere intersection test
 
-### Algorithms
+### Box (OBB - Oriented Bounding Box)
 
-**GJK (Gilbert-Johnson-Keerthi):**
-- Distance between convex shapes
-- Contact point generation
-- Good for convex shapes
+**Production Features**:
+- Center, half-extents, orientation
+- AABB calculation (loose bound for OBB)
+- Volume calculation: `8 × hx × hy × hz`
+- Mass from density
+- Inertia tensor (diagonal for axis-aligned):
+  - `Ixx = m/12 × (hy² + hz²)`
+  - `Iyy = m/12 × (hx² + hz²)`
+  - `Izz = m/12 × (hx² + hy²)`
+- Get 8 corners
+- Get 6 face normals
+- SAT (Separating Axis Theorem) collision detection
 
-**SAT (Separating Axis Theorem):**
-- Test separating axes
-- Good for boxes, capsules
-- Manifold generation
-
-**Contact Manifolds:**
-- Contact points, normals, penetration depths
-- Feature tracking (face, edge, vertex)
-- Warm starting for solver
-
-### Structure
-
+**OBB AABB Calculation**:
+```cpp
+AABB getAABB() const {
+    if (orientation.isIdentity()) {
+        return AABB::fromCenterExtent(center, halfExtents);
+    }
+    
+    // For oriented boxes, compute projected extents
+    Vector3 corners[8];
+    getCorners(corners);
+    
+    AABB result;
+    for (int i = 0; i < 8; ++i) {
+        result.expand(corners[i]);
+    }
+    return result;
+}
 ```
-narrowphase/
-├── narrowphase.h             # Narrowphase interface
-├── narrowphase.cpp           # Narrowphase factory
-├── gjk.h                     # GJK implementation
-├── gjk.cpp
-├── sat.h                     # SAT implementation
-├── sat.cpp
-├── contact_manifold.h        # Contact manifold
-├── contact_manifold.cpp
-├── contact_point.h           # Contact point struct
-├── sphere_sphere.h           # Sphere-sphere collision
-├── sphere_sphere.cpp
-├── sphere_box.h              # Sphere-box collision
-├── sphere_box.cpp
-├── box_box.h                 # Box-box collision
-├── box_box.cpp
-├── capsule_capsule.h         # Capsule-capsule collision
-├── capsule_capsule.cpp
-├── convex_convex.h           # Convex-convex collision
-└── convex_convex.cpp
-```
 
-### Contact Manifold
+### Capsule
 
-**Contact Point:**
-- Position (world space)
-- Normal (direction from A to B)
-- Penetration depth
-- Feature ID (for warm starting)
+**Production Features**:
+- Center, radius, height, orientation
+- AABB calculation (from two spheres)
+- Volume calculation: `π × r² × h + (4/3) × π × r³` (cylinder + sphere)
+- Mass from density
+- Inertia tensor (approximate: cylinder + sphere)
+- Get capsule endpoints
+- Line segment collision tests
 
-**Manifold:**
-- Array of contact points (max 4 per pair)
-- Body A and body B
-- Friction and restitution from materials
+### Plane
+
+**Production Features**:
+- Normal and distance from origin
+- Point-normal constructor
+- Three-point constructor
+- Distance from point to plane
+- Project point onto plane
+- Point containment test
+- Side determination (front/back)
 
 ---
 
-## Phase 6: Constraint Solver
+## Broadphase Collision Detection
 
-**Location:** `shared/engine/include/core/physics/solver/`
+### Dynamic AABB Tree (BVH)
 
-Constraint solver resolves contacts and joints using sequential impulses (Gauss-Seidel).
+**Production Features**:
+- Self-balancing bounding volume hierarchy
+- Good for dynamic scenes with moving objects
+- Complexity: Insert O(log n), Remove O(log n), Update O(log n), Query O(log n + m)
+- Node pooling to avoid allocations
+- Fat AABBs to reduce rebalancing
+- Stack-based query to avoid recursion
+
+**Node Structure**:
+```cpp
+struct Node {
+    AABB aabb;
+    uint64_t userData;
+    uint32_t parent;
+    uint32_t child1;
+    uint32_t child2;
+    int32_t height;
+    bool isLeaf;
+};
+```
+
+**Balance Heuristics**:
+- Surface area heuristic (SAH) for insertion
+- Rotate operations for rebalancing
+- Height-based rotation triggers
+
+**Performance Considerations**:
+- Use free list for node allocation
+- Pre-allocate node pool (default 16, grow ×2)
+- Fat AABB margin (1-2% of AABB size)
+- Bulk operations for static objects
+
+### Sweep and Prune (SAP)
+
+**Production Features**:
+- Sort bodies along one axis (typically longest axis)
+- Sweep for overlapping intervals
+- Complexity: O(n log n) for sort, O(n) for sweep
+- Good for mostly static scenes
+- Incremental updates using insertion sort
+
+**Implementation Notes**:
+- Maintain sorted lists for X, Y, Z axes
+- On frame start, quick-sort along primary axis
+- For moved objects, use insertion sort to update
+- Cache-friendly for spatial coherence
+
+### Spatial Grid
+
+**Production Features**:
+- Uniform grid partitioning
+- O(1) lookup for spatial queries
+- Good for uniform object distribution
+- Cell size based on average object size
+- Grid coordinate hashing
+
+**Implementation Notes**:
+- Use spatial hash for sparse grids
+- Dynamic grid resizing based on object count
+- Multi-level grids for large variance in object sizes
+
+---
+
+## Narrowphase Collision Detection
+
+### GJK (Gilbert-Johnson-Keerl)
+
+**Production Features**:
+- Convex shape collision detection
+- Iterative algorithm with simplex
+- No need for face normals
+- Works for any convex shape
+- Early termination for disjoint shapes
+
+**Algorithm**:
+```cpp
+bool GJK(const Shape& a, const Shape& b, Vector3& contactNormal, float& penetration) {
+    Simplex simplex;
+    Vector3 direction = initialDirection(a, b);
+    
+    for (int i = 0; i < MAX_ITERATIONS; ++i) {
+        Vector3 supportA = a.support(direction);
+        Vector3 supportB = b.support(-direction);
+        
+        if (b.distanceTo(supportA) < 0.0f) {
+            return false; // Separating axis found
+        }
+        
+        Vector3 newPoint = supportA - supportB;
+        if (simplex.add(newPoint)) {
+            direction = simplex.getSearchDirection();
+        } else {
+            direction = newPoint.normalized();
+        }
+    }
+    
+    // Origin is inside simplex - shapes intersect
+    return true;
+}
+```
+
+### SAT (Separating Axis Theorem)
+
+**Production Features**:
+- Test face normals of both shapes
+- Test edge cross products
+- Early termination on first separating axis
+- Penetration depth calculation
+- Contact manifold generation
+
+**For Box-Box Collision**:
+- Test 6 face normals from each box (12 axes)
+- Test 9 edge cross products (15 axes total)
+- Find minimum penetration
+- Use face normal of minimum penetration axis
+
+### Contact Manifolds
+
+**Production Features**:
+- Up to 4 contact points per pair
+- Persistent contacts (warm starting)
+- Contact reduction (keep deepest contacts)
+- Normal and tangent basis generation
+- Friction impulses (2 tangent directions)
+- Restitution handling
+
+**Contact Point Structure**:
+```cpp
+struct ContactPoint {
+    Vector3 position;      // Contact position in world space
+    Vector3 normal;        // Contact normal (from A to B)
+    float penetration;     // Penetration depth
+    float normalImpulse;   // Accumulated normal impulse
+    float tangentImpulse[2]; // Accumulated tangent impulses
+};
+```
+
+---
+
+## Constraint Solver
 
 ### Sequential Impulse Solver
 
-**Algorithm (Erin Catto, Box2D):**
-1. Compute relative velocity at contact
-2. Compute jacobian (constraint gradient)
-3. Compute effective mass (inverse mass matrix)
-4. Compute lambda (impulse magnitude)
-5. Clamp lambda to limits
-6. Apply impulse to bodies
-7. Iterate (usually 8-16 iterations)
-8. Warm starting (reuse previous impulse)
+**Production Features**:
+- Projected Gauss-Seidel iteration
+- Warm starting with previous impulses
+- Accumulated impulse clamping
+- Baumgarte stabilization (position correction)
+- Configurable velocity and position iterations
+- Friction constraints (Coulomb friction)
 
-**Sub-stepping:**
-- Divide timestep into smaller steps
-- More stable for high velocities
-- More expensive
-
-### Constraints
-
-**Contact Constraint:**
-- Normal constraint (prevent penetration)
-- Friction constraint (tangential motion)
-- Rolling friction constraint
-
-**Joint Constraints:**
-- Distance constraint (fixed distance)
-- Hinge constraint (1 degree of freedom)
-- Spherical constraint (ball and socket)
-- Fixed constraint (fully rigid)
-- Prismatic constraint (sliding)
-- Generic constraint (custom limits)
-
-### Structure
-
-```
-solver/
-├── solver.h                  # Solver interface
-├── solver.cpp                # Solver factory
-├── sequential_impulse.h       # Sequential impulse solver
-├── sequential_impulse.cpp
-├── constraint.h              # Constraint base class
-├── constraint.cpp
-├── contact_constraint.h       # Contact constraint
-├── contact_constraint.cpp
-├── joint_distance.h          # Distance joint
-├── joint_distance.cpp
-├── joint_hinge.h             # Hinge joint
-├── joint_hinge.cpp
-├── joint_spherical.h         # Spherical joint
-├── joint_spherical.cpp
-├── joint_fixed.h             # Fixed joint
-├── joint_fixed.cpp
-├── joint_prismatic.h         # Prismatic joint
-├── joint_prismatic.cpp
-├── joint_generic.h           # Generic constraint
-├── joint_generic.cpp
-├── warm_starting.h           # Warm starting system
-├── warm_starting.cpp
-└── solver_config.h           # Solver configuration
+**Configuration**:
+```cpp
+struct SolverConfig {
+    uint32_t velocityIterations = 8;
+    uint32_t positionIterations = 3;
+    float baumgarte = 0.2f;  // Position correction factor
+    float slop = 0.01f;        // Allowed penetration
+    float warmStartFactor = 0.8f;  // Impulse retention
+};
 ```
 
-### Solver Configuration
+**Velocity Solver**:
+```cpp
+void solveVelocityConstraints(ContactManifold& manifold) {
+    for (ContactPoint& contact : manifold.contacts) {
+        // Compute Jacobian
+        // Compute effective mass
+        // Compute lambda
+        // Clamp lambda
+        // Apply impulse
+        // Update accumulated impulse
+    }
+}
+```
 
-**Parameters:**
-- Iteration count (velocity: 8-16, position: 4-8)
-- Solver tolerance (velocity threshold)
-- Warm starting factor (0-1)
-- Baugur factor (stabilization)
-- Split impulse (penetration correction)
+**Position Solver**:
+```cpp
+void solvePositionConstraints(ContactManifold& manifold) {
+    for (ContactPoint& contact : manifold.contacts) {
+        float correction = std::max(contact.penetration - slop, 0.0f);
+        correction *= baumgarte;
+        
+        // Apply position correction proportional to inverse mass
+        // Move bodies apart along contact normal
+    }
+}
+```
+
+### Constraint Types
+
+**Distance Constraint**:
+- Fixed distance between two points
+- Error: `error = distance(current, target) - restLength`
+- Jacobian: direction vector
+
+**Hinge Constraint**:
+- Fixed angle around one axis
+- Error: `error = angle(current, target) - restAngle`
+- Jacobian: axis vector
+
+**Spherical (Ball Socket) Constraint**:
+- Fixed distance, free rotation
+- Same as distance constraint
+
+**Fixed Constraint**:
+- Fixed position and rotation
+- Zero velocity and angular velocity
+
+**Slider (Prismatic) Constraint**:
+- Free movement along one axis
+- Locked movement on other axes
 
 ---
 
-## Phase 7: Physics World and Bodies
+## Joints
 
-**Location:** `shared/engine/include/core/physics/world/`
+### Distance Joint
 
-Physics world manages simulation, bodies, and integration.
+**Production Features**:
+- Connects two bodies at fixed distance
+- Spring-damper optional
+- Breakable threshold
+- Soft limit enforcement
 
-### Physics World
+### Hinge Joint
 
-**Responsibilities:**
-- Add/remove bodies
-- Step simulation (fixed timestep)
-- Manage gravity
-- Broadphase integration
-- Narrowphase integration
-- Solver integration
-- Sleeping management
-- Island management
+**Production Features**:
+- Rotation around one axis
+- Lower and upper angle limits
+- Motor for driven rotation
+- Spring-damper for compliance
+
+### Spherical Joint
+
+**Production Features**:
+- Ball-and-socket connection
+- Free rotation in all axes
+- Cone limit optional
+- Spring-damper for compliance
+
+### Fixed Joint
+
+**Production Features**:
+- Completely locks relative transform
+- Used for rigid assemblies
+- Zero degrees of freedom
+
+---
+
+## Physics World and Rigid Body System
 
 ### Rigid Body
 
-**Responsibilities:**
-- Store state (position, rotation, velocity, mass)
-- Apply forces/torques
-- Update position/velocity (integration)
-- Collision shape reference
-- Material reference
+**Production Features**:
+- Position, linear velocity, angular velocity
+- Rotation (quaternion)
+- Mass, inverse mass
+- Inertia tensor, inverse inertia tensor
+- Collision layer and mask
+- Static/kinematic/dynamic flags
+- Sleeping state
+- User data handle
 
-### Integration
-
-**Semi-Implicit Euler:**
+**Body Handle System**:
 ```cpp
-velocity += (force / mass) * dt
-position += velocity * dt
+struct BodyHandle {
+    uint32_t index;
+    uint32_t generation;
+};
+
+// Generation validation prevents stale handles
+bool isValid(BodyHandle handle) const {
+    return handle.generation == generations[handle.index];
+}
 ```
 
-- Preserves energy better than explicit Euler
-- Standard in games (Box2D, Jolt, PhysX)
-- Small phase error
+### Physics World
 
-**Velocity Verlet:**
-- More accurate
-- More expensive
-- Option for high precision
+**Production Features**:
+- Fixed timestep simulation with accumulator
+- Semi-implicit Euler integration
+- Broadphase manager
+- Narrowphase manager
+- Constraint solver
+- Body storage with handles
+- Event callbacks
+- Query interfaces
 
-### Structure
-
-```
-world/
-├── world.h                   # Physics world
-├── world.cpp                 # World implementation
-├── rigid_body.h              # Rigid body
-├── rigid_body.cpp            # Body implementation
-├── body_state.h              # Body state struct
-├── body_state.cpp
-├── integration.h             # Integration methods
-├── integration.cpp
-├── island.h                  # Sleeping island
-├── island.cpp                # Island management
-├── world_config.h            # World configuration
-└── world_config.cpp
-```
-
-### World Configuration
-
-**Parameters:**
-- Gravity (Vector3, default -9.81)
-- Timestep (Float, default 1/60)
-- Max substeps (Int, default 8)
-- Broadphase type (Enum)
-- Solver iterations (Int)
-- Sleeping enabled (Boolean)
-
----
-
-## Phase 8: Sleeping and Island Management
-
-**Location:** `shared/engine/include/core/physics/sleeping/`
-
-Sleeping reduces work for stable bodies by grouping them into islands.
-
-### Sleeping Logic
-
-**Sleep Threshold:**
-- Bodies with velocity below threshold can sleep
-- Threshold configurable per body
-
-**Sleep Time:**
-- Bodies must be below threshold for time before sleeping
-- Time configurable per body
-
-**Islands:**
-- Group of connected bodies (contacts, joints)
-- If any body in island wakes, all wake
-- Parallelize islands across threads
-
-### Structure
-
-```
-sleeping/
-├── island.h                  # Island class
-├── island.cpp
-├── island_manager.h          # Island manager
-├── island_manager.cpp
-├── sleep_tracker.h           # Track sleep time
-├── sleep_tracker.cpp
-└── wake_policy.h             # Wake conditions
+**Simulation Loop**:
+```cpp
+void World::step(float deltaTime) {
+    static float accumulator = 0.0f;
+    accumulator += deltaTime;
+    
+    while (accumulator >= fixedDeltaTime) {
+        float dt = fixedDeltaTime;
+        
+        // Integration
+        integrateVelocities(dt);
+        
+        // Collision detection
+        updateBroadphase();
+        detectCollisions();
+        
+        // Constraint solving
+        solveConstraints(dt);
+        
+        // Position integration
+        integratePositions(dt);
+        
+        accumulator -= dt;
+    }
+}
 ```
 
 ---
 
-## Phase 9: Continuous Collision Detection (CCD)
+## Sleeping and Island Management
 
-**Location:** `shared/engine/include/core/physics/ccd/`
+### Sleeping
 
-CCD prevents tunneling for fast-moving bodies.
+**Production Features**:
+- Sleep threshold (velocity-based)
+- Sleep timer
+- Force threshold (keep sleeping if forces are small)
+- Auto-sleep
+- Manual wake-up on interaction
 
-### CCD Methods
-
-**Speculative CCD:**
-- Increase AABB based on motion
-- Generate potential contacts
-- Feed to solver
-- Fast, but can cause ghost collisions
-
-**Swept CCD:**
-- Sweep shape from old to new position
-- Compute time of impact (TOI)
-- Move to TOI, then substep
-- More accurate, more expensive
-- Linear sweep (translational)
-- Non-linear sweep (rotational + translational)
-
-### Structure
-
-```
-ccd/
-├── ccd.h                     # CCD interface
-├── ccd.cpp                   # CCD factory
-├── speculative_ccd.h         # Speculative CCD
-├── speculative_ccd.cpp
-├── swept_ccd.h               # Swept CCD
-├── swept_ccd.cpp
-├── time_of_impact.h          # TOI computation
-├── time_of_impact.cpp
-├── swept_sphere.h            # Swept sphere (fast path)
-└── swept_sphere.cpp
+**Sleep Conditions**:
+```cpp
+bool shouldSleep(RigidBody& body) {
+    if (!body.isSleepingEnabled) return false;
+    if (body.getVelocity().length() < sleepThreshold) {
+        body.sleepTimer += deltaTime;
+        return body.sleepTimer > sleepTime;
+    }
+    body.sleepTimer = 0.0f;
+    return false;
+}
 ```
 
-### CCD Configuration
+### Island Management
 
-**Parameters:**
-- CCD enabled (per body)
-- Motion threshold (velocity to enable CCD)
-- Swept sphere radius (for fast path)
-- Max CCD substeps
-- Linear vs non-linear
+**Production Features**:
+- Graph-based island construction
+- Connected bodies form islands
+- Static bodies are boundary nodes
+- Island-local solving
+- Wake propagation through graph
+- Island-level sleep
+
+**Island Graph**:
+```cpp
+struct Island {
+    std::vector<BodyHandle> bodies;
+    bool isSleeping;
+    float sleepTimer;
+};
+
+void buildIslands() {
+    // Build graph from contacts
+    // Find connected components
+    // Create islands
+    // Solve each island independently
+}
+```
 
 ---
 
-## Phase 10: Character Controller
+## Continuous Collision Detection (CCD)
 
-**Location:** `shared/engine/include/core/physics/character/`
+### Speculative Contacts
 
-Character controller for player/NPC movement.
+**Production Features**:
+- Extrude shapes along velocity
+- Test for intersection at TOI (time of impact)
+- Apply contact at TOI
+- Reduce simulation instability for fast-moving objects
 
-### Character Controller Types
-
-**Kinematic Character Controller:**
-- Movement computed outside physics
-- Uses collision detection only
-- Slide, step up/down
-- More expensive, more control
-- Collide and slide algorithm
-
-**Dynamic Character Controller:**
-- Modeled as rigid body
-- Physics simulation computes movement
-- Faster, less control
-- Set velocity directly
-
-### Structure
-
-```
-character/
-├── character_controller.h    # Base controller
-├── character_controller.cpp
-├── kinematic_controller.h   # Kinematic controller
-├── kinematic_controller.cpp
-├── dynamic_controller.h      # Dynamic controller
-├── dynamic_controller.cpp
-├── capsule_shape.h          # Character capsule
-├── capsule_shape.cpp
-├── slide.h                   # Slide algorithm
-├── slide.cpp
-├── step_up.h                 # Step up algorithm
-├── step_up.cpp
-├── step_down.h               # Step down algorithm
-└── step_down.cpp
+**CCD Configuration**:
+```cpp
+struct CCDConfig {
+    bool enabled = true;
+    float motionThreshold = 0.1f;   // Velocity threshold
+    float maxSubsteps = 4;           // Maximum CCD iterations
+    float timeBudget = 0.002f;       // Maximum CCD time per frame
+};
 ```
 
-### Character Controller Properties
+### Swept Sphere
 
-**Kinematic:**
-- Capsule shape (radius, height)
-- Move speed
-- Jump force
-- Gravity
+**Production Features**:
+- Ray-cast with radius
+- Cheap approximation for complex shapes
+- Good for character controllers
+- Fast sweep along velocity vector
+
+---
+
+## Character Controller
+
+### Kinematic Character Controller
+
+**Production Features**:
+- Capsule collision shape
+- Collide-and-slide movement
 - Slope limit (max walkable slope)
-- Step height (max step height)
-- Collision layer/mask
+- Step offset (step up stairs)
+- Ground detection
+- Moving platform handling
+- Auto-step
 
-**Dynamic:**
-- Rigid body with locked rotation
-- Capsule shape
-- Velocity directly set
-- Friction control
-
----
-
-## Phase 11: Ragdoll System
-
-**Location:** `shared/engine/include/core/physics/ragdoll/`
-
-Ragdoll for articulated characters.
-
-### Ragdoll Structure
-
-**Skeleton:**
-- Hierarchical bone structure
-- Joint types between bones
-- Rest poses
-
-**Ragdoll:**
-- Collection of rigid bodies (one per bone)
-- Collection of constraints (joints between bones)
-- Driven by animation or physics
-
-### Stabilization
-
-**Constraint Priorities:**
-- Higher priority for root (hips)
-- Lower priority for leaves (fingers)
-- Improves solver convergence
-
-**Mass Ratios:**
-- Limit mass ratios between connected bodies
-- Prevent numerical instability
-
-### Structure
-
-```
-ragdoll/
-├── ragdoll.h                 # Ragdoll class
-├── ragdoll.cpp
-├── ragdoll_settings.h        # Ragdoll blueprint
-├── ragdoll_settings.cpp
-├── skeleton.h                # Skeleton structure
-├── skeleton.cpp
-├── skeleton_pose.h           # Pose data
-├── skeleton_pose.cpp
-├── part.h                    # Single ragdoll part
-├── part.cpp
-├── additional_constraint.h   # Extra constraints
-├── additional_constraint.cpp
-├── stabilization.h           # Stabilization methods
-├── stabilization.cpp
-└── drive_to_pose.h           # Motor control
+**Collide-and-Slide**:
+```cpp
+Vector3 collideAndSlide(Vector3 velocity, float deltaTime) {
+    Vector3 newPos = position + velocity * deltaTime;
+    
+    // Test for collisions
+    ContactManifold manifold;
+    if (detectCollision(newPos, manifold)) {
+        // Project velocity onto contact plane
+        Vector3 tangent = velocity - manifold.normal * velocity.dot(manifold.normal);
+        velocity = tangent;
+        
+        // Apply friction
+        velocity *= (1.0f - friction);
+    }
+    
+    return velocity;
+}
 ```
 
 ---
 
-## Phase 12: Vehicle Physics
+## Ragdoll System
 
-**Location:** `shared/engine/include/core/physics/vehicle/`
+### Articulated Bodies
 
-Vehicle physics for cars, bikes, etc.
+**Production Analytics**:
+- Reduced-coordinate constraints
+- Joint limits and motors
+- Constraint prioritization
+- Mass distribution
+- Damping and springs
 
-### Vehicle Components
+### Constraints
 
-**Raycast Vehicle:**
-- Wheels are raycasts
-- Fast, simple
-- Good for arcade games
-
-**Constraint Vehicle:**
-- Wheels are rigid bodies with suspension joints
-- More realistic
-- More expensive
-
-### Structure
-
-```
-vehicle/
-├── vehicle.h                 # Vehicle base
-├── vehicle.cpp
-├── raycast_vehicle.h         # Raycast vehicle
-├── raycast_vehicle.cpp
-├── constraint_vehicle.h      # Constraint vehicle
-├── constraint_vehicle.cpp
-├── wheel.h                   # Wheel
-├── wheel.cpp
-├── suspension.h              # Suspension
-├── suspension.cpp
-├── engine.h                  # Engine
-├── engine.cpp
-├── transmission.h            # Transmission
-└── transmission.cpp
-```
+**Production Features**:
+- Ball-socket joints (spherical)
+- Hinge joints (one-axis rotation)
+- Universal joints (two-axis rotation)
+- Prismatic joints (sliding)
+- Motors for driven motion
+- Spring-damper for compliance
 
 ---
 
-## Phase 13: Raycasting and Triggers
+## Vehicle Physics
 
-**Location:** `shared/engine/include/core/physics/query/`
+### Raycast Vehicle
 
-Spatial queries for gameplay.
+**Production Features**:
+- Raycast wheels for suspension
+- Suspension springs and dampers
+- Tire friction model
+- Engine torque
+- Steering
+- Braking
+
+### Suspension Model
+
+**Production Features**:
+- Spring-damper system
+- Anti-roll bars
+- Limited travel
+- Force distribution
+
+---
+
+## Raycasting and Triggers
 
 ### Raycasting
 
-**Raycast:**
-- Cast ray from point in direction
-- Return hit or not
-- First hit or all hits
-
-**Raycast Result:**
-- Hit position
-- Hit normal
-- Hit body
-- Distance
+**Production Features**:
+- Raycast against all shapes
+- Closest hit
+- Multiple hits (optional)
+- Filter by collision layer
+- Report normal and penetration
 
 ### Triggers
 
-**Trigger Volumes:**
-- Non-physical colliders
-- Detect overlap events
-- No collision response
-
-### Structure
-
-```
-query/
-├── raycast.h                 # Raycast interface
-├── raycast.cpp
-├── raycast_result.h          # Result struct
-├── raycast_result.cpp
-├── sphere_cast.h             # Sphere cast
-├── sphere_cast.cpp
-├── box_cast.h                # Box cast
-├── box_cast.cpp
-├── overlap_query.h           # Overlap queries
-├── overlap_query.cpp
-├── trigger.h                 # Trigger volume
-├── trigger.cpp
-└── trigger_manager.h         # Trigger event system
-```
+**Production Features**:
+- Sensor volumes
+- No physical response
+- Event callbacks
+- Layer-based filtering
+- Enter/exit events
 
 ---
 
-## Phase 14: Debug Visualization
+## Debug Visualization
 
-**Location:** `shared/engine/include/core/physics/debug/`
+### Debug Draw
 
-Debug rendering for physics objects.
-
-### Visualization
-
-**Draw:**
-- AABBs (broadphase)
-- Collision shapes
-- Contact points and normals
-- Constraints and joints
-- Sleeping islands
-- CCD sweeps
-
-### Structure
-
-```
-debug/
-├── debug_draw.h              # Debug draw interface
-├── debug_draw.cpp
-├── shape_visualizer.h        # Shape visualization
-├── shape_visualizer.cpp
-├── contact_visualizer.h      # Contact visualization
-├── contact_visualizer.cpp
-├── constraint_visualizer.h   # Constraint visualization
-└── constraint_visualizer.cpp
-```
+**Production Features**:
+- Wireframe shapes
+- Contact points
+- Contact normals
+- AABB visualization
+- Island visualization
+- Sleep state visualization
+- Performance metrics
 
 ---
 
-## Implementation Order
+## Numerical Robustness
 
-### Phase 1: Physics Component (Current)
-1. Physics component header with all properties
-2. Fine-grained source files for each subsystem
-3. Physics math module (Vector3, Matrix3x3, Quaternion, Bounds)
-4. Component registration
-5. Unit tests
-6. CMake integration
-7. Build and verify
+### Tolerance Guidelines
 
-### Phase 2: Physics Math Module
-1. Vector3 implementation
-2. Matrix3x3 implementation
-3. Quaternion implementation
-4. Matrix4x4 implementation
-5. Bounds implementation
-6. SIMD optimizations
-7. Unit tests
+**Absolute Tolerances**:
+- `VELOCITY_EPSILON = 1e-6f` m/s
+- `POSITION_EPSILON = 1e-4f` m
+- `ANGLE_EPSILON = 1e-4f` rad
+- `MASS_EPSILON = 1e-6f` kg
 
-### Phase 3: Collision Shapes
-1. Shape base class
-2. Sphere shape
-3. Box shape
-4. Capsule shape
-5. Plane shape
-6. Convex hull
-7. Triangle mesh
-8. Unit tests
+**Relative Tolerances**:
+- `RELATIVE_EPSILON = 1e-4f` (0.01% of value)
+- Used for comparisons with varying scales
 
-### Phase 4: Broadphase
-1. Collision pair struct
-2. Sweep and prune (1-axis)
-3. Sweep and prune (3-axis)
-4. Dynamic AABB tree
-5. Spatial grid
-6. Multi-box pruning
-7. Unit tests and benchmarks
+### NaN/Inf Handling
 
-### Phase 5: Narrowphase
-1. Contact manifold
-2. GJK implementation
-3. SAT implementation
-4. Sphere-sphere collision
-5. Sphere-box collision
-6. Box-box collision
-7. Capsule-capsule collision
-8. Convex-convex collision
-9. Unit tests
+**Policy**:
+- Check for NaN/Inf after each operation
+- Replace NaN with zero or default value
+- Log warnings for Inf values
+- Fallback to safe state on numerical error
 
-### Phase 6: Constraint Solver
-1. Sequential impulse solver
-2. Contact constraint
-3. Distance joint
-4. Hinge joint
-5. Spherical joint
-6. Fixed joint
-7. Warm starting
-8. Unit tests
+### Precision Loss Prevention
 
-### Phase 7: Physics World
-1. Rigid body
-2. Body state
-3. Integration (semi-implicit Euler)
-4. Physics world
-5. World configuration
-6. Unit tests
+**Techniques**:
+- Use relative velocities when possible
+- Accumulate impulses in higher precision
+- Reorder operations to minimize cancellation
+- Use compensated summation for critical paths
 
-### Phase 8: Sleeping
-1. Island management
-2. Sleep tracker
-3. Wake policy
-4. Integration with world
-5. Unit tests
+---
 
-### Phase 9: CCD
-1. Speculative CCD
-2. Swept CCD (linear)
-3. Swept CCD (non-linear)
-4. Time of impact
-5. Integration with world
-6. Unit tests
+## Performance Optimization
 
-### Phase 10: Character Controller
-1. Kinematic controller
-2. Dynamic controller
-3. Slide algorithm
-4. Step up/down
-5. Unit tests
+### SIMD Vectorization
 
-### Phase 11: Ragdoll
-1. Skeleton structure
-2. Ragdoll settings
-3. Ragdoll instance
-4. Stabilization
-5. Motor control
-6. Unit tests
+**Strategy**:
+- Use SoA layout for hot paths
+- Implement SIMD operations for:
+  - Vector operations (add, sub, mul, dot, cross)
+  - Matrix operations (mul, transpose)
+  - AABB tests
+- Use compiler intrinsics or portable SIMD libraries
 
-### Phase 12: Vehicle
-1. Raycast vehicle
-2. Constraint vehicle
-3. Wheel and suspension
-4. Engine and transmission
-5. Unit tests
+### Cache Optimization
 
-### Phase 13: Raycasting and Triggers
-1. Raycast
-2. Sphere cast
-3. Box cast
-4. Overlap queries
-5. Trigger volumes
-6. Unit tests
+**Strategy**:
+- Store related data contiguously
+- Use struct-of-arrays for body arrays
+- Prefetch data for predictable access patterns
+- Minimize pointer chasing
 
-### Phase 14: Debug Visualization
-1. Debug draw interface
-2. Shape visualizer
-3. Contact visualizer
-4. Constraint visualizer
-5. Integration with renderer
+### Job System Integration
+
+**Strategy**:
+- Parallel broadphase updates
+- Parallel narrowphase tests
+- Parallel constraint solving (within islands)
+- Job dependencies for simulation stages
+
+### Memory Pooling
+
+**Strategy**:
+- Pool allocations for:
+  - Contact manifolds
+  - Tree nodes
+  - Constraint allocations
+- Avoid fragmentation
+- Reduce allocation overhead
+
+---
+
+## Testing Strategy
+
+### Unit Tests
+
+**Coverage**:
+- Math correctness: Vector3, Matrix3x3, Quaternion operations
+- Shape calculations: Volume, mass, inertia
+- Collision detection: All shape pairs
+- Solver: Constraint resolution
+- Integration: Velocity, position integration
+
+**Property-Based Tests**:
+- Associativity: `(A + B) + C = A + (B + C)`
+- Distributivity: `A × (B + C) = A × B + A × C`
+- Identity: `A × I = A`, `I × A = A`
+- Inverse: `A × A⁻¹ ≈ I`
+- Determinant: `det(A × B) = det(A) × det(B)`
+
+### Integration Tests
+
+**Scenarios**:
+- Stacking test (10, 100, 1000 boxes)
+- Pendulum test (energy conservation)
+- Rolling sphere test (friction)
+- Collision response test (restitution)
+- Character controller (slopes, steps)
+
+### Regression Tests
+
+**Policy**:
+- Fix test cases for discovered bugs
+- Run full test suite before commits
+- Benchmark performance over time
+- Detect performance regressions
+
+### Stress Tests
+
+**Scenarios**:
+- 10,000 bodies in simulation
+- Deep stacks (50+ bodies)
+- Fast-moving objects (CCD test)
+- Large scenes (broadphase scalability)
+- Long-running stability (10+ minutes)
+
+---
+
+## Implementation Priority
+
+### Phase 1: Core Foundation (Current)
+- [x] Physics Math Module (Vector3, Matrix3x3, Quaternion, AABB)
+- [x] Collision Shapes (Sphere, Box, Capsule, Plane)
+- [x] Broadphase (Dynamic AABB Tree)
+- [x] Narrowphase (Sphere-Sphere, Sphere-Box, Box-Box)
+- [x] Sequential Impulse Solver
+- [x] Physics World and Rigid Body System
+
+### Phase 2: Production Validation
+- [x] Fix all math bugs (cross-product matrix corrected)
+- [x] Add numerical robustness (tryInverse, tolerances)
+- [ ] Add orthonormal validation
+- [ ] Add comprehensive tests
+- [ ] Property-based testing
+- [ ] Integration tests
+- [ ] Stress tests
+
+### Phase 3: Advanced Features (15% AAA)
+- [ ] Sleeping and Island Management
+- [ ] CCD (Speculative Contacts, Swept Sphere)
+- [ ] Character Controller
+- [ ] Ragdoll System
+- [ ] Vehicle Physics
+- [ ] Raycasting and Triggers
+- [ ] Debug Visualization
+
+### Phase 4: Optimization
+- [ ] SIMD vectorization
+- [ ] Cache optimization (SoA layout)
+- [ ] Job system integration
+- [ ] Memory pooling
+- [ ] Performance profiling
+- [ ] Benchmark suite
 
 ---
 
 ## References
 
-**Research Sources:**
-- Box2D (Erin Catto) - Sequential impulse solver
-- Jolt Physics (Jorrit Rouwe) - Modern architecture, SIMD, lock-free broadphase
-- PhysX (NVIDIA) - MBP, CCD, character controllers
-- Bullet (Erwin Coumans) - Sequential impulse, SIMD
-- Havok - Joint types, articulations
-- DigitalRune - Character controllers
-- Unity Physics - CCD methods
-
-**Papers:**
-- "Iterative Dynamics with Temporal Coherence" (Erin Catto, GDC 2005)
-- "Stop my Constraints from Blowing Up!" (Oliver Strunk)
-- "Comparison between Projected Gauss Seidel and Sequential Impulse Solvers"
-
-**Documentation:**
-- Unity Physics Manual
+### Research Sources
 - PhysX Documentation
-- Jolt Physics Documentation
-- Bullet Physics Wiki
+- Jolt Physics Source Code
+- Bullet Physics Source Code
+- Unity Physics Source Code
+- Havok Physics Concepts
+- Newton Physics Source Code
+- Erin Catto's GDC Presentations
+- Box2D Source Code
+- Real-Time Collision Detection (Christer Ericson)
+- Game Physics Engine Development (Ian Millington)
+
+### Key Papers
+- "Iterative Dynamics with Temporal Coherence" (Erin Catto)
+- "Rigid Body Dynamics" (Kenny Erleben)
+- "Continuous Collision Detection" (Young Kim)
+- "Stable Contacts" (Erin Catto)
+- "Modeling and Solving Constraints" (Erin Catto)
+
+---
+
+## Conclusion
+
+This plan provides a comprehensive roadmap for building a production-quality physics engine targeting Indie A (100%), Double A (100%), and selected Triple A (15%) features. The emphasis is on numerical robustness, performance optimization, and extensive testing to ensure the physics system is trustworthy for production use.

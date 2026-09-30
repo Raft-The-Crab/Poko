@@ -50,8 +50,8 @@ public:
     // Constants
     // ============================================================================
     
-    static const Quaternion IDENTITY;
-    static const Quaternion ZERO;
+    static constexpr Quaternion identity() noexcept { return Quaternion{1.0f, 0.0f, 0.0f, 0.0f}; }
+    static constexpr Quaternion zero() noexcept { return Quaternion{0.0f, 0.0f, 0.0f, 0.0f}; }
     
     // ============================================================================
     // Constructors
@@ -186,7 +186,7 @@ public:
         if (len > 0.0001f) {
             return *this / len;
         }
-        return IDENTITY;
+        return identity();
     }
     
     /**
@@ -217,7 +217,7 @@ public:
         if (lenSq > 0.0001f) {
             return conjugate() / lenSq;
         }
-        return IDENTITY;
+        return identity();
     }
     
     /**
@@ -299,7 +299,7 @@ public:
         if (sinHalf > 0.0001f) {
             return Vector3(x, y, z) / sinHalf;
         }
-        return Vector3::UP;
+        return Vector3::up();
     }
     
     /**
@@ -318,8 +318,5 @@ public:
 } // namespace components
 } // namespace core
 } // namespace poko
-
-// Include inline implementations
-#include "quaternion.inl"
 
 #endif // POKO_CORE_COMPONENTS_PHYSICS_MATH_QUATERNION_H

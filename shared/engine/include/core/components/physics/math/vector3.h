@@ -44,14 +44,14 @@ public:
     // Constants
     // ============================================================================
     
-    static const Vector3 ZERO;
-    static const Vector3 ONE;
-    static const Vector3 UP;
-    static const Vector3 DOWN;
-    static const Vector3 FORWARD;
-    static const Vector3 BACK;
-    static const Vector3 RIGHT;
-    static const Vector3 LEFT;
+    static constexpr Vector3 zero() noexcept { return Vector3{0.0f, 0.0f, 0.0f}; }
+    static constexpr Vector3 one() noexcept { return Vector3{1.0f, 1.0f, 1.0f}; }
+    static constexpr Vector3 up() noexcept { return Vector3{0.0f, 1.0f, 0.0f}; }
+    static constexpr Vector3 down() noexcept { return Vector3{0.0f, -1.0f, 0.0f}; }
+    static constexpr Vector3 forward() noexcept { return Vector3{0.0f, 0.0f, 1.0f}; }
+    static constexpr Vector3 back() noexcept { return Vector3{0.0f, 0.0f, -1.0f}; }
+    static constexpr Vector3 right() noexcept { return Vector3{1.0f, 0.0f, 0.0f}; }
+    static constexpr Vector3 left() noexcept { return Vector3{-1.0f, 0.0f, 0.0f}; }
     
     // ============================================================================
     // Constructors
@@ -197,7 +197,7 @@ public:
         if (len > 0.0001f) {
             return *this / len;
         }
-        return ZERO;
+        return zero();
     }
     
     /**
@@ -286,8 +286,5 @@ inline Vector3 operator*(float scalar, const Vector3& vec) noexcept {
 } // namespace components
 } // namespace core
 } // namespace poko
-
-// Include inline implementations
-#include "vector3.inl"
 
 #endif // POKO_CORE_COMPONENTS_PHYSICS_MATH_VECTOR3_H

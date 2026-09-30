@@ -50,8 +50,21 @@ public:
     // Constants
     // ============================================================================
     
-    static const Matrix3x3 ZERO;
-    static const Matrix3x3 IDENTITY;
+    static constexpr Matrix3x3 zero() noexcept {
+        return Matrix3x3{
+            0.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 0.0f
+        };
+    }
+    
+    static constexpr Matrix3x3 identity() noexcept {
+        return Matrix3x3{
+            1.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 1.0f
+        };
+    }
     
     // ============================================================================
     // Constructors
@@ -185,11 +198,12 @@ public:
     /**
      * @brief Inverse (for inertia tensor inversion)
      * Returns zero matrix if determinant is zero
+     * For production, use tryInverse for better numerical handling
      */
     [[nodiscard]] Matrix3x3 inverse() const noexcept {
         float det = determinant();
         if (std::abs(det) < 0.0001f) {
-            return ZERO;
+            return zero();
         }
         
         float invDet = 1.0f / det;
@@ -210,14 +224,46 @@ public:
     }
     
     /**
+     * @brief Try inverse with numerical safety
+     * @param result Output matrix
+     * @param epsilon Numerical tolerance
+     * @return True if inverse exists and is well-conditioned
+     */
+    [[nodiscard]] bool tryInverse(Matrix3x3& result, float epsilon = 0.0001f) const noexcept {
+        float det = determinant();
+        if (std::abs(det) < epsilon) {
+            return false;
+        }
+        
+        float invDet = 1.0f / det;
+        
+        result = Matrix3x3(
+            (m04 * m08 - m05 * m07) * invDet,
+            (m02 * m07 - m01 * m08) * invDet,
+            (m01 * m05 - m02 * m04) * invDet,
+            
+            (m05 * m06 - m03 * m08) * invDet,
+            (m00 * m08 - m02 * m06) * invDet,
+            (m02 * m03 - m00 * m05) * invDet,
+            
+            (m03 * m07 - m04 * m06) * invDet,
+            (m01 * m06 - m00 * m07) * invDet,
+            (m00 * m04 - m01 * m03) * invDet
+        );
+        
+        return true;
+    }
+    
+    /**
      * @brief Create cross product matrix from vector
      * Used for angular velocity calculations: ω × r = [ω]× * r
+     * Note: For column-major layout, this produces the correct cross-product matrix
      */
     static Matrix3x3 crossProductMatrix(const Vector3& vec) noexcept {
         return Matrix3x3(
-            0.0f, -vec.z, vec.y,
-            vec.z, 0.0f, -vec.x,
-            -vec.y, vec.x, 0.0f
+            0.0f, vec.z, -vec.y,
+            -vec.z, 0.0f, vec.x,
+            vec.y, -vec.x, 0.0f
         );
     }
     
@@ -257,8 +303,5 @@ public:
 } // namespace components
 } // namespace core
 } // namespace poko
-
-// Include inline implementations
-#include "matrix3x3.inl"
 
 #endif // POKO_CORE_COMPONENTS_PHYSICS_MATH_MATRIX3X3_H
