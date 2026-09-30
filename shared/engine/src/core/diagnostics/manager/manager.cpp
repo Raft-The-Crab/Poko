@@ -47,11 +47,18 @@ DiagnosticsManager::~DiagnosticsManager() {
 }
 
 bool DiagnosticsManager::registerHandler(DiagnosticHandler handler) {
+    // Validate handler is not null
     if (!handler) {
         return false;
     }
     
     std::lock_guard<std::mutex> lock(m_mutex);
+    
+    // Validate handler limit
+    if (m_handlers.size() >= MAX_DIAGNOSTIC_HANDLERS) {
+        return false;
+    }
+    
     m_handlers.push_back(handler);
     return true;
 }
@@ -258,7 +265,7 @@ std::vector<DiagnosticMessage> DiagnosticsManager::getHistory() const {
     return m_history;
 }
 
-void DiagnosticsManager::clearHistory() {
+void DiagnosticsManager::clearHistory() noexcept {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_history.clear();
 }

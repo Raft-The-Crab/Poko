@@ -75,59 +75,105 @@ public:
     /**
      * @brief Register a diagnostic handler
      * @param handler Handler function to register
-     * @returns true if successful, false otherwise
+     * @returns true if successful, false if handler is null or maximum handler limit reached
+     * @note Thread-safe: Acquires mutex lock
      */
     bool registerHandler(DiagnosticHandler handler);
     
     /**
      * @brief Unregister all handlers
+     * @note Thread-safe: Acquires mutex lock
      */
     void unregisterAllHandlers();
     
     /**
      * @brief Report a diagnostic message
      * @param severity Message severity
-     * @param category Message category
-     * @param message Message text
-     * @param file Source file (optional)
+     * @param category Message category (must be non-empty and <= MAX_CATEGORY_NAME_LENGTH)
+     * @param message Message text (must be non-empty and <= MAX_DIAGNOSTIC_MESSAGE_LENGTH)
+     * @param file Source file (optional, must be <= MAX_FILEPATH_LENGTH)
      * @param line Source line (optional)
-     * @param function Function name (optional)
+     * @param function Function name (optional, must be <= MAX_FUNCTION_NAME_LENGTH)
+     * @note Thread-safe: Acquires mutex lock
+     * @note Invalid inputs (empty strings, length limits exceeded) are silently rejected
      */
     void report(Severity severity, const std::string& category, const std::string& message,
              const std::string& file = "", uint32_t line = 0, const std::string& function = "");
     
     /**
      * @brief Report a debug message
+     * @param category Message category (must be non-empty and <= MAX_CATEGORY_NAME_LENGTH)
+     * @param message Message text (must be non-empty and <= MAX_DIAGNOSTIC_MESSAGE_LENGTH)
+     * @param file Source file (optional, must be <= MAX_FILEPATH_LENGTH)
+     * @param line Source line (optional)
+     * @param function Function name (optional, must be <= MAX_FUNCTION_NAME_LENGTH)
+     * @note Thread-safe: Acquires mutex lock
+     * @note Invalid inputs are silently rejected
      */
     void debug(const std::string& category, const std::string& message,
              const std::string& file = "", uint32_t line = 0, const std::string& function = "");
     
     /**
      * @brief Report an info message
+     * @param category Message category (must be non-empty and <= MAX_CATEGORY_NAME_LENGTH)
+     * @param message Message text (must be non-empty and <= MAX_DIAGNOSTIC_MESSAGE_LENGTH)
+     * @param file Source file (optional, must be <= MAX_FILEPATH_LENGTH)
+     * @param line Source line (optional)
+     * @param function Function name (optional, must be <= MAX_FUNCTION_NAME_LENGTH)
+     * @note Thread-safe: Acquires mutex lock
+     * @note Invalid inputs are silently rejected
      */
     void info(const std::string& category, const std::string& message,
              const std::string& file = "", uint32_t line = 0, const std::string& function = "");
     
     /**
      * @brief Report a warning message
+     * @param category Message category (must be non-empty and <= MAX_CATEGORY_NAME_LENGTH)
+     * @param message Message text (must be non-empty and <= MAX_DIAGNOSTIC_MESSAGE_LENGTH)
+     * @param file Source file (optional, must be <= MAX_FILEPATH_LENGTH)
+     * @param line Source line (optional)
+     * @param function Function name (optional, must be <= MAX_FUNCTION_NAME_LENGTH)
+     * @note Thread-safe: Acquires mutex lock
+     * @note Invalid inputs are silently rejected
      */
     void warning(const std::string& category, const std::string& message,
                 const std::string& file = "", uint32_t line = 0, const std::string& function = "");
     
     /**
      * @brief Report an error message
+     * @param category Message category (must be non-empty and <= MAX_CATEGORY_NAME_LENGTH)
+     * @param message Message text (must be non-empty and <= MAX_DIAGNOSTIC_MESSAGE_LENGTH)
+     * @param file Source file (optional, must be <= MAX_FILEPATH_LENGTH)
+     * @param line Source line (optional)
+     * @param function Function name (optional, must be <= MAX_FUNCTION_NAME_LENGTH)
+     * @note Thread-safe: Acquires mutex lock
+     * @note Invalid inputs are silently rejected
      */
     void error(const std::string& category, const std::string& message,
                const std::string& file = "", uint32_t line = 0, const std::string& function = "");
     
     /**
      * @brief Report a fatal error message
+     * @param category Message category (must be non-empty and <= MAX_CATEGORY_NAME_LENGTH)
+     * @param message Message text (must be non-empty and <= MAX_DIAGNOSTIC_MESSAGE_LENGTH)
+     * @param file Source file (optional, must be <= MAX_FILEPATH_LENGTH)
+     * @param line Source line (optional)
+     * @param function Function name (optional, must be <= MAX_FUNCTION_NAME_LENGTH)
+     * @note Thread-safe: Acquires mutex lock
+     * @note Invalid inputs are silently rejected
      */
     void fatal(const std::string& category, const std::string& message,
                const std::string& file = "", uint32_t line = 0, const std::string& function = "");
     
     /**
      * @brief Report a trace message
+     * @param category Message category (must be non-empty and <= MAX_CATEGORY_NAME_LENGTH)
+     * @param message Message text (must be non-empty and <= MAX_DIAGNOSTIC_MESSAGE_LENGTH)
+     * @param file Source file (optional, must be <= MAX_FILEPATH_LENGTH)
+     * @param line Source line (optional)
+     * @param function Function name (optional, must be <= MAX_FUNCTION_NAME_LENGTH)
+     * @note Thread-safe: Acquires mutex lock
+     * @note Invalid inputs are silently rejected
      */
     void trace(const std::string& category, const std::string& message,
                const std::string& file = "", uint32_t line = 0, const std::string& function = "");
@@ -136,6 +182,8 @@ public:
      * @brief Enable/disable a specific severity level
      * @param severity Severity level to enable/disable
      * @param enabled true to enable, false to disable
+     * @note Thread-safe: Acquires mutex lock
+     * @note Invalid severity values are silently ignored
      */
     void setSeverityEnabled(Severity severity, bool enabled);
     
@@ -143,13 +191,18 @@ public:
      * @brief Check if a severity level is enabled
      * @param severity Severity level to check
      * @returns true if enabled, false otherwise
+     * @note Thread-safe: Acquires mutex lock
+     * @note Invalid severity values return false
      */
     bool isSeverityEnabled(Severity severity) const;
     
     /**
      * @brief Enable/disable a specific category
-     * @param category Category to enable/disable
+     * @param category Category to enable/disable (must be non-empty and <= MAX_CATEGORY_NAME_LENGTH)
      * @param enabled true to enable, false to disable
+     * @note Thread-safe: Acquires mutex lock
+     * @note Invalid category values are silently ignored
+     * @note When enabledCategories is empty, all categories are enabled
      */
     void setCategoryEnabled(const std::string& category, bool enabled);
     
@@ -157,28 +210,39 @@ public:
      * @brief Check if a category is enabled
      * @param category Category to check
      * @returns true if enabled, false otherwise
+     * @note Thread-safe: Acquires mutex lock
+     * @note Empty category returns false
+     * @note When enabledCategories is empty, all categories are enabled
      */
     bool isCategoryEnabled(const std::string& category) const;
     
     /**
      * @brief Get diagnostic message history
      * @returns Vector of diagnostic messages
+     * @note Thread-safe: Acquires mutex lock
+     * @note Returns a copy of the history for thread-safe access
      */
     std::vector<DiagnosticMessage> getHistory() const;
     
     /**
      * @brief Clear diagnostic history
+     * @note Thread-safe: Acquires mutex lock
      */
-    void clearHistory();
+    void clearHistory() noexcept;
     
     /**
      * @brief Set maximum history size
      * @param maxSize Maximum number of messages to keep
+     * @note Thread-safe: Acquires mutex lock
+     * @note If current history exceeds new limit, oldest messages are removed
      */
     void setMaxHistorySize(size_t maxSize);
     
     /**
      * @brief Get diagnostic statistics
+     * @returns Statistics structure with message counts
+     * @note Thread-safe: Acquires mutex lock
+     * @note Returns a copy of the statistics for thread-safe access
      */
     struct Statistics {
         uint64_t totalMessages;       ///< Total messages reported
@@ -262,6 +326,9 @@ constexpr size_t MAX_FILEPATH_LENGTH = 1024;
 
 /// Maximum function name length
 constexpr size_t MAX_FUNCTION_NAME_LENGTH = 256;
+
+/// Maximum number of handlers that can be registered
+constexpr size_t MAX_DIAGNOSTIC_HANDLERS = 100;
 
 } // namespace diagnostics
 } // namespace core

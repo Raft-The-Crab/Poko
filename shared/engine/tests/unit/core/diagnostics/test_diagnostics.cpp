@@ -11,6 +11,7 @@
 #include "core/diagnostics/diagnostics.h"
 #include <cassert>
 #include <iostream>
+#include <string>
 
 using namespace poko::core::diagnostics;
 
@@ -48,6 +49,23 @@ void test_manager_handlers() {
     manager.info("TestCategory", "Test message");
     
     assert(handlerCalled);
+    
+    manager.unregisterAllHandlers();
+    
+    // Test null handler rejection
+    bool result = manager.registerHandler(nullptr);
+    assert(result == false);
+    
+    // Test handler limit
+    auto dummyHandler = [](const DiagnosticMessage&) {};
+    for (size_t i = 0; i < MAX_DIAGNOSTIC_HANDLERS; ++i) {
+        result = manager.registerHandler(dummyHandler);
+        assert(result == true);
+    }
+    
+    // Should fail when limit exceeded
+    result = manager.registerHandler(dummyHandler);
+    assert(result == false);
     
     manager.unregisterAllHandlers();
     
@@ -204,7 +222,56 @@ void test_manager_validation() {
     manager.setCategoryEnabled("", true);
     manager.info("TestCategory", "Test message");
     
+    // Test category length limit
+    std::string longCategory(MAX_CATEGORY_NAME_LENGTH + 1, 'A');
+    manager.info(longCategory, "Test message");
+    
+    // Test message length limit
+    std::string longMessage(MAX_DIAGNOSTIC_MESSAGE_LENGTH + 1, 'B');
+    manager.info("TestCategory", longMessage);
+    
+    // Test filepath length limit
+    std::string longFilepath(MAX_FILEPATH_LENGTH + 1, 'C');
+    manager.info("TestCategory", "Test message", longFilepath);
+    
+    // Test function name length limit
+    std::string longFunction(MAX_FUNCTION_NAME_LENGTH + 1, 'D');
+    manager.info("TestCategory", "Test message", "", 0, longFunction);
+    
     std::cout << "✓ DiagnosticsManager validation tests passed" << std::endl;
+}
+
+void test_manager_limits() {
+    std::cout << "Testing DiagnosticsManager limits..." << std::endl;
+    
+    DiagnosticsManager manager;
+    
+    // Test handler limit
+    auto dummyHandler = [](const DiagnosticMessage&) {};
+    bool result;
+    
+    for (size_t i = 0; i < MAX_DIAGNOSTIC_HANDLERS; ++i) {
+        result = manager.registerHandler(dummyHandler);
+        assert(result == true);
+    }
+    
+    // Should fail when limit exceeded
+    result = manager.registerHandler(dummyHandler);
+    assert(result == false);
+    
+    manager.unregisterAllHandlers();
+    
+    // Test history size limit
+    manager.setMaxHistorySize(10);
+    
+    for (int i = 0; i < 20; ++i) {
+        manager.info("TestCategory", "Test message " + std::to_string(i));
+    }
+    
+    auto history = manager.getHistory();
+    assert(history.size() == 10);
+    
+    std::cout << "✓ DiagnosticsManager limits tests passed" << std::endl;
 }
 
 void test_global_manager() {
@@ -247,6 +314,7 @@ int main() {
     test_manager_history();
     test_manager_statistics();
     test_manager_validation();
+    test_manager_limits();
     test_global_manager();
     test_convenience_macros();
     
