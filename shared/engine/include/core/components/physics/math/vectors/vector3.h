@@ -119,6 +119,10 @@ public:
     [[nodiscard]] constexpr bool isZero() const noexcept {
         return x == 0.0f && y == 0.0f && z == 0.0f;
     }
+    
+    [[nodiscard]] bool isNormalized(float epsilon = 0.001f) const noexcept {
+        return std::abs(lengthSquared() - 1.0f) < epsilon;
+    }
 };
 
 } // namespace math
