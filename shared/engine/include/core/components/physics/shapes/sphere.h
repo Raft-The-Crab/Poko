@@ -16,6 +16,7 @@
 #include "core/components/physics/bounds/aabb.h"
 #include "core/components/physics/matrices/matrix3x3.h"
 #include <cmath>
+#include <algorithm>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -82,7 +83,12 @@ public:
      * @brief Support mapping for GJK
      */
     [[nodiscard]] Vector3 support(const Vector3& direction) const noexcept {
-        return direction.normalized() * radius;
+        float lengthSquared = direction.lengthSquared();
+        if (lengthSquared > 0.0001f) {
+            float invLength = 1.0f / std::sqrt(lengthSquared);
+            return direction * (radius * invLength);
+        }
+        return Vector3{radius, 0.0f, 0.0f};
     }
     
     /**

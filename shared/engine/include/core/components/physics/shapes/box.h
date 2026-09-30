@@ -80,7 +80,22 @@ public:
     [[nodiscard]] AABB getLocalAABB() const noexcept {
         return AABB::fromCenterExtent(Vector3::zero(), halfExtents);
     }
-    
+
+    /**
+     * @brief Validate shape
+     */
+    [[nodiscard]] bool isValid() const noexcept {
+        return halfExtents.x > 0.0f && halfExtents.y > 0.0f && halfExtents.z > 0.0f;
+    }
+
+    /**
+     * @brief Get surface area
+     */
+    [[nodiscard]] float surfaceArea() const noexcept {
+        Vector3 s = halfExtents * 2.0f;
+        return 2.0f * (s.x * s.y + s.y * s.z + s.z * s.x);
+    }
+
     /**
      * @brief Support mapping for GJK
      */
@@ -90,13 +105,6 @@ public:
             direction.y > 0 ? halfExtents.y : -halfExtents.y,
             direction.z > 0 ? halfExtents.z : -halfExtents.z
         };
-    }
-    
-    /**
-     * @brief Validate shape
-     */
-    [[nodiscard]] bool isValid() const noexcept {
-        return halfExtents.x > 0.0f && halfExtents.y > 0.0f && halfExtents.z > 0.0f;
     }
 };
 

@@ -16,6 +16,7 @@
 #include "core/components/physics/bounds/aabb.h"
 #include "core/components/physics/matrices/matrix3x3.h"
 #include <cmath>
+#include <algorithm>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -93,6 +94,34 @@ public:
      */
     [[nodiscard]] bool isValid() const noexcept {
         return radius > 0.0f && height > 0.0f;
+    }
+
+    /**
+     * @brief Support mapping for GJK
+     */
+    [[nodiscard]] Vector3 support(const Vector3& direction) const noexcept {
+        Vector3 normalizedDir = direction.normalized();
+        // Project direction onto capsule axis
+        Vector3 axis(0.0f, 1.0f, 0.0f);
+        float axisProjection = normalizedDir.dot(axis);
+        float halfHeight = height * 0.5f;
+
+        if (std::abs(axisProjection) > 0.0001f) {
+            // Direction has component along axis
+            Vector3 axisPoint = axis * (halfHeight * (axisProjection > 0 ? 1.0f : -1.0f));
+            Vector3 radialDir = normalizedDir - axis * axisProjection;
+            float radialLengthSquared = radialDir.lengthSquared();
+
+            if (radialLengthSquared > 0.0001f) {
+                float radialLength = std::sqrt(radialLengthSquared);
+                return axisPoint + radialDir * (radius / radialLength);
+            } else {
+                return axisPoint;
+            }
+        } else {
+            // Direction is purely radial
+            return normalizedDir * radius;
+        }
     }
 };
 
