@@ -597,7 +597,8 @@ Physics Component (Built-in Component from plan.md section 22) has been implemen
 - **Test Suites**: Previous tests still passing (119/119)
 
 #### Git
-- **Pending Commit**: Physics component with production-quality mass/inertia calculations and .inl files
+- **Commit**: 2e3e286 - Physics Component with production-quality features
+- **Pending Commit**: Physics Math Module (Vector3, Matrix3x3, Quaternion, Bounds)
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git
 
 ## [0.1.5] - September 29, 2026

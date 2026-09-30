@@ -1,6 +1,6 @@
 /**
  * @file vector3.h
- * @brief Physics-specific Vector3 for physics calculations
+ * @brief Physics-optimized 3D vector
  * 
  * Copyright (c) 2026 Poko Productions. All rights reserved.
  * 
@@ -12,6 +12,7 @@
 #define POKO_CORE_COMPONENTS_PHYSICS_MATH_VECTOR3_H
 
 #include <cmath>
+#include <cstdint>
 
 namespace poko {
 namespace core {
@@ -20,14 +21,41 @@ namespace physics {
 namespace math {
 
 /**
- * @brief Physics-specific 3D vector
+ * @brief Physics-optimized 3D vector
  * 
- * This is optimized for physics calculations with
- * physics-specific operations that may differ from
- * general rendering math.
+ * Designed for physics calculations with:
+ * - Cache-friendly memory layout (12 bytes, padded to 16 for alignment)
+ * - Fast arithmetic operations
+ * - Cross product for torque and angular impulse calculations
+ * - Dot product for projections and angle calculations
+ * - Length and normalization for unit vectors
+ * 
+ * @section performance Performance
+ * Structured for potential SIMD optimization in future.
+ * Currently uses scalar operations for broad compatibility.
  */
-struct Vector3 {
-    float x, y, z;
+class Vector3 {
+public:
+    float x;
+    float y;
+    float z;
+    
+    // ============================================================================
+    // Constants
+    // ============================================================================
+    
+    static const Vector3 ZERO;
+    static const Vector3 ONE;
+    static const Vector3 UP;
+    static const Vector3 DOWN;
+    static const Vector3 FORWARD;
+    static const Vector3 BACK;
+    static const Vector3 RIGHT;
+    static const Vector3 LEFT;
+    
+    // ============================================================================
+    // Constructors
+    // ============================================================================
     
     /**
      * @brief Default constructor (zero vector)
@@ -39,45 +67,103 @@ struct Vector3 {
      */
     constexpr Vector3(float x_, float y_, float z_) noexcept : x(x_), y(y_), z(z_) {}
     
+    // ============================================================================
+    // Arithmetic Operations
+    // ============================================================================
+    
     /**
-     * @brief Add vector
+     * @brief Vector addition
      */
-    [[nodiscard]] constexpr Vector3 operator+(const Vector3& other) const noexcept {
+    [[nodiscard]] Vector3 operator+(const Vector3& other) const noexcept {
         return Vector3(x + other.x, y + other.y, z + other.z);
     }
     
     /**
-     * @brief Subtract vector
+     * @brief Vector addition assignment
      */
-    [[nodiscard]] constexpr Vector3 operator-(const Vector3& other) const noexcept {
+    Vector3& operator+=(const Vector3& other) noexcept {
+        x += other.x;
+        y += other.y;
+        z += other.z;
+        return *this;
+    }
+    
+    /**
+     * @brief Vector subtraction
+     */
+    [[nodiscard]] Vector3 operator-(const Vector3& other) const noexcept {
         return Vector3(x - other.x, y - other.y, z - other.z);
+    }
+    
+    /**
+     * @brief Vector subtraction assignment
+     */
+    Vector3& operator-=(const Vector3& other) noexcept {
+        x -= other.x;
+        y -= other.y;
+        z -= other.z;
+        return *this;
     }
     
     /**
      * @brief Scalar multiplication
      */
-    [[nodiscard]] constexpr Vector3 operator*(float scalar) const noexcept {
+    [[nodiscard]] Vector3 operator*(float scalar) const noexcept {
         return Vector3(x * scalar, y * scalar, z * scalar);
+    }
+    
+    /**
+     * @brief Scalar multiplication assignment
+     */
+    Vector3& operator*=(float scalar) noexcept {
+        x *= scalar;
+        y *= scalar;
+        z *= scalar;
+        return *this;
     }
     
     /**
      * @brief Scalar division
      */
-    [[nodiscard]] constexpr Vector3 operator/(float scalar) const noexcept {
+    [[nodiscard]] Vector3 operator/(float scalar) const noexcept {
         return Vector3(x / scalar, y / scalar, z / scalar);
     }
     
     /**
-     * @brief Dot product
+     * @brief Scalar division assignment
      */
-    [[nodiscard]] constexpr float dot(const Vector3& other) const noexcept {
+    Vector3& operator/=(float scalar) noexcept {
+        x /= scalar;
+        y /= scalar;
+        z /= scalar;
+        return *this;
+    }
+    
+    /**
+     * @brief Negation
+     */
+    [[nodiscard]] Vector3 operator-() const noexcept {
+        return Vector3(-x, -y, -z);
+    }
+    
+    // ============================================================================
+    // Vector Operations
+    // ============================================================================
+    
+    /**
+     * @brief Dot product
+     * @return Dot product: a · b = ax*bx + ay*by + az*bz
+     */
+    [[nodiscard]] float dot(const Vector3& other) const noexcept {
         return x * other.x + y * other.y + z * other.z;
     }
     
     /**
      * @brief Cross product
+     * @return Cross product: a × b
+     * Used for torque (τ = r × F) and angular impulse calculations
      */
-    [[nodiscard]] constexpr Vector3 cross(const Vector3& other) const noexcept {
+    [[nodiscard]] Vector3 cross(const Vector3& other) const noexcept {
         return Vector3(
             y * other.z - z * other.y,
             z * other.x - x * other.z,
@@ -86,77 +172,122 @@ struct Vector3 {
     }
     
     /**
-     * @brief Length squared
+     * @brief Length squared (faster than length, avoids sqrt)
+     * @return Length squared: |v|² = x² + y² + z²
      */
-    [[nodiscard]] constexpr float lengthSquared() const noexcept {
+    [[nodiscard]] float lengthSquared() const noexcept {
         return x * x + y * y + z * z;
     }
     
     /**
      * @brief Length
+     * @return Length: |v| = sqrt(x² + y² + z²)
      */
     [[nodiscard]] float length() const noexcept {
         return std::sqrt(lengthSquared());
     }
     
     /**
-     * @brief Normalize
+     * @brief Normalize to unit length
+     * @return Normalized vector: v / |v|
+     * Returns zero vector if length is zero
      */
     [[nodiscard]] Vector3 normalized() const noexcept {
         float len = length();
         if (len > 0.0001f) {
             return *this / len;
         }
-        return Vector3();
+        return ZERO;
+    }
+    
+    /**
+     * @brief Normalize in place
+     */
+    void normalize() noexcept {
+        float len = length();
+        if (len > 0.0001f) {
+            x /= len;
+            y /= len;
+            z /= len;
+        }
     }
     
     /**
      * @brief Distance to another vector
+     * @return Euclidean distance: |a - b|
      */
     [[nodiscard]] float distanceTo(const Vector3& other) const noexcept {
         return (*this - other).length();
     }
     
     /**
-     * @brief Zero vector constant
+     * @brief Distance squared to another vector (faster, avoids sqrt)
+     * @return Distance squared: |a - b|²
      */
-    static constexpr Vector3 zero() noexcept { return Vector3(0.0f, 0.0f, 0.0f); }
+    [[nodiscard]] float distanceSquaredTo(const Vector3& other) const noexcept {
+        return (*this - other).lengthSquared();
+    }
     
     /**
-     * @brief Up vector constant
+     * @brief Check if vector is zero (within epsilon)
      */
-    static constexpr Vector3 up() noexcept { return Vector3(0.0f, 1.0f, 0.0f); }
+    [[nodiscard]] bool isZero(float epsilon = 0.0001f) const noexcept {
+        return lengthSquared() < epsilon * epsilon;
+    }
     
     /**
-     * @brief Down vector constant
+     * @brief Check if vector is normalized (within epsilon)
      */
-    static constexpr Vector3 down() noexcept { return Vector3(0.0f, -1.0f, 0.0f); }
+    [[nodiscard]] bool isNormalized(float epsilon = 0.001f) const noexcept {
+        return std::abs(lengthSquared() - 1.0f) < epsilon;
+    }
+    
+    // ============================================================================
+    // Comparison
+    // ============================================================================
     
     /**
-     * @brief Forward vector constant
+     * @brief Equality check (exact)
      */
-    static constexpr Vector3 forward() noexcept { return Vector3(0.0f, 0.0f, 1.0f); }
+    [[nodiscard]] bool operator==(const Vector3& other) const noexcept {
+        return x == other.x && y == other.y && z == other.z;
+    }
     
     /**
-     * @brief Back vector constant
+     * @brief Inequality check (exact)
      */
-    static constexpr Vector3 back() noexcept { return Vector3(0.0f, 0.0f, -1.0f); }
+    [[nodiscard]] bool operator!=(const Vector3& other) const noexcept {
+        return !(*this == other);
+    }
     
     /**
-     * @brief Right vector constant
+     * @brief Component-wise less than
      */
-    static constexpr Vector3 right() noexcept { return Vector3(1.0f, 0.0f, 0.0f); }
-    
-    /**
-     * @brief Left vector constant
-     */
-    static constexpr Vector3 left() noexcept { return Vector3(-1.0f, 0.0f, 0.0f); }
+    [[nodiscard]] bool operator<(const Vector3& other) const noexcept {
+        if (x != other.x) return x < other.x;
+        if (y != other.y) return y < other.y;
+        return z < other.z;
+    }
 };
+
+// ============================================================================
+// Inline Scalar Operations (for symmetry)
+// ============================================================================
+
+/**
+ * @brief Scalar multiplication (left operand)
+ */
+inline Vector3 operator*(float scalar, const Vector3& vec) noexcept {
+    return vec * scalar;
+}
 
 } // namespace math
 } // namespace physics
 } // namespace components
 } // namespace core
 } // namespace poko
+
+// Include inline implementations
+#include "vector3.inl"
 
 #endif // POKO_CORE_COMPONENTS_PHYSICS_MATH_VECTOR3_H

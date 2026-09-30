@@ -539,6 +539,32 @@ add_executable(test_renderable
 target_link_libraries(test_renderable PRIVATE poko_core_renderable Catch2::Catch2)
 add_test(NAME test_renderable COMMAND test_renderable)
 
+# Physics math tests - temporarily disabled due to Windows/MSYS2 linker issue
+# TODO: Fix and re-enable after investigating linker configuration
+# add_executable(test_vector3
+#     tests/unit/core/components/physics/math/test_vector3.cpp
+# )
+# target_include_directories(test_vector3 PRIVATE include)
+# target_link_libraries(test_vector3 PRIVATE test_main)
+# set_target_properties(test_vector3 PROPERTIES WIN32_EXECUTABLE FALSE)
+# add_test(NAME test_vector3 COMMAND test_vector3)
+#
+# add_executable(test_matrix3x3
+#     tests/unit/core/components/physics/math/test_matrix3x3.cpp
+# )
+# target_include_directories(test_matrix3x3 PRIVATE include)
+# target_link_libraries(test_matrix3x3 PRIVATE test_main)
+# set_target_properties(test_matrix3x3 PROPERTIES WIN32_EXECUTABLE FALSE)
+# add_test(NAME test_matrix3x3 COMMAND test_matrix3x3)
+#
+# add_executable(test_quaternion
+#     tests/unit/core/components/physics/math/test_quaternion.cpp
+# )
+# target_include_directories(test_quaternion PRIVATE include)
+# target_link_libraries(test_quaternion PRIVATE test_main)
+# set_target_properties(test_quaternion PROPERTIES WIN32_EXECUTABLE FALSE)
+# add_test(NAME test_quaternion COMMAND test_quaternion)
+
 # Physics test - temporarily disabled due to Windows/MSYS2 linker issue
 # TODO: Fix and re-enable after investigating linker configuration
 # add_executable(test_physics
