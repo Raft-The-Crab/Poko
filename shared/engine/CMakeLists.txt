@@ -343,6 +343,10 @@ add_library(poko_core_physics_system
     src/core/components/physics/narrowphase/collision_dispatcher.cpp
     # Contacts
     src/core/components/physics/contacts/contact_manifold.cpp
+    # Solver
+    src/core/components/physics/solver/sequential_impulse.cpp
+    # Simulation
+    src/core/components/physics/simulation/island.cpp
 )
 target_include_directories(poko_core_physics_system PUBLIC include)
 
