@@ -14,6 +14,7 @@
 #include "core/components/physics/transforms/transform.h"
 #include "core/components/physics/math/vectors/vector3.h"
 #include "core/components/physics/math/vectors/quaternion.h"
+#include "core/components/physics/matrices/matrix3x3.h"
 #include "core/components/physics/core/handle.h"
 
 namespace poko {
@@ -25,6 +26,7 @@ namespace bodies {
 using transforms::Transform;
 using math::Vector3;
 using math::Quaternion;
+using matrices::Matrix3x3;
 using core::BodyHandle;
 
 /**
@@ -50,6 +52,8 @@ public:
     Vector3 force;
     Vector3 torque;
     float mass;
+    Matrix3x3 inertiaTensor;
+    Matrix3x3 inverseInertiaTensor;
     float linearDamping;
     float angularDamping;
     float gravityScale;
@@ -74,6 +78,8 @@ public:
         , force(0.0f, 0.0f, 0.0f)
         , torque(0.0f, 0.0f, 0.0f)
         , mass(1.0f)
+        , inertiaTensor(Matrix3x3::identity())
+        , inverseInertiaTensor(Matrix3x3::identity())
         , linearDamping(0.01f)
         , angularDamping(0.01f)
         , gravityScale(1.0f)
@@ -218,6 +224,71 @@ public:
         if (angularSpeed > maxAngular) {
             angularVelocity = angularVelocity * (maxAngular / angularSpeed);
         }
+    }
+
+    /**
+     * @brief Set inertia tensor for sphere
+     */
+    void setSphereInertia(float radius) noexcept {
+        float i = (2.0f / 5.0f) * mass * radius * radius;
+        inertiaTensor = Matrix3x3(
+            i, 0.0f, 0.0f,
+            0.0f, i, 0.0f,
+            0.0f, 0.0f, i
+        );
+        (void)inertiaTensor.tryInverse(inverseInertiaTensor);
+    }
+
+    /**
+     * @brief Set inertia tensor for box
+     */
+    void setBoxInertia(const Vector3& halfExtents) noexcept {
+        float ix = (1.0f / 12.0f) * mass * (halfExtents.y * halfExtents.y + halfExtents.z * halfExtents.z);
+        float iy = (1.0f / 12.0f) * mass * (halfExtents.x * halfExtents.x + halfExtents.z * halfExtents.z);
+        float iz = (1.0f / 12.0f) * mass * (halfExtents.x * halfExtents.x + halfExtents.y * halfExtents.y);
+        inertiaTensor = Matrix3x3(
+            ix, 0.0f, 0.0f,
+            0.0f, iy, 0.0f,
+            0.0f, 0.0f, iz
+        );
+        (void)inertiaTensor.tryInverse(inverseInertiaTensor);
+    }
+
+    /**
+     * @brief Set inertia tensor for capsule
+     */
+    void setCapsuleInertia(float radius, float height) noexcept {
+        // Capsule inertia: treat as cylinder with hemispherical ends
+        float h = height - 2.0f * radius; // Cylinder height
+        if (h < 0.0f) h = 0.0f;
+
+        // Cylinder inertia about x and y axes
+        float iCylinder = (1.0f / 12.0f) * mass * (3.0f * radius * radius + h * h);
+        // Hemisphere inertia
+        float iHemisphere = (2.0f / 5.0f) * mass * radius * radius;
+
+        // Approximate combined inertia
+        float i = iCylinder + iHemisphere;
+        inertiaTensor = Matrix3x3(
+            i, 0.0f, 0.0f,
+            0.0f, i, 0.0f,
+            0.0f, 0.0f, i
+        );
+        (void)inertiaTensor.tryInverse(inverseInertiaTensor);
+    }
+
+    /**
+     * @brief Update world-space inverse inertia tensor based on rotation
+     */
+    void updateWorldInertia() noexcept {
+        if (isStatic()) {
+            inverseInertiaTensor = Matrix3x3::zero();
+            return;
+        }
+
+        Matrix3x3 rotationMatrix = Matrix3x3::fromQuaternion(rotation);
+        Matrix3x3 worldInertia = rotationMatrix * inertiaTensor * rotationMatrix.transpose();
+        (void)worldInertia.tryInverse(inverseInertiaTensor);
     }
 };
 

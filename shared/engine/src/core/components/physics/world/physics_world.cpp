@@ -12,6 +12,7 @@
 #include "core/components/physics/bounds/aabb.h"
 #include "core/components/physics/math/vectors/vector3.h"
 #include "core/components/physics/math/vectors/quaternion.h"
+#include "core/components/physics/matrices/matrix3x3.h"
 #include "core/components/physics/transforms/transform.h"
 #include "core/components/physics/contacts/contact_manifold.h"
 #include "core/components/physics/constraints/constraint_row.h"
@@ -38,6 +39,7 @@ namespace world {
 using bounds::AABB;
 using math::Vector3;
 using math::Quaternion;
+using matrices::Matrix3x3;
 using transforms::Transform;
 using contacts::SolverContact;
 using constraints::ConstraintRow;
@@ -45,6 +47,9 @@ using constraints::ConstraintDefinition;
 using constraints::ConstraintType;
 using core::CommandType;
 using core::Command;
+using shapes::Sphere;
+using shapes::Box;
+using shapes::Capsule;
 using core::CreateBodyCommand;
 using core::DestroyBodyCommand;
 using core::CreateColliderCommand;
@@ -176,6 +181,10 @@ void PhysicsWorld::processCommands(CommandBuffer& commands) {
                 def.rotation = createCmd->rotation;
                 def.collisionLayer = createCmd->collisionLayer;
                 def.collisionMask = createCmd->collisionMask;
+                def.transform.position = createCmd->position;
+                def.transform.rotation = createCmd->rotation;
+                // Set default sphere inertia (will be updated when collider is added)
+                def.setSphereInertia(0.5f);
                 createBody(def);
                 break;
             }
@@ -325,6 +334,26 @@ ColliderHandle PhysicsWorld::createCollider(const ColliderDefinition& definition
     // Add to body-to-colliders mapping
     if (definition.bodyHandle.isValid() && definition.bodyHandle.index < bodies.size()) {
         bodyToColliders[definition.bodyHandle.index].push_back(colliders[index].handle);
+
+        // Update body inertia based on collider shape
+        if (definition.shapeHandle.isValid() && definition.shapeHandle.index < shapes.size()) {
+            BodyDefinition& body = bodies[definition.bodyHandle.index];
+            const ShapeDefinition& shape = shapes[definition.shapeHandle.index];
+
+            if (std::holds_alternative<Sphere>(shape.shape)) {
+                const Sphere& sphere = std::get<Sphere>(shape.shape);
+                body.setSphereInertia(sphere.radius);
+            } else if (std::holds_alternative<Box>(shape.shape)) {
+                const Box& box = std::get<Box>(shape.shape);
+                body.setBoxInertia(box.halfExtents);
+            } else if (std::holds_alternative<Capsule>(shape.shape)) {
+                const Capsule& capsule = std::get<Capsule>(shape.shape);
+                body.setCapsuleInertia(capsule.radius, capsule.height);
+            }
+
+            // Update world-space inertia tensor
+            body.updateWorldInertia();
+        }
     }
 
     // Insert into broadphase
@@ -431,11 +460,10 @@ void PhysicsWorld::applyImpulse(BodyHandle handle, const Vector3& impulse, const
     // Apply linear impulse
     body.linearVelocity = body.linearVelocity + impulse * invMass;
 
-    // Apply angular impulse
+    // Apply angular impulse using actual inertia tensor
     Vector3 r = point - body.position;
     Vector3 angularImpulse = r.cross(impulse);
-    // Simplified: would use inertia tensor inverse in production
-    body.angularVelocity = body.angularVelocity + angularImpulse * invMass;
+    body.angularVelocity = body.angularVelocity + body.inverseInertiaTensor * angularImpulse;
 
     body.isAwake = true;
 }

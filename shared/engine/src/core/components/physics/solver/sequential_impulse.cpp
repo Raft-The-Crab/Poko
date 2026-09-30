@@ -11,6 +11,7 @@
 #include "core/components/physics/solver/sequential_impulse.h"
 #include "core/components/physics/math/vectors/vector3.h"
 #include "core/components/physics/math/vectors/quaternion.h"
+#include "core/components/physics/matrices/matrix3x3.h"
 #include "core/components/physics/transforms/transform.h"
 #include <algorithm>
 #include <cmath>
@@ -23,6 +24,7 @@ namespace solver {
 
 using math::Vector3;
 using math::Quaternion;
+using matrices::Matrix3x3;
 using transforms::Transform;
 
 SequentialImpulseSolver::SequentialImpulseSolver() noexcept {
@@ -157,19 +159,16 @@ void SequentialImpulseSolver::solveContactConstraint(
     float invMassA = bodyA.mass > 0.0f ? 1.0f / bodyA.mass : 0.0f;
     float invMassB = bodyB.mass > 0.0f ? 1.0f / bodyB.mass : 0.0f;
 
-    // Angular contribution to effective mass
-    // Simplified: treat inertia as scalar (I = 2/5 * m * r^2 for sphere)
-    // In production, this would use the full 3x3 inverse inertia tensor
-    float inertiaA = bodyA.mass > 0.0f ? (0.4f * bodyA.mass * 0.1f * 0.1f) : 0.0f; // Assume 0.1m radius
-    float inertiaB = bodyB.mass > 0.0f ? (0.4f * bodyB.mass * 0.1f * 0.1f) : 0.0f;
-    float invInertiaA = inertiaA > 0.0f ? 1.0f / inertiaA : 0.0f;
-    float invInertiaB = inertiaB > 0.0f ? 1.0f / inertiaB : 0.0f;
+    // Use actual inverse inertia tensor from body definition
+    Matrix3x3 invInertiaA = bodyA.inverseInertiaTensor;
+    Matrix3x3 invInertiaB = bodyB.inverseInertiaTensor;
 
     Vector3 rA_cross_n = rA.cross(contact.normal);
     Vector3 rB_cross_n = rB.cross(contact.normal);
 
-    float angularTermA = rA_cross_n.lengthSquared() * invInertiaA;
-    float angularTermB = rB_cross_n.lengthSquared() * invInertiaB;
+    // Angular contribution: (r × n) · I^-1 · (r × n)
+    float angularTermA = rA_cross_n.dot(invInertiaA * rA_cross_n);
+    float angularTermB = rB_cross_n.dot(invInertiaB * rB_cross_n);
 
     float effectiveMass = 1.0f / (invMassA + invMassB + angularTermA + angularTermB);
 
@@ -192,11 +191,11 @@ void SequentialImpulseSolver::solveContactConstraint(
     bodyA.linearVelocity = bodyA.linearVelocity - impulse * invMassA;
     bodyB.linearVelocity = bodyB.linearVelocity + impulse * invMassB;
 
-    // Apply angular impulse: τ = r × F
+    // Apply angular impulse: τ = r × F, then ω += I^-1 * τ
     Vector3 angularImpulseA = rA.cross(impulse * -1.0f);
     Vector3 angularImpulseB = rB.cross(impulse);
-    bodyA.angularVelocity = bodyA.angularVelocity + angularImpulseA * invInertiaA;
-    bodyB.angularVelocity = bodyB.angularVelocity + angularImpulseB * invInertiaB;
+    bodyA.angularVelocity = bodyA.angularVelocity + invInertiaA * angularImpulseA;
+    bodyB.angularVelocity = bodyB.angularVelocity + invInertiaB * angularImpulseB;
 
     // Friction (Coulomb friction with two tangent directions)
     float tangentSpeed = vTangent.length();
@@ -212,14 +211,14 @@ void SequentialImpulseSolver::solveContactConstraint(
         // Calculate effective mass for tangent directions
         Vector3 rA_cross_t1 = rA.cross(tangent1);
         Vector3 rB_cross_t1 = rB.cross(tangent1);
-        float angularTermA_t1 = rA_cross_t1.lengthSquared() * invInertiaA;
-        float angularTermB_t1 = rB_cross_t1.lengthSquared() * invInertiaB;
+        float angularTermA_t1 = rA_cross_t1.dot(invInertiaA * rA_cross_t1);
+        float angularTermB_t1 = rB_cross_t1.dot(invInertiaB * rB_cross_t1);
         float effectiveMassT1 = 1.0f / (invMassA + invMassB + angularTermA_t1 + angularTermB_t1);
 
         Vector3 rA_cross_t2 = rA.cross(tangent2);
         Vector3 rB_cross_t2 = rB.cross(tangent2);
-        float angularTermA_t2 = rA_cross_t2.lengthSquared() * invInertiaA;
-        float angularTermB_t2 = rB_cross_t2.lengthSquared() * invInertiaB;
+        float angularTermA_t2 = rA_cross_t2.dot(invInertiaA * rA_cross_t2);
+        float angularTermB_t2 = rB_cross_t2.dot(invInertiaB * rB_cross_t2);
         float effectiveMassT2 = 1.0f / (invMassA + invMassB + angularTermA_t2 + angularTermB_t2);
 
         // Calculate tangent impulses
@@ -243,8 +242,8 @@ void SequentialImpulseSolver::solveContactConstraint(
         // Apply angular friction impulses
         Vector3 angularFrictionA = rA.cross(frictionImpulse * -1.0f);
         Vector3 angularFrictionB = rB.cross(frictionImpulse);
-        bodyA.angularVelocity = bodyA.angularVelocity + angularFrictionA * invInertiaA;
-        bodyB.angularVelocity = bodyB.angularVelocity + angularFrictionB * invInertiaB;
+        bodyA.angularVelocity = bodyA.angularVelocity + invInertiaA * angularFrictionA;
+        bodyB.angularVelocity = bodyB.angularVelocity + invInertiaB * angularFrictionB;
 
         // Store tangent impulses for warm starting
         contact.tangent1Impulse = jt1;
@@ -257,36 +256,62 @@ void SequentialImpulseSolver::solveConstraintRow(
     BodyDefinition& bodyA,
     BodyDefinition& bodyB
 ) {
-    // Calculate relative velocity
-    // v_rel = J * v
+    // Calculate relative velocity with angular components
+    // v_rel = (vB + ωB × rB) - (vA + ωA × rA)
 
     float invMassA = bodyA.mass > 0.0f ? 1.0f / bodyA.mass : 0.0f;
     float invMassB = bodyB.mass > 0.0f ? 1.0f / bodyB.mass : 0.0f;
 
-    // Simplified Jacobian velocity
-    float vRel = bodyA.linearVelocity.dot(row.linearJacobianA) +
-                 bodyB.linearVelocity.dot(row.linearJacobianB);
+    Matrix3x3 invInertiaA = bodyA.inverseInertiaTensor;
+    Matrix3x3 invInertiaB = bodyB.inverseInertiaTensor;
 
-    // Calculate effective mass
-    // K = J * M^-1 * J^T
+    // For constraints, assume anchors are in world space for now
+    // In production, would use actual anchor positions from constraint data
+    Vector3 rA = row.linearJacobianA; // Simplified: use Jacobian as moment arm
+    Vector3 rB = row.linearJacobianB;
+
+    Vector3 vA = bodyA.linearVelocity + bodyA.angularVelocity.cross(rA);
+    Vector3 vB = bodyB.linearVelocity + bodyB.angularVelocity.cross(rB);
+    (void)vA;
+    (void)vB;
+
+    // Simplified Jacobian velocity (full version would use angular Jacobians)
+    float vRelLinear = bodyA.linearVelocity.dot(row.linearJacobianA) +
+                      bodyB.linearVelocity.dot(row.linearJacobianB);
+
+    // Calculate effective mass with angular contribution
+    // K = J_linear^T * M^-1 * J_linear + J_angular^T * I^-1 * J_angular
+    Vector3 rA_cross_J = rA.cross(row.linearJacobianA);
+    Vector3 rB_cross_J = rB.cross(row.linearJacobianB);
+    float angularTermA = rA_cross_J.dot(invInertiaA * rA_cross_J);
+    float angularTermB = rB_cross_J.dot(invInertiaB * rB_cross_J);
+
     float K = invMassA * row.linearJacobianA.lengthSquared() +
-              invMassB * row.linearJacobianB.lengthSquared();
+              invMassB * row.linearJacobianB.lengthSquared() +
+              angularTermA + angularTermB;
     float effectiveMass = K > 0.0001f ? 1.0f / K : 0.0f;
 
     // Calculate bias (position error correction)
     float bias = row.bias * settings.baumgarte;
 
     // Solve for impulse
-    float j = -effectiveMass * (vRel + bias);
+    float j = -effectiveMass * (vRelLinear + bias);
 
     // Clamp impulse
     float oldImpulse = row.accumulatedImpulse;
     row.accumulatedImpulse = std::max(row.lowerLimit, std::min(row.upperLimit, oldImpulse + j));
     j = row.accumulatedImpulse - oldImpulse;
 
-    // Apply impulse
-    bodyA.linearVelocity += row.linearJacobianA * (j * invMassA);
-    bodyB.linearVelocity += row.linearJacobianB * (j * invMassB);
+    // Apply impulse (linear and angular)
+    Vector3 impulse = row.linearJacobianA * j;
+    bodyA.linearVelocity += impulse * invMassA;
+    bodyB.linearVelocity -= impulse * invMassB;
+
+    // Apply angular impulse
+    Vector3 angularImpulseA = rA.cross(impulse);
+    Vector3 angularImpulseB = rB.cross(impulse * -1.0f);
+    bodyA.angularVelocity += invInertiaA * angularImpulseA;
+    bodyB.angularVelocity += invInertiaB * angularImpulseB;
 }
 
 void SequentialImpulseSolver::setupDistanceConstraint(
