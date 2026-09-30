@@ -9,7 +9,10 @@
  */
 
 #include "../../include/core/components/physics/world/physics_world.h"
+#include "../../include/core/components/physics/bounds/aabb.h"
 #include <algorithm>
+
+using bounds::AABB;
 
 namespace poko {
 namespace core {
