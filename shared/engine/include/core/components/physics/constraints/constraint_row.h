@@ -23,7 +23,7 @@ using math::Vector3;
 
 /**
  * @brief Generic constraint solver row
- * 
+ *
  * The solver operates on rows rather than having separate solving code for every joint.
  */
 struct ConstraintRow {
@@ -32,23 +32,23 @@ struct ConstraintRow {
     Vector3 angularJacobianA;
     Vector3 linearJacobianB;
     Vector3 angularJacobianB;
-    
+
     // Effective mass
     float effectiveMass;
-    
+
     // Bias
     float bias;
-    
+
     // Limits
     float lowerLimit;
     float upperLimit;
-    
+
     // Accumulated impulse
     float accumulatedImpulse;
-    
+
     // Flags
     uint32_t flags;
-    
+
     /**
      * @brief Constructor
      */
@@ -63,6 +63,60 @@ struct ConstraintRow {
         , upperLimit(1e30f)
         , accumulatedImpulse(0.0f)
         , flags(0) {}
+
+    /**
+     * @brief Clear row (reset to default)
+     */
+    void clear() noexcept {
+        linearJacobianA = Vector3::zero();
+        angularJacobianA = Vector3::zero();
+        linearJacobianB = Vector3::zero();
+        angularJacobianB = Vector3::zero();
+        effectiveMass = 0.0f;
+        bias = 0.0f;
+        lowerLimit = -1e30f;
+        upperLimit = 1e30f;
+        accumulatedImpulse = 0.0f;
+        flags = 0;
+    }
+
+    /**
+     * @brief Check if row is valid
+     */
+    [[nodiscard]] bool isValid() const noexcept {
+        return effectiveMass > 0.0f && lowerLimit <= upperLimit;
+    }
+
+    /**
+     * @brief Check if impulse is within limits
+     */
+    [[nodiscard]] bool isImpulseClamped() const noexcept {
+        return accumulatedImpulse <= lowerLimit || accumulatedImpulse >= upperLimit;
+    }
+
+    /**
+     * @brief Set as equality constraint (no limits)
+     */
+    void setEquality() noexcept {
+        lowerLimit = -1e30f;
+        upperLimit = 1e30f;
+    }
+
+    /**
+     * @brief Set as inequality constraint (one-sided)
+     */
+    void setInequality(float minVal = 0.0f) noexcept {
+        lowerLimit = minVal;
+        upperLimit = 1e30f;
+    }
+
+    /**
+     * @brief Set as fixed constraint (both limits equal)
+     */
+    void setFixed(float value = 0.0f) noexcept {
+        lowerLimit = value;
+        upperLimit = value;
+    }
 };
 
 } // namespace constraints

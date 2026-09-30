@@ -32,13 +32,27 @@ struct ContactPoint {
     float penetration;
     uint32_t featureIdA;
     uint32_t featureIdB;
-    
+
     ContactPoint() noexcept
         : position(0.0f, 0.0f, 0.0f)
         , normal(0.0f, 1.0f, 0.0f)
         , penetration(0.0f)
         , featureIdA(0)
         , featureIdB(0) {}
+
+    /**
+     * @brief Check if contact is valid
+     */
+    [[nodiscard]] bool isValid() const noexcept {
+        return penetration > 0.0f && normal.lengthSquared() > 0.9f;
+    }
+
+    /**
+     * @brief Get contact confidence (heuristic)
+     */
+    [[nodiscard]] float getConfidence() const noexcept {
+        return penetration;
+    }
 };
 
 /**
@@ -49,9 +63,9 @@ struct CollisionResult {
     Vector3 normal;
     float penetration;
     std::vector<ContactPoint> contacts;
-    
+
     CollisionResult() noexcept : isColliding(false), normal(0.0f, 1.0f, 0.0f), penetration(0.0f) {}
-    
+
     /**
      * @brief Clear result
      */
@@ -60,6 +74,35 @@ struct CollisionResult {
         normal = Vector3(0.0f, 1.0f, 0.0f);
         penetration = 0.0f;
         contacts.clear();
+    }
+
+    /**
+     * @brief Get contact count
+     */
+    [[nodiscard]] size_t getContactCount() const noexcept {
+        return contacts.size();
+    }
+
+    /**
+     * @brief Check if result is valid
+     */
+    [[nodiscard]] bool isValid() const noexcept {
+        if (!isColliding) return true; // No collision is valid
+        return penetration > 0.0f && normal.lengthSquared() > 0.9f;
+    }
+
+    /**
+     * @brief Reserve capacity for contacts
+     */
+    void reserve(size_t count) noexcept {
+        contacts.reserve(count);
+    }
+
+    /**
+     * @brief Add contact point
+     */
+    void addContact(const ContactPoint& contact) noexcept {
+        contacts.push_back(contact);
     }
 };
 
