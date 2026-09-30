@@ -348,6 +348,10 @@ add_library(poko_core_physics_system
 )
 target_include_directories(poko_core_physics_system PUBLIC include)
 
+# Shapes library (header-only for now)
+add_library(poko_core_physics_shapes INTERFACE)
+target_include_directories(poko_core_physics_shapes INTERFACE include)
+
 target_include_directories(poko_core_physics
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

@@ -196,6 +196,113 @@ public:
     }
     
     /**
+     * @brief Check if matrix is orthonormal (rotation matrix)
+     * @param epsilon Numerical tolerance
+     */
+    [[nodiscard]] bool isOrthonormal(float epsilon = 0.001f) const noexcept {
+        // Check columns are unit vectors
+        float lenX = std::sqrt(m00 * m00 + m01 * m02 + m02 * m02);
+        float lenY = std::sqrt(m03 * m03 + m04 * m04 + m05 * m05);
+        float lenZ = std::sqrt(m06 * m06 + m07 * m07 + m08 * m08);
+        
+        if (std::abs(lenX - 1.0f) > epsilon) return false;
+        if (std::abs(lenY - 1.0f) > epsilon) return false;
+        if (std::abs(lenZ - 1.0f) > epsilon) return false;
+        
+        // Check columns are orthogonal
+        Vector3 colX(m00, m01, m02);
+        Vector3 colY(m03, m04, m05);
+        Vector3 colZ(m06, m07, m08);
+        
+        if (std::abs(colX.dot(colY)) > epsilon) return false;
+        if (std::abs(colX.dot(colZ)) > epsilon) return false;
+        if (std::abs(colY.dot(colZ)) > epsilon) return false;
+        
+        // Check determinant is +1 (right-handed)
+        float det = determinant();
+        return std::abs(det - 1.0f) < epsilon;
+    }
+    
+    /**
+     * @brief Orthonormalize matrix (Gram-Schmidt)
+     * Ensures columns are orthonormal unit vectors
+     */
+    void orthonormalize() noexcept {
+        Vector3 colX(m00, m01, m02);
+        Vector3 colY(m03, m04, m05);
+        Vector3 colZ(m06, m07, m08);
+        
+        // Normalize first column
+        colX = colX.normalized();
+        
+        // Orthogonalize second column against first
+        colY = colY - colX * colX.dot(colY);
+        colY = colY.normalized();
+        
+        // Orthogonalize third column against first and second
+        colZ = colZ - colX * colX.dot(colZ);
+        colZ = colZ - colY * colY.dot(colZ);
+        colZ = colZ.normalized();
+        
+        // Assign back
+        m00 = colX.x; m01 = colX.y; m02 = colX.z;
+        m03 = colY.x; m04 = colY.y; m05 = colY.z;
+        m06 = colZ.x; m07 = colZ.y; m08 = colZ.z;
+    }
+    
+    /**
+     * @brief Check if matrix is symmetric
+     * @param epsilon Numerical tolerance
+     */
+    [[nodiscard]] bool isSymmetric(float epsilon = 0.001f) const noexcept {
+        return std::abs(m01 - m03) < epsilon &&
+               std::abs(m02 - m06) < epsilon &&
+               std::abs(m05 - m07) < epsilon;
+    }
+    
+    /**
+     * @brief Check if matrix is diagonal
+     * @param epsilon Numerical tolerance
+     */
+    [[nodiscard]] bool isDiagonal(float epsilon = 0.001f) const noexcept {
+        return std::abs(m01) < epsilon && std::abs(m02) < epsilon &&
+               std::abs(m03) < epsilon && std::abs(m05) < epsilon &&
+               std::abs(m06) < epsilon && std::abs(m07) < epsilon;
+    }
+    
+    /**
+     * @brief Get X basis vector (first column)
+     */
+    [[nodiscard]] Vector3 getBasisX() const noexcept {
+        return Vector3(m00, m01, m02);
+    }
+    
+    /**
+     * @brief Get Y basis vector (second column)
+     */
+    [[nodiscard]] Vector3 getBasisY() const noexcept {
+        return Vector3(m03, m04, m05);
+    }
+    
+    /**
+     * @brief Get Z basis vector (third column)
+     */
+    [[nodiscard]] Vector3 getBasisZ() const noexcept {
+        return Vector3(m06, m07, m08);
+    }
+    
+    /**
+     * @brief Construct matrix from basis vectors
+     */
+    static Matrix3x3 fromBasis(const Vector3& x, const Vector3& y, const Vector3& z) noexcept {
+        return Matrix3x3(
+            x.x, x.y, x.z,
+            y.x, y.y, y.z,
+            z.x, z.y, z.z
+        );
+    }
+    
+    /**
      * @brief Inverse (for inertia tensor inversion)
      * Returns zero matrix if determinant is zero
      * For production, use tryInverse for better numerical handling

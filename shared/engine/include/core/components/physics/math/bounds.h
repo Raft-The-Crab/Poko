@@ -81,6 +81,13 @@ public:
         return fromCenterExtent(center, halfExtents);
     }
     
+    /**
+     * @brief Create from center and extent (half-size)
+     */
+    static AABB fromCenterAndExtent(const Vector3& center, const Vector3& extent) noexcept {
+        return fromCenterExtent(center, extent);
+    }
+    
     // ============================================================================
     // AABB Properties
     // ============================================================================
@@ -94,6 +101,24 @@ public:
             (min.y + max.y) * 0.5f,
             (min.z + max.z) * 0.5f
         );
+    }
+    
+    /**
+     * @brief Get extent (half-size)
+     */
+    [[nodiscard]] Vector3 getExtent() const noexcept {
+        return Vector3(
+            (max.x - min.x) * 0.5f,
+            (max.y - min.y) * 0.5f,
+            (max.z - min.z) * 0.5f
+        );
+    }
+    
+    /**
+     * @brief Get size (full extent)
+     */
+    [[nodiscard]] Vector3 getSize() const noexcept {
+        return max - min;
     }
     
     /**
