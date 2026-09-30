@@ -98,6 +98,20 @@ public:
     }
     
     /**
+     * @brief Check if AABB contains min point
+     */
+    [[nodiscard]] bool containsMin(const Vector3& point) const noexcept {
+        return point.x >= min.x && point.y >= min.y && point.z >= min.z;
+    }
+    
+    /**
+     * @brief Check if AABB contains max point
+     */
+    [[nodiscard]] bool containsMax(const Vector3& point) const noexcept {
+        return point.x <= max.x && point.y <= max.y && point.z <= max.z;
+    }
+    
+    /**
      * @brief Check if AABB contains point
      */
     [[nodiscard]] bool contains(const Vector3& point) const noexcept {

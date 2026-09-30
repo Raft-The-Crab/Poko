@@ -52,7 +52,7 @@ void DynamicAABBTree::update(BroadphaseProxyHandle proxy, const AABB& newAABB) {
     int32_t leaf = static_cast<int32_t>(proxy.index);
     
     // Check if the new AABB is still within the fat AABB
-    if (nodes[leaf].aabb.contains(newAABB.min) && nodes[leaf].aabb.contains(newAABB.max)) {
+    if (nodes[leaf].aabb.containsMin(newAABB.min) && nodes[leaf].aabb.containsMax(newAABB.max)) {
         return;
     }
     
