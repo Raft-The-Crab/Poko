@@ -13,6 +13,8 @@
 
 #include "../core/handle.h"
 #include "../math/vectors/vector3.h"
+#include <vector>
+#include <cstdint>
 
 namespace poko {
 namespace core {
@@ -112,21 +114,21 @@ public:
      * @brief Constructor
      */
     EventBuffer() noexcept = default;
-    
+
     /**
      * @brief Add event
      */
     void addEvent(Event* event) {
         events.push_back(event);
     }
-    
+
     /**
      * @brief Get events
      */
     [[nodiscard]] const std::vector<Event*>& getEvents() const noexcept {
         return events;
     }
-    
+
     /**
      * @brief Clear events
      */
@@ -136,14 +138,41 @@ public:
         }
         events.clear();
     }
-    
+
     /**
      * @brief Get event count
      */
     [[nodiscard]] size_t getEventCount() const noexcept {
         return events.size();
     }
-    
+
+    /**
+     * @brief Check if buffer is empty
+     */
+    [[nodiscard]] bool isEmpty() const noexcept {
+        return events.empty();
+    }
+
+    /**
+     * @brief Reserve capacity for events
+     */
+    void reserve(size_t capacity) noexcept {
+        events.reserve(capacity);
+    }
+
+    /**
+     * @brief Get event count by type
+     */
+    [[nodiscard]] size_t getEventCountByType(EventType type) const noexcept {
+        size_t count = 0;
+        for (const Event* event : events) {
+            if (event->type == type) {
+                ++count;
+            }
+        }
+        return count;
+    }
+
 private:
     std::vector<Event*> events;
 };

@@ -351,6 +351,8 @@ add_library(poko_core_physics_system
     src/core/components/physics/solver/sequential_impulse.cpp
     # Simulation
     src/core/components/physics/simulation/island.cpp
+    # Triggers
+    src/core/components/physics/triggers/trigger.cpp
     # World
     src/core/components/physics/world/physics_world.cpp
 )
