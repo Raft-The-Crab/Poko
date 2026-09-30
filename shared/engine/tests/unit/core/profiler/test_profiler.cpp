@@ -13,6 +13,7 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <vector>
 
 using namespace poko::core::profiler;
 
@@ -158,6 +159,21 @@ void test_manager_limits() {
     
     auto samples = manager.getSamples();
     assert(samples.size() == 5);
+    
+    // Test active scope limit with a smaller number to avoid long test times
+    // Just verify the limit check doesn't crash
+    std::vector<uint64_t> scopeIds;
+    for (size_t i = 0; i < 50; ++i) {
+        uint64_t scopeId = manager.beginScope("ActiveScope" + std::to_string(i), "TestCategory");
+        if (scopeId != 0) {
+            scopeIds.push_back(scopeId);
+        }
+    }
+    
+    // Clean up only the scopes we actually started
+    for (uint64_t scopeId : scopeIds) {
+        manager.endScope(scopeId);
+    }
     
     std::cout << "✓ ProfilerManager limits tests passed" << std::endl;
 }

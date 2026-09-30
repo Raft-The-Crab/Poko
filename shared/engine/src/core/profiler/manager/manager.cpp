@@ -59,6 +59,11 @@ uint64_t ProfilerManager::beginScope(const std::string& name, const std::string&
         return 0;
     }
     
+    // Check active scope limit
+    if (m_activeScopes.size() >= MAX_ACTIVE_SCOPES) {
+        return 0;
+    }
+    
     uint64_t scopeId = m_nextScopeId++;
     uint64_t startTime = getCurrentTime();
     uint32_t threadId = getCurrentThreadId();
@@ -175,7 +180,7 @@ std::vector<ProfilerStatistics> ProfilerManager::getStatistics() const {
     return m_statistics;
 }
 
-void ProfilerManager::resetStatistics() {
+void ProfilerManager::resetStatistics() noexcept {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_statistics.clear();
 }

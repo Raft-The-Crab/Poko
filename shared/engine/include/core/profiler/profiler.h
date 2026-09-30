@@ -87,6 +87,7 @@ public:
      * @returns Scope ID for endScope call, or 0 if profiling disabled or invalid input
      * @note Thread-safe: Acquires mutex lock
      * @note Invalid inputs are silently rejected
+     * @note Returns 0 if maximum active scope limit is reached
      */
     uint64_t beginScope(const std::string& name, const std::string& category);
     
@@ -132,7 +133,7 @@ public:
      * @brief Reset statistics
      * @note Thread-safe: Acquires mutex lock
      */
-    void resetStatistics();
+    void resetStatistics() noexcept;
     
     /**
      * @brief Set current thread name
@@ -255,6 +256,9 @@ constexpr size_t MAX_THREAD_NAME_LENGTH = 64;
 
 /// Maximum profiler samples
 constexpr size_t MAX_PROFILER_SAMPLES = 10000;
+
+/// Maximum active scopes
+constexpr size_t MAX_ACTIVE_SCOPES = 1000;
 
 } // namespace profiler
 } // namespace core
