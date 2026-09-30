@@ -36,12 +36,12 @@ public:
     std::vector<ContactManifold> manifolds;
     bool isSleeping;
     float sleepTime;
-    
+
     /**
      * @brief Constructor
      */
     Island() noexcept : isSleeping(false), sleepTime(0.0f) {}
-    
+
     /**
      * @brief Clear island
      */
@@ -52,23 +52,60 @@ public:
         isSleeping = false;
         sleepTime = 0.0f;
     }
-    
+
     /**
      * @brief Check if island should sleep
      */
     [[nodiscard]] bool shouldSleep(float sleepThreshold) const noexcept;
-    
+
     /**
      * @brief Update sleep time
      */
     void updateSleepTime(float deltaTime) noexcept;
-    
+
     /**
      * @brief Wake island
      */
     void wake() noexcept {
         isSleeping = false;
         sleepTime = 0.0f;
+    }
+
+    /**
+     * @brief Get body count
+     */
+    [[nodiscard]] size_t getBodyCount() const noexcept {
+        return bodies.size();
+    }
+
+    /**
+     * @brief Get constraint count
+     */
+    [[nodiscard]] size_t getConstraintCount() const noexcept {
+        return constraints.size();
+    }
+
+    /**
+     * @brief Get manifold count
+     */
+    [[nodiscard]] size_t getManifoldCount() const noexcept {
+        return manifolds.size();
+    }
+
+    /**
+     * @brief Check if island is valid
+     */
+    [[nodiscard]] bool isValid() const noexcept {
+        return !bodies.empty() || !constraints.empty();
+    }
+
+    /**
+     * @brief Reserve capacity for performance
+     */
+    void reserve(size_t bodyCount, size_t constraintCount, size_t manifoldCount) noexcept {
+        bodies.reserve(bodyCount);
+        constraints.reserve(constraintCount);
+        manifolds.reserve(manifoldCount);
     }
 };
 
@@ -81,7 +118,7 @@ public:
      * @brief Constructor
      */
     IslandBuilder() noexcept;
-    
+
     /**
      * @brief Build islands from contacts and constraints
      */
@@ -90,12 +127,19 @@ public:
         const std::vector<ConstraintHandle>& constraints,
         std::vector<Island>& outIslands
     );
-    
+
     /**
      * @brief Clear
      */
     void clear() noexcept;
-    
+
+    /**
+     * @brief Get visited count (debug)
+     */
+    [[nodiscard]] size_t getVisitedCount() const noexcept {
+        return visited.size();
+    }
+
 private:
     std::vector<uint32_t> visited;
     std::vector<int32_t> bodyToIsland;

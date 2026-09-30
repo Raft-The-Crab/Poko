@@ -36,14 +36,32 @@ struct SequentialImpulseSettings {
     float slop;
     float baumgarte;
     float restitutionThreshold;
-    
+    float maxLinearCorrection;
+    float maxAngularCorrection;
+
     SequentialImpulseSettings() noexcept
         : velocityIterations(8)
         , positionIterations(3)
         , warmStartFactor(0.8f)
         , slop(0.01f)
         , baumgarte(0.2f)
-        , restitutionThreshold(1.0f) {}
+        , restitutionThreshold(1.0f)
+        , maxLinearCorrection(0.2f)
+        , maxAngularCorrection(0.2f) {}
+
+    /**
+     * @brief Validate settings
+     */
+    [[nodiscard]] bool isValid() const noexcept {
+        return velocityIterations > 0 &&
+               positionIterations > 0 &&
+               warmStartFactor >= 0.0f && warmStartFactor <= 1.0f &&
+               slop >= 0.0f &&
+               baumgarte >= 0.0f && baumgarte <= 1.0f &&
+               restitutionThreshold >= 0.0f &&
+               maxLinearCorrection > 0.0f &&
+               maxAngularCorrection > 0.0f;
+    }
 };
 
 /**
@@ -85,6 +103,18 @@ public:
         std::vector<ContactManifold>& manifolds,
         std::vector<ConstraintRow>& constraintRows
     );
+
+    /**
+     * @brief Get current settings
+     */
+    [[nodiscard]] const SequentialImpulseSettings& getSettings() const noexcept {
+        return settings;
+    }
+
+    /**
+     * @brief Reset accumulated impulses
+     */
+    void resetImpulses(std::vector<ContactManifold>& manifolds) noexcept;
     
 private:
     SequentialImpulseSettings settings;

@@ -32,6 +32,8 @@ SequentialImpulseSolver::SequentialImpulseSolver() noexcept {
     settings.slop = 0.01f;
     settings.baumgarte = 0.2f;
     settings.restitutionThreshold = 1.0f;
+    settings.maxLinearCorrection = 0.2f;
+    settings.maxAngularCorrection = 0.2f;
 }
 
 void SequentialImpulseSolver::setSettings(const SequentialImpulseSettings& settings_) noexcept {
@@ -228,6 +230,16 @@ void SequentialImpulseSolver::solveConstraintRow(
     // Apply impulse
     bodyA.linearVelocity += row.linearJacobianA * (j * invMassA);
     bodyB.linearVelocity += row.linearJacobianB * (j * invMassB);
+}
+
+void SequentialImpulseSolver::resetImpulses(std::vector<ContactManifold>& manifolds) noexcept {
+    for (auto& manifold : manifolds) {
+        for (auto& contact : manifold.contacts) {
+            contact.normalImpulse = 0.0f;
+            contact.tangent1Impulse = 0.0f;
+            contact.tangent2Impulse = 0.0f;
+        }
+    }
 }
 
 } // namespace solver
