@@ -55,6 +55,11 @@ public:
         , density(1.0f)
         , frictionCombineRule(MaterialCombineRule::Multiply)
         , restitutionCombineRule(MaterialCombineRule::Maximum) {}
+
+    /**
+     * @brief Constructor with parameters
+     */
+    Material(float friction_, float restitution_, float density_ = 1.0f) noexcept;
     
     /**
      * @brief Combine friction with another material

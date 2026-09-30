@@ -159,6 +159,12 @@ public:
     [[nodiscard]] bool isNormalized(float epsilon = 0.001f) const noexcept {
         return std::abs(lengthSquared() - 1.0f) < epsilon;
     }
+
+    [[nodiscard]] constexpr float getComponent(int index) const noexcept {
+        if (index == 0) return x;
+        if (index == 1) return y;
+        return z;
+    }
 };
 
 } // namespace math

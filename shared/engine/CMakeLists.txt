@@ -345,6 +345,8 @@ add_library(poko_core_physics_system
     src/core/components/physics/narrowphase/pair_algorithms/pair_algorithms.cpp
     # Contacts
     src/core/components/physics/contacts/contact_manifold.cpp
+    # Materials
+    src/core/components/physics/materials/material.cpp
     # Solver
     src/core/components/physics/solver/sequential_impulse.cpp
     # Simulation

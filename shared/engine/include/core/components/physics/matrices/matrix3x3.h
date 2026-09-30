@@ -12,6 +12,7 @@
 #define POKO_CORE_COMPONENTS_PHYSICS_MATRICES_MATRIX3X3_H
 
 #include "../math/vectors/vector3.h"
+#include "../math/vectors/quaternion.h"
 #include <cmath>
 
 namespace poko {
@@ -21,6 +22,7 @@ namespace physics {
 namespace matrices {
 
 using math::Vector3;
+using math::Quaternion;
 
 /**
  * @brief 3x3 matrix (column-major)
@@ -138,6 +140,31 @@ public:
             m01, m11, m21,
             m02, m12, m22
         };
+    }
+
+    static Matrix3x3 fromQuaternion(const Quaternion& q) noexcept {
+        // Convert quaternion to rotation matrix
+        float xx = q.x * q.x;
+        float yy = q.y * q.y;
+        float zz = q.z * q.z;
+        float xy = q.x * q.y;
+        float xz = q.x * q.z;
+        float yz = q.y * q.z;
+        float wx = q.w * q.x;
+        float wy = q.w * q.y;
+        float wz = q.w * q.z;
+
+        return Matrix3x3{
+            1.0f - 2.0f * (yy + zz), 2.0f * (xy - wz), 2.0f * (xz + wy),
+            2.0f * (xy + wz), 1.0f - 2.0f * (xx + zz), 2.0f * (yz - wx),
+            2.0f * (xz - wy), 2.0f * (yz + wx), 1.0f - 2.0f * (xx + yy)
+        };
+    }
+
+    [[nodiscard]] Vector3 getColumn(int index) const noexcept {
+        if (index == 0) return Vector3(m00, m10, m20);
+        if (index == 1) return Vector3(m01, m11, m21);
+        return Vector3(m02, m12, m22);
     }
 };
 

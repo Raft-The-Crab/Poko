@@ -61,15 +61,19 @@ void SequentialImpulseSolver::solveVelocityConstraints(
             for (uint32_t i = 0; i < manifold.contactCount; ++i) {
                 // Placeholder for contact solving
                 // solveContactConstraint would be called here with actual body references
+                (void)i;
             }
         }
 
         // Solve constraints
         for (auto& row : constraintRows) {
+            (void)row;
             // Placeholder for constraint row solving
             // solveConstraintRow would be called here with actual body references
         }
     }
+
+    (void)bodies;
 }
 
 void SequentialImpulseSolver::solvePositionConstraints(
