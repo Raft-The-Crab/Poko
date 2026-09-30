@@ -8,14 +8,15 @@
  * Unauthorized copying, modification, or distribution is prohibited.
  */
 
-#ifndef POKO_CORE_COMPONENTS_PHYSICS_SHAPES_SHAPE_TYPE_H
-#define POKO_CORE_COMPONENTS_PHYSICS_SHAPES_SHAPE_TYPE_H
+#ifndef POKO_CORE_COMPONENTS_PHYSICS_SHAPES_PRIMITIVES_SHAPE_TYPE_H
+#define POKO_CORE_COMPONENTS_PHYSICS_SHAPES_PRIMITIVES_SHAPE_TYPE_H
 
 namespace poko {
 namespace core {
 namespace components {
 namespace physics {
 namespace shapes {
+namespace primitives {
 
 /**
  * @brief Shape type enumeration
@@ -37,10 +38,11 @@ enum class ShapeType : uint32_t {
     Unknown
 };
 
+} // namespace primitives
 } // namespace shapes
 } // namespace physics
 } // namespace components
 } // namespace core
 } // namespace poko
 
-#endif // POKO_CORE_COMPONENTS_PHYSICS_SHAPES_SHAPE_TYPE_H
+#endif // POKO_CORE_COMPONENTS_PHYSICS_SHAPES_PRIMITIVES_SHAPE_TYPE_H
