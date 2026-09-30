@@ -16,8 +16,10 @@
 #include "core/components/physics/contacts/contact_manifold.h"
 #include "core/components/physics/constraints/constraint_row.h"
 #include "core/components/physics/core/command.h"
+#include "core/components/physics/geometry/ray.h"
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace poko {
 namespace core {
@@ -43,6 +45,7 @@ using core::ApplyForceCommand;
 using core::ApplyImpulseCommand;
 using core::WakeCommand;
 using core::SleepCommand;
+using geometry::Ray;
 
 PhysicsWorld::PhysicsWorld(const PhysicsWorldSettings& settings_)
     : settings(settings_)
@@ -72,6 +75,8 @@ void PhysicsWorld::clear() {
     constraintFreeList.clear();
     manifolds.clear();
     islands.clear();
+    eventBuffer.clear();
+    triggerSystem.clear();
     accumulator = 0.0f;
     broadphase->clear();
 }
@@ -110,6 +115,10 @@ void PhysicsWorld::step(float deltaTime) {
 
         // Update sleeping
         updateSleeping(dt);
+
+        // Update trigger system (placeholder: needs collider mapping from bodies)
+        // Production: extract collider pairs from manifolds and update triggers
+        // triggerSystem.update(colliderPairs, eventBuffer);
 
         accumulator -= dt;
     }
@@ -599,6 +608,46 @@ void PhysicsWorld::freeHandle(std::vector<T>& storage, std::vector<uint32_t>& ge
 
 size_t PhysicsWorld::getBroadphaseNodeCount() const noexcept {
     return broadphase ? broadphase->getNodeCount() : 0;
+}
+
+bool PhysicsWorld::raycast(
+    const Ray& ray,
+    RaycastResult& result,
+    const QueryFilter& filter
+) const noexcept {
+    // Placeholder: raycast requires narrowphase integration
+    // Production implementation would use actual ray-shape intersection
+    (void)ray;
+    (void)filter;
+    result.hit = false;
+    return false;
+}
+
+bool PhysicsWorld::pointQuery(
+    const Vector3& point,
+    OverlapResult& result,
+    const QueryFilter& filter
+) const noexcept {
+    // Placeholder: point query requires narrowphase integration
+    // Production implementation would use actual point-in-shape tests
+    (void)point;
+    (void)filter;
+    result.collider = ColliderHandle();
+    result.body = BodyHandle();
+    return false;
+}
+
+size_t PhysicsWorld::overlapAABB(
+    const AABB& aabb,
+    std::vector<OverlapResult>& results,
+    const QueryFilter& filter
+) const noexcept {
+    // Placeholder: overlap query requires broadphase integration
+    // Production implementation would use actual AABB overlap tests
+    (void)aabb;
+    (void)filter;
+    results.clear();
+    return 0;
 }
 
 } // namespace world

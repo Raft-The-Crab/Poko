@@ -25,6 +25,10 @@
 #include "core/components/physics/constraints/constraint_definition.h"
 #include "core/components/physics/solver/sequential_impulse.h"
 #include "core/components/physics/simulation/island.h"
+#include "core/components/physics/query/query.h"
+#include "core/components/physics/triggers/trigger.h"
+#include "core/components/physics/events/event.h"
+#include "core/components/physics/geometry/ray.h"
 #include "core/components/physics/math/vectors/vector3.h"
 #include "core/components/physics/math/vectors/quaternion.h"
 #include "core/components/physics/transforms/transform.h"
@@ -62,6 +66,15 @@ using constraints::ConstraintDefinition;
 using solver::SequentialImpulseSolver;
 using simulation::Island;
 using simulation::IslandBuilder;
+using query::QuerySystem;
+using query::QueryResult;
+using query::RaycastResult;
+using query::OverlapResult;
+using query::QueryFilter;
+using query::Ray;
+using triggers::TriggerSystem;
+using events::EventBuffer;
+using bounds::AABB;
 using math::Vector3;
 using math::Quaternion;
 using transforms::Transform;
@@ -192,6 +205,47 @@ public:
      * @brief Get broadphase node count
      */
     [[nodiscard]] size_t getBroadphaseNodeCount() const noexcept;
+
+    /**
+     * @brief Raycast query
+     */
+    [[nodiscard]] bool raycast(
+        const Ray& ray,
+        RaycastResult& result,
+        const QueryFilter& filter = QueryFilter()
+    ) const noexcept;
+
+    /**
+     * @brief Point query
+     */
+    [[nodiscard]] bool pointQuery(
+        const Vector3& point,
+        OverlapResult& result,
+        const QueryFilter& filter = QueryFilter()
+    ) const noexcept;
+
+    /**
+     * @brief AABB overlap query
+     */
+    [[nodiscard]] size_t overlapAABB(
+        const AABB& aabb,
+        std::vector<OverlapResult>& results,
+        const QueryFilter& filter = QueryFilter()
+    ) const noexcept;
+
+    /**
+     * @brief Get event buffer
+     */
+    [[nodiscard]] EventBuffer& getEventBuffer() noexcept {
+        return eventBuffer;
+    }
+
+    /**
+     * @brief Get event buffer (const)
+     */
+    [[nodiscard]] const EventBuffer& getEventBuffer() const noexcept {
+        return eventBuffer;
+    }
     
 private:
     PhysicsWorldSettings settings;
@@ -221,10 +275,15 @@ private:
     CollisionDispatcher dispatcher;
     SequentialImpulseSolver solver;
     IslandBuilder islandBuilder;
-    
+    QuerySystem querySystem;
+    TriggerSystem triggerSystem;
+
     // Contacts and islands
     std::vector<ContactManifold> manifolds;
     std::vector<Island> islands;
+
+    // Events
+    EventBuffer eventBuffer;
     
     // Time management
     float accumulator;

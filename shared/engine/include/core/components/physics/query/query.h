@@ -209,6 +209,7 @@ public:
      * @brief Get collider at index
      */
     [[nodiscard]] const ColliderDefinition* getCollider(ColliderHandle handle) const noexcept {
+        (void)handle;
         return nullptr; // Implemented by world
     }
 
@@ -216,6 +217,7 @@ public:
      * @brief Get body at index
      */
     [[nodiscard]] const BodyDefinition* getBody(BodyHandle handle) const noexcept {
+        (void)handle;
         return nullptr; // Implemented by world
     }
 
