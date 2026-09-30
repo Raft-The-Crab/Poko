@@ -293,6 +293,19 @@ target_include_directories(poko_core_transform
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
+# Renderable component library
+add_library(poko_core_renderable
+    src/core/components/renderable/renderable.cpp
+    src/core/components/renderable/renderable_registration.cpp
+)
+
+target_include_directories(poko_core_renderable
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+target_link_libraries(poko_core_renderable PRIVATE poko_core_components)
+
 # Platform-specific settings
 if(WIN32)
     target_compile_definitions(poko_core_memory PRIVATE _WIN32)
@@ -312,6 +325,7 @@ if(WIN32)
     target_compile_definitions(poko_core_diagnostics PRIVATE _WIN32)
     target_compile_definitions(poko_core_profiler PRIVATE _WIN32)
     target_compile_definitions(poko_core_transform PRIVATE _WIN32)
+    target_compile_definitions(poko_core_renderable PRIVATE _WIN32)
 endif()
 
 # Production build flags
@@ -333,6 +347,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_options(poko_core_diagnostics PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_profiler PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_transform PRIVATE -O3 -DNDEBUG)
+    target_compile_options(poko_core_renderable PRIVATE -O3 -DNDEBUG)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_memory PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_handles PRIVATE -g -O0 -DDEBUG)
@@ -351,6 +366,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_diagnostics PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_profiler PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_transform PRIVATE -g -O0 -DDEBUG)
+    target_compile_options(poko_core_renderable PRIVATE -g -O0 -DDEBUG)
 endif()
 
 # Enable testing
@@ -477,8 +493,15 @@ add_executable(test_transform
 target_link_libraries(test_transform PRIVATE poko_core_transform Catch2::Catch2)
 add_test(NAME test_transform COMMAND test_transform)
 
+add_executable(test_renderable
+    tests/unit/core/components/renderable/test_renderable.cpp
+)
+
+target_link_libraries(test_renderable PRIVATE poko_core_renderable Catch2::Catch2)
+add_test(NAME test_renderable COMMAND test_renderable)
+
 # Installation
-install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration poko_core_logging poko_core_serialization poko_core_runtime poko_core_properties poko_core_components poko_core_world poko_core_resources poko_core_platform poko_core_diagnostics poko_core_profiler poko_core_transform
+install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration poko_core_logging poko_core_serialization poko_core_runtime poko_core_properties poko_core_components poko_core_world poko_core_resources poko_core_platform poko_core_diagnostics poko_core_profiler poko_core_transform poko_core_renderable
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
