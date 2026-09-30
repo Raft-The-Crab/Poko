@@ -9,6 +9,7 @@
  */
 
 #include "../../include/core/components/physics/broadphase/dynamic_aabb_tree.h"
+#include "../../include/core/components/physics/bounds/aabb.h"
 #include <algorithm>
 #include <cmath>
 

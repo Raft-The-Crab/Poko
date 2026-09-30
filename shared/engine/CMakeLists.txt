@@ -347,6 +347,8 @@ add_library(poko_core_physics_system
     src/core/components/physics/solver/sequential_impulse.cpp
     # Simulation
     src/core/components/physics/simulation/island.cpp
+    # World
+    src/core/components/physics/world/physics_world.cpp
 )
 target_include_directories(poko_core_physics_system PUBLIC include)
 
