@@ -597,6 +597,10 @@ void PhysicsWorld::freeHandle(std::vector<T>& storage, std::vector<uint32_t>& ge
     generations[index]++;
 }
 
+size_t PhysicsWorld::getBroadphaseNodeCount() const noexcept {
+    return broadphase ? broadphase->getNodeCount() : 0;
+}
+
 } // namespace world
 } // namespace physics
 } // namespace components

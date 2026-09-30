@@ -158,6 +158,40 @@ public:
      * @brief Get island count
      */
     [[nodiscard]] size_t getIslandCount() const noexcept;
+
+    /**
+     * @brief Get settings
+     */
+    [[nodiscard]] const PhysicsWorldSettings& getSettings() const noexcept {
+        return settings;
+    }
+
+    /**
+     * @brief Check if world is valid
+     */
+    [[nodiscard]] bool isValid() const noexcept {
+        return settings.isValid();
+    }
+
+    /**
+     * @brief Get memory usage statistics
+     */
+    [[nodiscard]] size_t getMemoryUsage() const noexcept {
+        size_t total = 0;
+        total += bodies.capacity() * sizeof(BodyDefinition);
+        total += colliders.capacity() * sizeof(ColliderDefinition);
+        total += shapes.capacity() * sizeof(ShapeDefinition);
+        total += materials.capacity() * sizeof(Material);
+        total += constraints.capacity() * sizeof(ConstraintDefinition);
+        total += manifolds.capacity() * sizeof(ContactManifold);
+        total += islands.capacity() * sizeof(Island);
+        return total;
+    }
+
+    /**
+     * @brief Get broadphase node count
+     */
+    [[nodiscard]] size_t getBroadphaseNodeCount() const noexcept;
     
 private:
     PhysicsWorldSettings settings;
