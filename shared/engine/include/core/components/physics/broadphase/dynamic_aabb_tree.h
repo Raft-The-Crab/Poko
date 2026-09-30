@@ -58,7 +58,12 @@ public:
      * @brief Constructor
      */
     DynamicAABBTree() noexcept;
-    
+
+    /**
+     * @brief Constructor with fat margin
+     */
+    explicit DynamicAABBTree(float fatMargin) noexcept;
+
     /**
      * @brief Destructor
      */
@@ -103,6 +108,31 @@ public:
      * @brief Get proxy count
      */
     [[nodiscard]] size_t getProxyCount() const override;
+
+    /**
+     * @brief Get tree height
+     */
+    [[nodiscard]] int32_t getTreeHeight() const noexcept;
+
+    /**
+     * @brief Get fat AABB margin
+     */
+    [[nodiscard]] float getFatAABBMargin() const noexcept;
+
+    /**
+     * @brief Set fat AABB margin
+     */
+    void setFatAABBMargin(float margin) noexcept;
+
+    /**
+     * @brief Get node count (allocated)
+     */
+    [[nodiscard]] size_t getNodeCount() const noexcept;
+
+    /**
+     * @brief Validate tree structure (debug)
+     */
+    [[nodiscard]] bool validate() const noexcept;
     
 private:
     std::vector<DynamicAABBTreeNode> nodes;

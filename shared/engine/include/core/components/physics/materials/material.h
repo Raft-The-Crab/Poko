@@ -96,6 +96,41 @@ public:
                 return restitution;
         }
     }
+
+    /**
+     * @brief Combine rolling resistance with another material
+     */
+    [[nodiscard]] float combineRollingResistance(float otherRollingResistance) const noexcept {
+        // Rolling resistance typically uses average
+        return (rollingResistance + otherRollingResistance) * 0.5f;
+    }
+
+    /**
+     * @brief Get effective friction with another material
+     */
+    [[nodiscard]] float getEffectiveFriction(const Material& other) const noexcept {
+        return combineFriction(other.friction);
+    }
+
+    /**
+     * @brief Get effective restitution with another material
+     */
+    [[nodiscard]] float getEffectiveRestitution(const Material& other) const noexcept {
+        return combineRestitution(other.restitution);
+    }
+
+    /**
+     * @brief Clamp values to valid ranges
+     */
+    void clamp() noexcept {
+        if (friction < 0.0f) friction = 0.0f;
+        if (friction > 1.0f) friction = 1.0f;
+        if (restitution < 0.0f) restitution = 0.0f;
+        if (restitution > 1.0f) restitution = 1.0f;
+        if (rollingResistance < 0.0f) rollingResistance = 0.0f;
+        if (rollingResistance > 1.0f) rollingResistance = 1.0f;
+        if (density <= 0.0f) density = 1.0f;
+    }
     
     /**
      * @brief Validate material

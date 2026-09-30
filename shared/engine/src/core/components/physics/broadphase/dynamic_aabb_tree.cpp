@@ -27,6 +27,14 @@ DynamicAABBTree::DynamicAABBTree() noexcept
     nodes.reserve(1024);
 }
 
+DynamicAABBTree::DynamicAABBTree(float fatMargin) noexcept
+    : root(-1)
+    , freeList(-1)
+    , proxyCount(0)
+    , fatAABBMargin(fatMargin) {
+    nodes.reserve(1024);
+}
+
 BroadphaseProxyHandle DynamicAABBTree::insert(const AABB& aabb, ColliderHandle collider) {
     int32_t leaf = allocateNode();
 
@@ -367,6 +375,43 @@ void DynamicAABBTree::collectPairs(int32_t nodeA, int32_t nodeB, std::vector<Col
             collectPairs(child2, nodeB, outPairs);
         }
     }
+}
+
+int32_t DynamicAABBTree::getTreeHeight() const noexcept {
+    return getHeight(root);
+}
+
+float DynamicAABBTree::getFatAABBMargin() const noexcept {
+    return fatAABBMargin;
+}
+
+void DynamicAABBTree::setFatAABBMargin(float margin) noexcept {
+    fatAABBMargin = margin;
+}
+
+size_t DynamicAABBTree::getNodeCount() const noexcept {
+    return nodes.size();
+}
+
+bool DynamicAABBTree::validate() const noexcept {
+    if (root == -1) {
+        return proxyCount == 0;
+    }
+
+    // Check parent-child consistency
+    for (size_t i = 0; i < nodes.size(); ++i) {
+        if (nodes[i].parent == -1 && static_cast<int32_t>(i) != root) {
+            return false;
+        }
+        if (nodes[i].child1 != -1 && nodes[nodes[i].child1].parent != static_cast<int32_t>(i)) {
+            return false;
+        }
+        if (nodes[i].child2 != -1 && nodes[nodes[i].child2].parent != static_cast<int32_t>(i)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 } // namespace broadphase

@@ -32,13 +32,21 @@ using core::ColliderHandle;
 struct CollisionPair {
     ColliderHandle colliderA;
     ColliderHandle colliderB;
-    
+
     constexpr CollisionPair() noexcept : colliderA(), colliderB() {}
     constexpr CollisionPair(ColliderHandle a, ColliderHandle b) noexcept : colliderA(a), colliderB(b) {}
-    
+
     [[nodiscard]] bool operator==(const CollisionPair& other) const noexcept {
         return (colliderA == other.colliderA && colliderB == other.colliderB) ||
                (colliderA == other.colliderB && colliderB == other.colliderA);
+    }
+
+    [[nodiscard]] bool operator!=(const CollisionPair& other) const noexcept {
+        return !(*this == other);
+    }
+
+    [[nodiscard]] bool isValid() const noexcept {
+        return colliderA.isValid() && colliderB.isValid();
     }
 };
 
