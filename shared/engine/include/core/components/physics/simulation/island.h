@@ -13,6 +13,7 @@
 
 #include "core/components/physics/core/handle.h"
 #include "core/components/physics/contacts/contact_manifold.h"
+#include "core/components/physics/constraints/constraint_definition.h"
 #include <vector>
 #include <unordered_map>
 
@@ -25,6 +26,7 @@ namespace simulation {
 using core::BodyHandle;
 using core::ConstraintHandle;
 using contacts::ContactManifold;
+using constraints::ConstraintDefinition;
 
 /**
  * @brief Island for sleeping and parallel solving
@@ -124,7 +126,7 @@ public:
      */
     void buildIslands(
         const std::vector<ContactManifold>& manifolds,
-        const std::vector<ConstraintHandle>& constraints,
+        const std::vector<ConstraintDefinition>& constraints,
         std::vector<Island>& outIslands
     );
 

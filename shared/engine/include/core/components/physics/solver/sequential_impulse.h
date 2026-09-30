@@ -14,6 +14,8 @@
 #include "core/components/physics/contacts/contact_manifold.h"
 #include "core/components/physics/constraints/constraint_row.h"
 #include "core/components/physics/bodies/body_definition.h"
+#include "core/components/physics/math/vectors/vector3.h"
+#include "core/components/physics/math/vectors/quaternion.h"
 #include <vector>
 
 namespace poko {
@@ -25,6 +27,8 @@ namespace solver {
 using contacts::ContactManifold;
 using constraints::ConstraintRow;
 using bodies::BodyDefinition;
+using math::Vector3;
+using math::Quaternion;
 
 /**
  * @brief Sequential impulse solver settings
@@ -115,6 +119,42 @@ public:
      * @brief Reset accumulated impulses
      */
     void resetImpulses(std::vector<ContactManifold>& manifolds) noexcept;
+
+    /**
+     * @brief Setup distance constraint row
+     */
+    void setupDistanceConstraint(
+        ConstraintRow& row,
+        const Vector3& anchorA,
+        const Vector3& anchorB,
+        float distance,
+        BodyDefinition& bodyA,
+        BodyDefinition& bodyB
+    ) noexcept;
+
+    /**
+     * @brief Setup fixed constraint row
+     */
+    void setupFixedConstraint(
+        ConstraintRow& row,
+        const Vector3& anchorA,
+        const Vector3& anchorB,
+        const Quaternion& rotationA,
+        const Quaternion& rotationB,
+        BodyDefinition& bodyA,
+        BodyDefinition& bodyB
+    ) noexcept;
+
+    /**
+     * @brief Setup ball socket constraint row
+     */
+    void setupBallSocketConstraint(
+        ConstraintRow& row,
+        const Vector3& anchorA,
+        const Vector3& anchorB,
+        BodyDefinition& bodyA,
+        BodyDefinition& bodyB
+    ) noexcept;
     
 private:
     SequentialImpulseSettings settings;

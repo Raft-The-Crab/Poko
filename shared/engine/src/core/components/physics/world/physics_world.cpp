@@ -15,6 +15,7 @@
 #include "core/components/physics/transforms/transform.h"
 #include "core/components/physics/contacts/contact_manifold.h"
 #include "core/components/physics/constraints/constraint_row.h"
+#include "core/components/physics/constraints/constraint_definition.h"
 #include "core/components/physics/core/command.h"
 #include "core/components/physics/geometry/ray.h"
 #include "core/components/physics/shapes/sphere.h"
@@ -26,6 +27,7 @@
 #include <limits>
 #include <variant>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace poko {
 namespace core {
@@ -39,6 +41,8 @@ using math::Quaternion;
 using transforms::Transform;
 using contacts::SolverContact;
 using constraints::ConstraintRow;
+using constraints::ConstraintDefinition;
+using constraints::ConstraintType;
 using core::CommandType;
 using core::Command;
 using core::CreateBodyCommand;
@@ -51,6 +55,11 @@ using core::ApplyForceCommand;
 using core::ApplyImpulseCommand;
 using core::WakeCommand;
 using core::SleepCommand;
+using core::CreateConstraintCommand;
+using core::DestroyConstraintCommand;
+using core::CreateDistanceConstraintCommand;
+using core::CreateFixedConstraintCommand;
+using core::CreateBallSocketConstraintCommand;
 using geometry::Ray;
 using shapes::Sphere;
 using shapes::Box;
@@ -231,6 +240,51 @@ void PhysicsWorld::processCommands(CommandBuffer& commands) {
             case CommandType::Sleep: {
                 const SleepCommand* sleepCmd = static_cast<const SleepCommand*>(cmd);
                 sleepBody(sleepCmd->body);
+                break;
+            }
+
+            case CommandType::CreateConstraint: {
+                ConstraintDefinition def;
+                def.type = ConstraintType::Distance;
+                def.collideConnected = false;
+                def.enabled = true;
+
+                // Check for specific constraint types by checking command type
+                if (auto* distCmd = dynamic_cast<const CreateDistanceConstraintCommand*>(cmd)) {
+                    def.type = ConstraintType::Distance;
+                    def.bodyA = distCmd->bodyA;
+                    def.bodyB = distCmd->bodyB;
+                    def.anchorA = distCmd->anchorA;
+                    def.anchorB = distCmd->anchorB;
+                    def.distance = distCmd->distance;
+                } else if (auto* fixedCmd = dynamic_cast<const CreateFixedConstraintCommand*>(cmd)) {
+                    def.type = ConstraintType::Fixed;
+                    def.bodyA = fixedCmd->bodyA;
+                    def.bodyB = fixedCmd->bodyB;
+                    def.anchorA = fixedCmd->anchorA;
+                    def.anchorB = fixedCmd->anchorB;
+                    def.rotationA = fixedCmd->rotationA;
+                    def.rotationB = fixedCmd->rotationB;
+                } else if (auto* ballCmd = dynamic_cast<const CreateBallSocketConstraintCommand*>(cmd)) {
+                    def.type = ConstraintType::BallSocket;
+                    def.bodyA = ballCmd->bodyA;
+                    def.bodyB = ballCmd->bodyB;
+                    def.anchorA = ballCmd->anchorA;
+                    def.anchorB = ballCmd->anchorB;
+                } else {
+                    // Generic constraint command
+                    const CreateConstraintCommand* createCmd = static_cast<const CreateConstraintCommand*>(cmd);
+                    def.bodyA = createCmd->bodyA;
+                    def.bodyB = createCmd->bodyB;
+                }
+
+                createConstraint(def);
+                break;
+            }
+
+            case CommandType::DestroyConstraint: {
+                const DestroyConstraintCommand* destroyCmd = static_cast<const DestroyConstraintCommand*>(cmd);
+                destroyConstraint(destroyCmd->constraint);
                 break;
             }
 
@@ -578,7 +632,7 @@ void PhysicsWorld::narrowphaseCollisionDetection() {
 
 void PhysicsWorld::buildIslands() {
     // Build islands from contacts and constraints
-    islandBuilder.buildIslands(manifolds, {}, islands);
+    islandBuilder.buildIslands(manifolds, constraints, islands);
 }
 
 void PhysicsWorld::solveConstraints() {
@@ -594,8 +648,67 @@ void PhysicsWorld::solveConstraints() {
             }
         }
 
-        // Create empty constraint rows for now (would be populated from constraints)
+        // Create constraint rows from constraints
         std::vector<ConstraintRow> constraintRows;
+        for (const auto& constraintHandle : island.constraints) {
+            if (constraintHandle.index >= constraints.size()) continue;
+            if (constraintGenerations[constraintHandle.index] != constraintHandle.generation) continue;
+
+            const ConstraintDefinition& constraint = constraints[constraintHandle.index];
+            if (!constraint.enabled) continue;
+
+            // Find body indices in island
+            int bodyAIndex = -1;
+            int bodyBIndex = -1;
+            for (size_t i = 0; i < island.bodies.size(); ++i) {
+                if (island.bodies[i] == constraint.bodyA) bodyAIndex = static_cast<int>(i);
+                if (island.bodies[i] == constraint.bodyB) bodyBIndex = static_cast<int>(i);
+            }
+
+            if (bodyAIndex < 0 || bodyBIndex < 0) continue;
+
+            // Setup constraint row based on type
+            ConstraintRow row;
+            switch (constraint.type) {
+                case ConstraintType::Distance:
+                    solver.setupDistanceConstraint(
+                        row,
+                        constraint.anchorA,
+                        constraint.anchorB,
+                        constraint.distance,
+                        islandBodies[bodyAIndex],
+                        islandBodies[bodyBIndex]
+                    );
+                    break;
+
+                case ConstraintType::Fixed:
+                    solver.setupFixedConstraint(
+                        row,
+                        constraint.anchorA,
+                        constraint.anchorB,
+                        constraint.rotationA,
+                        constraint.rotationB,
+                        islandBodies[bodyAIndex],
+                        islandBodies[bodyBIndex]
+                    );
+                    break;
+
+                case ConstraintType::BallSocket:
+                    solver.setupBallSocketConstraint(
+                        row,
+                        constraint.anchorA,
+                        constraint.anchorB,
+                        islandBodies[bodyAIndex],
+                        islandBodies[bodyBIndex]
+                    );
+                    break;
+
+                default:
+                    break;
+            }
+
+            constraintRows.push_back(row);
+        }
 
         // Solve velocity constraints
         solver.solveVelocityConstraints(manifolds, constraintRows, islandBodies);

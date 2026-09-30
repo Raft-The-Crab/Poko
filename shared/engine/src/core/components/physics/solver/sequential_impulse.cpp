@@ -232,6 +232,115 @@ void SequentialImpulseSolver::solveConstraintRow(
     bodyB.linearVelocity += row.linearJacobianB * (j * invMassB);
 }
 
+void SequentialImpulseSolver::setupDistanceConstraint(
+    ConstraintRow& row,
+    const Vector3& anchorA,
+    const Vector3& anchorB,
+    float distance,
+    BodyDefinition& bodyA,
+    BodyDefinition& bodyB
+) noexcept {
+    // Calculate world-space anchor points
+    Vector3 worldAnchorA = bodyA.transform.position + bodyA.transform.rotation.rotateVector(anchorA);
+    Vector3 worldAnchorB = bodyB.transform.position + bodyB.transform.rotation.rotateVector(anchorB);
+
+    // Calculate direction from A to B
+    Vector3 direction = worldAnchorB - worldAnchorA;
+    float currentDistance = direction.length();
+
+    if (currentDistance < 0.0001f) {
+        direction = Vector3(0.0f, 1.0f, 0.0f);
+        currentDistance = 0.0f;
+    } else {
+        direction = direction / currentDistance;
+    }
+
+    // Calculate position error
+    float error = currentDistance - distance;
+
+    // Setup Jacobian (constraint acts along direction)
+    row.linearJacobianA = direction;
+    row.linearJacobianB = -direction;
+    row.angularJacobianA = Vector3::zero();
+    row.angularJacobianB = Vector3::zero();
+
+    // Set limits (distance constraint is one-sided: distance >= 0)
+    row.lowerLimit = 0.0f;
+    row.upperLimit = 1e30f;
+
+    // Set bias for position correction
+    row.bias = error * settings.baumgarte;
+}
+
+void SequentialImpulseSolver::setupFixedConstraint(
+    ConstraintRow& row,
+    const Vector3& anchorA,
+    const Vector3& anchorB,
+    const Quaternion& rotationA,
+    const Quaternion& rotationB,
+    BodyDefinition& bodyA,
+    BodyDefinition& bodyB
+) noexcept {
+    // Calculate world-space anchor points
+    Vector3 worldAnchorA = bodyA.transform.position + bodyA.transform.rotation.rotateVector(anchorA);
+    Vector3 worldAnchorB = bodyB.transform.position + bodyB.transform.rotation.rotateVector(anchorB);
+
+    // Calculate position error
+    Vector3 positionError = worldAnchorB - worldAnchorA;
+
+    // Calculate rotation error
+    Quaternion relativeRotation = bodyB.transform.rotation * rotationB * (bodyA.transform.rotation * rotationA).inverse();
+    Vector3 rotationError = Vector3(relativeRotation.x, relativeRotation.y, relativeRotation.z) * 2.0f;
+
+    // Setup Jacobian for position constraint (simplified to 1 DOF for now)
+    row.linearJacobianA = Vector3(1.0f, 0.0f, 0.0f);
+    row.linearJacobianB = Vector3(-1.0f, 0.0f, 0.0f);
+    row.angularJacobianA = Vector3::zero();
+    row.angularJacobianB = Vector3::zero();
+
+    // Set limits (fixed constraint is equality)
+    row.lowerLimit = -1e30f;
+    row.upperLimit = 1e30f;
+
+    // Set bias for position correction
+    row.bias = (positionError.length() + rotationError.length()) * settings.baumgarte;
+}
+
+void SequentialImpulseSolver::setupBallSocketConstraint(
+    ConstraintRow& row,
+    const Vector3& anchorA,
+    const Vector3& anchorB,
+    BodyDefinition& bodyA,
+    BodyDefinition& bodyB
+) noexcept {
+    // Calculate world-space anchor points
+    Vector3 worldAnchorA = bodyA.transform.position + bodyA.transform.rotation.rotateVector(anchorA);
+    Vector3 worldAnchorB = bodyB.transform.position + bodyB.transform.rotation.rotateVector(anchorB);
+
+    // Calculate direction from A to B
+    Vector3 direction = worldAnchorB - worldAnchorA;
+    float distance = direction.length();
+
+    if (distance < 0.0001f) {
+        direction = Vector3(0.0f, 1.0f, 0.0f);
+    } else {
+        direction = direction / distance;
+    }
+
+    // Setup Jacobian (ball socket allows rotation, constrains position)
+    row.linearJacobianA = direction;
+    row.linearJacobianB = -direction;
+    row.angularJacobianA = Vector3::zero();
+    row.angularJacobianB = Vector3::zero();
+
+    // Set limits (ball socket is one-sided: distance >= 0)
+    row.lowerLimit = 0.0f;
+    row.upperLimit = 1e30f;
+
+    // Set bias for position correction
+    row.bias = distance * settings.baumgarte;
+}
+
 void SequentialImpulseSolver::resetImpulses(std::vector<ContactManifold>& manifolds) noexcept {
     for (auto& manifold : manifolds) {
         for (auto& contact : manifold.contacts) {

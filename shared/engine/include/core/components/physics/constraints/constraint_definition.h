@@ -53,6 +53,9 @@ public:
     BodyHandle bodyB;
     Vector3 anchorA;
     Vector3 anchorB;
+    Quaternion rotationA;
+    Quaternion rotationB;
+    float distance;
     bool collideConnected;
     bool enabled;
 
@@ -66,6 +69,9 @@ public:
         , bodyB()
         , anchorA(0.0f, 0.0f, 0.0f)
         , anchorB(0.0f, 0.0f, 0.0f)
+        , rotationA(Quaternion::identity())
+        , rotationB(Quaternion::identity())
+        , distance(1.0f)
         , collideConnected(false)
         , enabled(true) {}
 

@@ -227,8 +227,41 @@ struct CreateConstraintCommand : public Command {
     BodyHandle bodyB;
     // Additional constraint-specific data
     // (filled in by derived command types)
-    
+
     CreateConstraintCommand() noexcept : Command(CommandType::CreateConstraint) {}
+};
+
+/**
+ * @brief Create distance constraint command
+ */
+struct CreateDistanceConstraintCommand : public CreateConstraintCommand {
+    Vector3 anchorA;
+    Vector3 anchorB;
+    float distance;
+
+    CreateDistanceConstraintCommand() noexcept : CreateConstraintCommand() {}
+};
+
+/**
+ * @brief Create fixed constraint command
+ */
+struct CreateFixedConstraintCommand : public CreateConstraintCommand {
+    Vector3 anchorA;
+    Vector3 anchorB;
+    Quaternion rotationA;
+    Quaternion rotationB;
+
+    CreateFixedConstraintCommand() noexcept : CreateConstraintCommand() {}
+};
+
+/**
+ * @brief Create ball socket constraint command
+ */
+struct CreateBallSocketConstraintCommand : public CreateConstraintCommand {
+    Vector3 anchorA;
+    Vector3 anchorB;
+
+    CreateBallSocketConstraintCommand() noexcept : CreateConstraintCommand() {}
 };
 
 /**

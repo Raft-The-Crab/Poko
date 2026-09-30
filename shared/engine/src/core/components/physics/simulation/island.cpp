@@ -12,6 +12,8 @@
 #include "core/components/physics/core/handle.h"
 #include <algorithm>
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 namespace poko {
 namespace core {
@@ -36,7 +38,7 @@ IslandBuilder::IslandBuilder() noexcept {
 
 void IslandBuilder::buildIslands(
     const std::vector<ContactManifold>& manifolds,
-    const std::vector<ConstraintHandle>& constraints,
+    const std::vector<ConstraintDefinition>& constraints,
     std::vector<Island>& outIslands
 ) {
     outIslands.clear();
@@ -54,8 +56,26 @@ void IslandBuilder::buildIslands(
         }
     }
 
-    // Note: Constraint edges would be added here if we had constraint runtime data
-    // For now, constraints are handled separately in the solver
+    // Add edges from constraints
+    for (size_t i = 0; i < constraints.size(); ++i) {
+        const auto& constraint = constraints[i];
+        if (constraint.bodyA.isValid() && constraint.bodyB.isValid() && constraint.enabled) {
+            adjacency[constraint.bodyA.index].push_back(constraint.bodyB.index);
+            adjacency[constraint.bodyB.index].push_back(constraint.bodyA.index);
+        }
+    }
+
+    // Build a map from body index to constraint indices
+    std::unordered_map<uint32_t, std::vector<size_t>> bodyToConstraintIndices;
+    for (size_t i = 0; i < constraints.size(); ++i) {
+        const auto& constraint = constraints[i];
+        if (constraint.bodyA.isValid() && constraint.enabled) {
+            bodyToConstraintIndices[constraint.bodyA.index].push_back(i);
+        }
+        if (constraint.bodyB.isValid() && constraint.enabled) {
+            bodyToConstraintIndices[constraint.bodyB.index].push_back(i);
+        }
+    }
 
     // Find connected components using DFS
     for (const auto& [bodyIndex, neighbors] : adjacency) {
@@ -75,11 +95,27 @@ void IslandBuilder::buildIslands(
             // DFS to collect all bodies in this island
             dfsVisitUint32(bodyIndex, adjacency, island);
 
+            // Add constraint handles for this island
+            std::unordered_set<size_t> constraintSet;
+            for (const auto& bodyHandle : island.bodies) {
+                auto it = bodyToConstraintIndices.find(bodyHandle.index);
+                if (it != bodyToConstraintIndices.end()) {
+                    for (size_t constraintIndex : it->second) {
+                        constraintSet.insert(constraintIndex);
+                    }
+                }
+            }
+
+            // Convert constraint indices to handles
+            for (size_t constraintIndex : constraintSet) {
+                if (constraintIndex < constraints.size()) {
+                    island.constraints.push_back(constraints[constraintIndex].handle);
+                }
+            }
+
             outIslands.push_back(std::move(island));
         }
     }
-
-    (void)constraints;
 }
 
 void IslandBuilder::clear() noexcept {
