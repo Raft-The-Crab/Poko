@@ -88,6 +88,23 @@ public:
                min.y <= other.max.y && max.y >= other.min.y &&
                min.z <= other.max.z && max.z >= other.min.z;
     }
+    
+    /**
+     * @brief Get surface area
+     */
+    [[nodiscard]] float area() const noexcept {
+        Vector3 s = size();
+        return 2.0f * (s.x * s.y + s.y * s.z + s.z * s.x);
+    }
+    
+    /**
+     * @brief Check if AABB contains point
+     */
+    [[nodiscard]] bool contains(const Vector3& point) const noexcept {
+        return point.x >= min.x && point.x <= max.x &&
+               point.y >= min.y && point.y <= max.y &&
+               point.z >= min.z && point.z <= max.z;
+    }
 };
 
 } // namespace bounds

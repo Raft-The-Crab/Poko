@@ -340,11 +340,9 @@ add_library(poko_core_physics_system
     # Broadphase
     src/core/components/physics/broadphase/dynamic_aabb_tree.cpp
     # Narrowphase
-    src/core/components/physics/narrowphase/narrowphase.cpp
-    # Solver
-    src/core/components/physics/solver/sequential_impulse.cpp
-    # World
-    src/core/components/physics/world/world.cpp
+    src/core/components/physics/narrowphase/collision_dispatcher.cpp
+    # Contacts
+    src/core/components/physics/contacts/contact_manifold.cpp
 )
 target_include_directories(poko_core_physics_system PUBLIC include)
 
