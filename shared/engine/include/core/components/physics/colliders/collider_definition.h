@@ -34,7 +34,7 @@ using math::Quaternion;
 
 /**
  * @brief Collider definition (instance of a shape)
- * 
+ *
  * Separates Shape Definition from Collider Instance per architecture.
  * A shape can be reused across many colliders.
  */
@@ -63,20 +63,76 @@ public:
         , collisionMask(0xFFFFFFFF)
         , isTrigger(false)
         , isSensor(false) {}
-    
+
     /**
      * @brief Get world transform from body transform
      */
     [[nodiscard]] Transform getWorldTransform(const Transform& bodyTransform) const noexcept {
         return bodyTransform.compose(localTransform);
     }
-    
+
     /**
      * @brief Check collision with another collider
      */
     [[nodiscard]] bool shouldCollide(const ColliderDefinition& other) const noexcept {
         return (collisionLayer & other.collisionMask) != 0 &&
                (other.collisionLayer & collisionMask) != 0;
+    }
+
+    /**
+     * @brief Check if collider is valid
+     */
+    [[nodiscard]] bool isValid() const noexcept {
+        return handle.isValid() && bodyHandle.isValid() && shapeHandle.isValid();
+    }
+
+    /**
+     * @brief Check if collider is active (non-trigger, non-sensor)
+     */
+    [[nodiscard]] bool isActiveCollider() const noexcept {
+        return !isTrigger && !isSensor;
+    }
+
+    /**
+     * @brief Check if collider participates in physics simulation
+     */
+    [[nodiscard]] bool isPhysicsCollider() const noexcept {
+        return !isTrigger;
+    }
+
+    /**
+     * @brief Check if collider is a sensor (generates events only)
+     */
+    [[nodiscard]] bool isSensorOnly() const noexcept {
+        return isSensor;
+    }
+
+    /**
+     * @brief Set collision layer
+     */
+    void setCollisionLayer(uint32_t layer) noexcept {
+        collisionLayer = layer;
+    }
+
+    /**
+     * @brief Set collision mask
+     */
+    void setCollisionMask(uint32_t mask) noexcept {
+        collisionMask = mask;
+    }
+
+    /**
+     * @brief Enable collision with a specific layer
+     */
+    void enableCollisionWith(uint32_t layer) noexcept {
+        collisionMask |= (1u << layer);
+    }
+
+    /**
+     * @brief Disable collision with a specific layer
+     */
+    void disableCollisionWith(uint32_t layer) noexcept {
+        collisionMask &= ~(1u << layer);
     }
 };
 

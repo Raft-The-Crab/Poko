@@ -244,7 +244,7 @@ struct DestroyConstraintCommand : public Command {
 
 /**
  * @brief Command buffer
- * 
+ *
  * Stores commands to be processed at safe simulation boundaries.
  */
 class CommandBuffer {
@@ -253,21 +253,21 @@ public:
      * @brief Constructor
      */
     CommandBuffer() noexcept = default;
-    
+
     /**
      * @brief Add command
      */
     void addCommand(Command* command) {
         commands.push_back(command);
     }
-    
+
     /**
      * @brief Get commands
      */
     [[nodiscard]] const std::vector<Command*>& getCommands() const noexcept {
         return commands;
     }
-    
+
     /**
      * @brief Clear commands
      */
@@ -277,14 +277,41 @@ public:
         }
         commands.clear();
     }
-    
+
     /**
      * @brief Get command count
      */
     [[nodiscard]] size_t getCommandCount() const noexcept {
         return commands.size();
     }
-    
+
+    /**
+     * @brief Check if buffer is empty
+     */
+    [[nodiscard]] bool isEmpty() const noexcept {
+        return commands.empty();
+    }
+
+    /**
+     * @brief Reserve capacity for commands
+     */
+    void reserve(size_t capacity) noexcept {
+        commands.reserve(capacity);
+    }
+
+    /**
+     * @brief Get command by type count
+     */
+    [[nodiscard]] size_t getCommandCountByType(CommandType type) const noexcept {
+        size_t count = 0;
+        for (const Command* cmd : commands) {
+            if (cmd->type == type) {
+                ++count;
+            }
+        }
+        return count;
+    }
+
 private:
     std::vector<Command*> commands;
 };

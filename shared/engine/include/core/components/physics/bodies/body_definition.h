@@ -112,6 +112,113 @@ public:
     [[nodiscard]] bool shouldIntegrate() const noexcept {
         return isDynamic() || isKinematic();
     }
+
+    /**
+     * @brief Check if body is valid
+     */
+    [[nodiscard]] bool isValid() const noexcept {
+        return handle.isValid() && mass > 0.0f && linearDamping >= 0.0f && angularDamping >= 0.0f;
+    }
+
+    /**
+     * @brief Check if body is sleeping
+     */
+    [[nodiscard]] bool isSleeping() const noexcept {
+        return !isAwake && sleepingEnabled;
+    }
+
+    /**
+     * @brief Wake body
+     */
+    void wake() noexcept {
+        isAwake = true;
+        sleepTime = 0.0f;
+    }
+
+    /**
+     * @brief Put body to sleep
+     */
+    void sleep() noexcept {
+        isAwake = false;
+        linearVelocity = Vector3::zero();
+        angularVelocity = Vector3::zero();
+    }
+
+    /**
+     * @brief Get kinetic energy
+     */
+    [[nodiscard]] float getKineticEnergy() const noexcept {
+        float linearKE = 0.5f * mass * linearVelocity.lengthSquared();
+        float angularKE = 0.5f * angularVelocity.lengthSquared(); // Simplified
+        return linearKE + angularKE;
+    }
+
+    /**
+     * @brief Check if body is moving above sleep threshold
+     */
+    [[nodiscard]] bool isMoving() const noexcept {
+        return linearVelocity.lengthSquared() > sleepThreshold * sleepThreshold ||
+               angularVelocity.lengthSquared() > sleepThreshold * sleepThreshold;
+    }
+
+    /**
+     * @brief Apply force at center of mass
+     */
+    void applyForce(const Vector3& force_) noexcept {
+        force += force_;
+    }
+
+    /**
+     * @brief Apply torque
+     */
+    void applyTorque(const Vector3& torque_) noexcept {
+        torque += torque_;
+    }
+
+    /**
+     * @brief Clear accumulated forces
+     */
+    void clearForces() noexcept {
+        force = Vector3::zero();
+        torque = Vector3::zero();
+    }
+
+    /**
+     * @brief Get world position (from transform)
+     */
+    [[nodiscard]] Vector3 getWorldPosition() const noexcept {
+        return transform.position;
+    }
+
+    /**
+     * @brief Get world rotation (from transform)
+     */
+    [[nodiscard]] Quaternion getWorldRotation() const noexcept {
+        return transform.rotation;
+    }
+
+    /**
+     * @brief Update transform from position/rotation
+     */
+    void updateTransform() noexcept {
+        transform.position = position;
+        transform.rotation = rotation;
+    }
+
+    /**
+     * @brief Clamp velocities to reasonable limits
+     */
+    void clampVelocities(float maxLinear, float maxAngular) noexcept {
+        float linearSpeed = linearVelocity.length();
+        if (linearSpeed > maxLinear) {
+            linearVelocity = linearVelocity * (maxLinear / linearSpeed);
+        }
+
+        float angularSpeed = angularVelocity.length();
+        if (angularSpeed > maxAngular) {
+            angularVelocity = angularVelocity * (maxAngular / angularSpeed);
+        }
+    }
 };
 
 } // namespace bodies
