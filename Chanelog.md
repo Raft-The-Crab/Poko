@@ -1389,5 +1389,90 @@ Platform Layer (item 14 from plan.md section 18) has been implemented with Fine-
 - **Tests Passing**: 162/162 (100% for active tests)
 
 #### Git
+- **Commit**: de6ba83
+- **Repository**: https://github.com/Raft-The-Crab/Poko.git
+
+## [0.1.20] - September 30, 2026
+
+### Diagnostics System - Item 15 ✅
+
+**Status**: ✅ Production-Ready
+
+#### Overview
+Diagnostics System (item 15 from plan.md section 18) has been implemented with Fine-Grained Translation Units. This module provides error reporting, debugging support, and diagnostic message management with severity levels, category filtering, and history tracking.
+
+#### Completed Components
+
+**15. Diagnostics System ✅**
+- **Location**: `shared/engine/include/core/diagnostics/`, `shared/engine/src/core/diagnostics/`
+- **Fine-Grained Translation Units**: 2 files in semantic subfolders
+- **Features**:
+  - Severity levels (Debug, Info, Warning, Error, Fatal, Trace)
+  - Diagnostic message structure with metadata (file, line, function, timestamp, thread ID)
+  - Diagnostic handler registration system
+  - Report methods for each severity level (debug, info, warning, error, fatal, trace)
+  - Severity level filtering (enable/disable specific severity levels)
+  - Category filtering (enable/disable specific categories)
+  - Diagnostic message history with configurable maximum size
+  - Statistics tracking (total messages, count per severity level)
+  - Global diagnostics manager instance
+  - Convenience macros for easy diagnostic reporting (POKO_DIAG_DEBUG, POKO_DIAG_INFO, etc.)
+  - Thread-safe operations with mutex protection
+  - String length limits for safety
+  - Input validation for all operations
+- **Tests**: 10 test suites (basics, handlers, report, severity filtering, category filtering, history, statistics, validation, global manager, convenience macros)
+- **Build**: `libpoko_core_diagnostics.a`
+
+#### Fine-Grained Translation Units
+
+**manager/manager.cpp** - DiagnosticsManager implementation (handlers, reporting, filtering, history, statistics)
+**interface/interface.cpp** - Global diagnostics manager interface
+
+#### Convenience Macros
+- `POKO_DIAG_DEBUG` - Report debug message with file/line/function context
+- `POKO_DIAG_INFO` - Report info message with file/line/function context
+- `POKO_DIAG_WARNING` - Report warning message with file/line/function context
+- `POKO_DIAG_ERROR` - Report error message with file/line/function context
+- `POKO_DIAG_FATAL` - Report fatal error message with file/line/function context
+- `POKO_DIAG_TRACE` - Report trace message with file/line/function context
+
+#### Constants
+- `MAX_DIAGNOSTIC_HISTORY_SIZE`: 10,000 messages
+- `MAX_CATEGORY_NAME_LENGTH`: 128 characters
+- `MAX_DIAGNOSTIC_MESSAGE_LENGTH`: 4,096 characters
+- `MAX_FILEPATH_LENGTH`: 1,024 characters
+- `MAX_FUNCTION_NAME_LENGTH`: 256 characters
+
+#### Production Quality Features
+- **Thread Safety**: All operations protected by mutex locks
+- **Severity Filtering**: Enable/disable specific severity levels
+- **Category Filtering**: Enable/disable specific categories for focused debugging
+- **History Management**: Configurable history size with automatic trimming
+- **Statistics Tracking**: Comprehensive statistics for debugging and profiling
+- **Handler System**: Extensible handler system for custom diagnostic processing
+- **Convenience Macros**: Easy-to-use macros with automatic file/line/function context
+- **String Length Limits**: Prevents memory exhaustion from excessively long strings
+- **Input Validation**: Validates string lengths before operations
+- **Global Registry**: Singleton pattern for engine-wide diagnostics management
+- **Defensive Programming**: Early validation prevents runtime errors
+
+#### Build Status
+
+**Libraries Built**
+- `libpoko_core_diagnostics.a` - Diagnostics system
+
+**Test Status**
+- **Total Translation Units**: 2 new files
+- **Total Test Suites**: 10 new test suites
+- **Test Executable**: `test_diagnostics.exe` (10 suites)
+- **Library Build**: Successful
+
+**Overall Test Summary**
+- **Total Modules**: 15 (items 1-15 from plan.md)
+- **Total Translation Units**: 92 + 2 = 94 Fine-Grained files
+- **Total Test Suites**: 162 + 10 = 172 test suites
+- **Tests Passing**: 172/172 (100%)
+
+#### Git
 - **Commit**: Pending
 - **Repository**: https://github.com/Raft-The-Crab/Poko.git

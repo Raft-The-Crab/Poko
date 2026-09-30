@@ -257,6 +257,20 @@ if(UNIX AND NOT APPLE)
     target_link_libraries(poko_core_platform PRIVATE pthread)
 endif()
 
+# Core diagnostics library
+add_library(poko_core_diagnostics
+    src/core/diagnostics/manager/manager.cpp
+    src/core/diagnostics/interface/interface.cpp
+)
+
+target_include_directories(poko_core_diagnostics
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+# Diagnostics library dependencies
+# target_link_libraries(poko_core_diagnostics PRIVATE poko_core_platform)
+
 # Platform-specific settings
 if(WIN32)
     target_compile_definitions(poko_core_memory PRIVATE _WIN32)
@@ -273,6 +287,7 @@ if(WIN32)
     target_compile_definitions(poko_core_world PRIVATE _WIN32)
     target_compile_definitions(poko_core_resources PRIVATE _WIN32)
     target_compile_definitions(poko_core_platform PRIVATE _WIN32)
+    target_compile_definitions(poko_core_diagnostics PRIVATE _WIN32)
 endif()
 
 # Production build flags
@@ -291,6 +306,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_options(poko_core_world PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_resources PRIVATE -O3 -DNDEBUG)
     target_compile_options(poko_core_platform PRIVATE -O3 -DNDEBUG)
+    target_compile_options(poko_core_diagnostics PRIVATE -O3 -DNDEBUG)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_memory PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_handles PRIVATE -g -O0 -DDEBUG)
@@ -306,6 +322,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(poko_core_world PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_resources PRIVATE -g -O0 -DDEBUG)
     target_compile_options(poko_core_platform PRIVATE -g -O0 -DDEBUG)
+    target_compile_options(poko_core_diagnostics PRIVATE -g -O0 -DDEBUG)
 endif()
 
 # Enable testing
@@ -411,8 +428,15 @@ add_executable(test_platform
 target_link_libraries(test_platform PRIVATE poko_core_platform Catch2::Catch2)
 add_test(NAME test_platform COMMAND test_platform)
 
+add_executable(test_diagnostics
+    tests/unit/core/diagnostics/test_diagnostics.cpp
+)
+
+target_link_libraries(test_diagnostics PRIVATE poko_core_diagnostics Catch2::Catch2)
+add_test(NAME test_diagnostics COMMAND test_diagnostics)
+
 # Installation
-install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration poko_core_logging poko_core_serialization poko_core_runtime poko_core_properties poko_core_components poko_core_world poko_core_resources poko_core_platform
+install(TARGETS poko_core_memory poko_core_handles poko_core_time poko_core_events poko_core_jobs poko_core_configuration poko_core_logging poko_core_serialization poko_core_runtime poko_core_properties poko_core_components poko_core_world poko_core_resources poko_core_platform poko_core_diagnostics
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
