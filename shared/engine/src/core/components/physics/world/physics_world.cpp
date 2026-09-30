@@ -1045,12 +1045,49 @@ size_t PhysicsWorld::overlapCapsule(
             Vector3 shapeCenter = collider.localTransform.position;
             overlaps = sphereCapsuleOverlap(shapeCenter, sphere.radius, pointA, pointB, radius);
         } else if (std::holds_alternative<Box>(shape.shape)) {
-            // Box-capsule: use sphere approximation for now (would need closest point test)
+            // Exact box-capsule overlap test using segment-to-box distance
             const Box& box = std::get<Box>(shape.shape);
-            Vector3 shapeCenter = collider.localTransform.position;
-            float maxExtent = std::max({box.halfExtents.x, box.halfExtents.y, box.halfExtents.z});
-            float distance = (shapeCenter - ((pointA + pointB) * 0.5f)).length();
-            overlaps = distance <= (maxExtent + radius + (pointB - pointA).length() * 0.5f);
+            Vector3 boxCenter = collider.localTransform.position;
+            Quaternion boxRot = collider.localTransform.rotation;
+            Quaternion boxRotInv = boxRot.inverse();
+
+            // Transform capsule segment to box local space
+            Vector3 localCapsuleA = boxRotInv.rotateVector(pointA - boxCenter);
+            Vector3 localCapsuleB = boxRotInv.rotateVector(pointB - boxCenter);
+
+            // Find closest point on box to capsule segment
+            Vector3 closestA = localCapsuleA;
+            closestA.x = std::max(-box.halfExtents.x, std::min(box.halfExtents.x, closestA.x));
+            closestA.y = std::max(-box.halfExtents.y, std::min(box.halfExtents.y, closestA.y));
+            closestA.z = std::max(-box.halfExtents.z, std::min(box.halfExtents.z, closestA.z));
+
+            Vector3 closestB = localCapsuleB;
+            closestB.x = std::max(-box.halfExtents.x, std::min(box.halfExtents.x, closestB.x));
+            closestB.y = std::max(-box.halfExtents.y, std::min(box.halfExtents.y, closestB.y));
+            closestB.z = std::max(-box.halfExtents.z, std::min(box.halfExtents.z, closestB.z));
+
+            // Find closest point on segment to box
+            Vector3 segment = localCapsuleB - localCapsuleA;
+            Vector3 toClosestA = closestA - localCapsuleA;
+            float segmentLengthSquared = segment.lengthSquared();
+
+            float t = 0.0f;
+            if (segmentLengthSquared > 0.0001f) {
+                t = toClosestA.dot(segment) / segmentLengthSquared;
+                t = std::max(0.0f, std::min(1.0f, t));
+            }
+
+            Vector3 closestOnSegment = localCapsuleA + segment * t;
+
+            // Clamp closest point to box bounds
+            Vector3 closestOnBox = closestOnSegment;
+            closestOnBox.x = std::max(-box.halfExtents.x, std::min(box.halfExtents.x, closestOnBox.x));
+            closestOnBox.y = std::max(-box.halfExtents.y, std::min(box.halfExtents.y, closestOnBox.y));
+            closestOnBox.z = std::max(-box.halfExtents.z, std::min(box.halfExtents.z, closestOnBox.z));
+
+            Vector3 diff = closestOnSegment - closestOnBox;
+            float distance = diff.length();
+            overlaps = distance <= radius;
         } else if (std::holds_alternative<Capsule>(shape.shape)) {
             const Capsule& capsule = std::get<Capsule>(shape.shape);
             // Exact capsule-capsule overlap test

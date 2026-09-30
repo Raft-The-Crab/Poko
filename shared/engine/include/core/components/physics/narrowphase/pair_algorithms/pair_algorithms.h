@@ -103,6 +103,16 @@ CollisionResult collideCapsuleCapsule(
     const Transform& transformB
 );
 
+/**
+ * @brief Box-capsule collision
+ */
+CollisionResult collideBoxCapsule(
+    const Box& box,
+    const Transform& boxTransform,
+    const Capsule& capsule,
+    const Transform& capsuleTransform
+);
+
 } // namespace narrowphase
 } // namespace physics
 } // namespace components

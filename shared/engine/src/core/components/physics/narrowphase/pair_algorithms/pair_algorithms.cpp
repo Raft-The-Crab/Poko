@@ -523,6 +523,80 @@ CollisionResult collideCapsuleCapsule(
     return result;
 }
 
+CollisionResult collideBoxCapsule(
+    const Box& box,
+    const Transform& boxTransform,
+    const Capsule& capsule,
+    const Transform& capsuleTransform
+) {
+    CollisionResult result;
+
+    // Transform capsule to box local space
+    Vector3 capsulePos = capsuleTransform.position;
+    Vector3 boxPos = boxTransform.position;
+    Quaternion boxRotInv = boxTransform.rotation.inverse();
+
+    Vector3 relPos = capsulePos - boxPos;
+    Vector3 localCapsulePos = boxRotInv.rotateVector(relPos);
+
+    // Transform capsule axis to box local space
+    Vector3 capsuleUp = boxRotInv.rotateVector(capsuleTransform.rotation.rotateVector(Vector3(0.0f, 1.0f, 0.0f)));
+    Vector3 halfHeight = capsuleUp * (capsule.height * 0.5f);
+    Vector3 endpointA = localCapsulePos - halfHeight;
+    Vector3 endpointB = localCapsulePos + halfHeight;
+
+    // Find closest point on box to capsule segment
+    Vector3 closestA = endpointA;
+    closestA.x = std::max(-box.halfExtents.x, std::min(box.halfExtents.x, closestA.x));
+    closestA.y = std::max(-box.halfExtents.y, std::min(box.halfExtents.y, closestA.y));
+    closestA.z = std::max(-box.halfExtents.z, std::min(box.halfExtents.z, closestA.z));
+
+    Vector3 closestB = endpointB;
+    closestB.x = std::max(-box.halfExtents.x, std::min(box.halfExtents.x, closestB.x));
+    closestB.y = std::max(-box.halfExtents.y, std::min(box.halfExtents.y, closestB.y));
+    closestB.z = std::max(-box.halfExtents.z, std::min(box.halfExtents.z, closestB.z));
+
+    // Find closest point on segment to box
+    Vector3 segment = endpointB - endpointA;
+    Vector3 toClosestA = closestA - endpointA;
+    float segmentLengthSquared = segment.lengthSquared();
+
+    float t = 0.0f;
+    if (segmentLengthSquared > 0.0001f) {
+        t = toClosestA.dot(segment) / segmentLengthSquared;
+        t = std::max(0.0f, std::min(1.0f, t));
+    }
+
+    Vector3 closestOnSegment = endpointA + segment * t;
+
+    // Clamp closest point to box bounds
+    Vector3 closestOnBox = closestOnSegment;
+    closestOnBox.x = std::max(-box.halfExtents.x, std::min(box.halfExtents.x, closestOnBox.x));
+    closestOnBox.y = std::max(-box.halfExtents.y, std::min(box.halfExtents.y, closestOnBox.y));
+    closestOnBox.z = std::max(-box.halfExtents.z, std::min(box.halfExtents.z, closestOnBox.z));
+
+    Vector3 diff = closestOnSegment - closestOnBox;
+    float distance = diff.length();
+
+    if (distance < capsule.radius) {
+        result.isColliding = true;
+        result.penetration = capsule.radius - distance;
+
+        Vector3 localNormal = distance > 0.0001f ? diff * (1.0f / distance) : Vector3(0.0f, 1.0f, 0.0f);
+        result.normal = boxTransform.rotation.rotateVector(localNormal);
+
+        ContactPoint contact;
+        contact.position = capsulePos - result.normal * (capsule.radius - result.penetration * 0.5f);
+        contact.normal = result.normal;
+        contact.penetration = result.penetration;
+        contact.featureIdA = generateFeatureId(2, 0); // Box face
+        contact.featureIdB = generateFeatureId(3, static_cast<uint32_t>(t * 1000)); // Capsule segment
+        result.contacts.push_back(contact);
+    }
+
+    return result;
+}
+
 } // namespace narrowphase
 } // namespace physics
 } // namespace components

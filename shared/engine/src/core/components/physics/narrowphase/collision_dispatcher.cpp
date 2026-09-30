@@ -167,6 +167,39 @@ CollisionDispatcher::CollisionDispatcher() noexcept {
             const Capsule& capsuleB = std::get<Capsule>(b.shape);
             return collideCapsuleCapsule(capsuleA, ta, capsuleB, tb);
         });
+
+    // Register box-capsule
+    registerAlgorithm(ShapeType::Box, ShapeType::Capsule,
+        [](const ShapeDefinition& a, const Transform& ta, const ShapeDefinition& b, const Transform& tb) -> CollisionResult {
+            if (a.type != ShapeType::Box || b.type != ShapeType::Capsule) {
+                CollisionResult result;
+                result.isColliding = false;
+                return result;
+            }
+            const Box& box = std::get<Box>(a.shape);
+            const Capsule& capsule = std::get<Capsule>(b.shape);
+            return collideBoxCapsule(box, ta, capsule, tb);
+        });
+
+    registerAlgorithm(ShapeType::Capsule, ShapeType::Box,
+        [](const ShapeDefinition& a, const Transform& ta, const ShapeDefinition& b, const Transform& tb) -> CollisionResult {
+            if (a.type != ShapeType::Capsule || b.type != ShapeType::Box) {
+                CollisionResult result;
+                result.isColliding = false;
+                return result;
+            }
+            const Capsule& capsule = std::get<Capsule>(a.shape);
+            const Box& box = std::get<Box>(b.shape);
+            CollisionResult result_swapped = collideBoxCapsule(box, tb, capsule, ta);
+            result_swapped.normal = -result_swapped.normal;
+            // Swap feature IDs for correct contact persistence
+            for (auto& contact : result_swapped.contacts) {
+                uint32_t temp = contact.featureIdA;
+                contact.featureIdA = contact.featureIdB;
+                contact.featureIdB = temp;
+            }
+            return result_swapped;
+        });
 }
 
 void CollisionDispatcher::registerAlgorithm(ShapeType typeA, ShapeType typeB, PairAlgorithm algorithm) {
