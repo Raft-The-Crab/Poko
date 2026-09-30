@@ -29,16 +29,18 @@ using math::Vector3;
  * @brief Dynamic AABB tree node
  */
 struct DynamicAABBTreeNode {
-    AABB aabb;
+    AABB aabb;              // Fat AABB for broadphase
+    AABB originalAABB;      // Original AABB for exact collision
     ColliderHandle collider;
     int32_t parent;
     int32_t child1;
     int32_t child2;
     int32_t height;
     bool isLeaf;
-    
+
     DynamicAABBTreeNode() noexcept
         : aabb()
+        , originalAABB()
         , collider()
         , parent(-1)
         , child1(-1)
@@ -107,6 +109,7 @@ private:
     int32_t root;
     int32_t freeList;
     uint32_t proxyCount;
+    float fatAABBMargin;
     
     /**
      * @brief Allocate node

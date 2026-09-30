@@ -25,9 +25,13 @@
 #include "core/components/physics/constraints/constraint_definition.h"
 #include "core/components/physics/solver/sequential_impulse.h"
 #include "core/components/physics/simulation/island.h"
+#include "core/components/physics/math/vectors/vector3.h"
+#include "core/components/physics/math/vectors/quaternion.h"
+#include "core/components/physics/transforms/transform.h"
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <cstdint>
 
 namespace poko {
 namespace core {
@@ -42,6 +46,7 @@ using core::ColliderHandle;
 using core::ShapeHandle;
 using core::MaterialHandle;
 using core::ConstraintHandle;
+using core::CommandType;
 using bodies::BodyDefinition;
 using bodies::MotionType;
 using colliders::ColliderDefinition;
@@ -51,11 +56,15 @@ using broadphase::IBroadphase;
 using broadphase::DynamicAABBTree;
 using broadphase::CollisionPair;
 using narrowphase::CollisionDispatcher;
+using narrowphase::CollisionResult;
 using contacts::ContactManifold;
 using constraints::ConstraintDefinition;
 using solver::SequentialImpulseSolver;
 using simulation::Island;
 using simulation::IslandBuilder;
+using math::Vector3;
+using math::Quaternion;
+using transforms::Transform;
 
 /**
  * @brief Physics world - primary simulation owner
@@ -220,6 +229,36 @@ private:
      * @brief Update sleeping
      */
     void updateSleeping(float deltaTime);
+
+    /**
+     * @brief Set body transform
+     */
+    void setBodyTransform(BodyHandle handle, const Transform& transform);
+
+    /**
+     * @brief Set body velocity
+     */
+    void setBodyVelocity(BodyHandle handle, const Vector3& linearVelocity, const Vector3& angularVelocity);
+
+    /**
+     * @brief Apply force to body
+     */
+    void applyForce(BodyHandle handle, const Vector3& force, const Vector3& point);
+
+    /**
+     * @brief Apply impulse to body
+     */
+    void applyImpulse(BodyHandle handle, const Vector3& impulse, const Vector3& point);
+
+    /**
+     * @brief Wake body
+     */
+    void wakeBody(BodyHandle handle);
+
+    /**
+     * @brief Sleep body
+     */
+    void sleepBody(BodyHandle handle);
     
     /**
      * @brief Allocate handle

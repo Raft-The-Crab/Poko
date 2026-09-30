@@ -43,17 +43,45 @@ public:
     [[nodiscard]] constexpr Vector3 operator+(const Vector3& other) const noexcept {
         return Vector3{x + other.x, y + other.y, z + other.z};
     }
-    
+
     [[nodiscard]] constexpr Vector3 operator-(const Vector3& other) const noexcept {
         return Vector3{x - other.x, y - other.y, z - other.z};
     }
-    
+
     [[nodiscard]] constexpr Vector3 operator*(float scalar) const noexcept {
         return Vector3{x * scalar, y * scalar, z * scalar};
     }
-    
+
     [[nodiscard]] constexpr Vector3 operator/(float scalar) const noexcept {
         return Vector3{x / scalar, y / scalar, z / scalar};
+    }
+
+    constexpr Vector3& operator+=(const Vector3& other) noexcept {
+        x += other.x;
+        y += other.y;
+        z += other.z;
+        return *this;
+    }
+
+    constexpr Vector3& operator-=(const Vector3& other) noexcept {
+        x -= other.x;
+        y -= other.y;
+        z -= other.z;
+        return *this;
+    }
+
+    constexpr Vector3& operator*=(float scalar) noexcept {
+        x *= scalar;
+        y *= scalar;
+        z *= scalar;
+        return *this;
+    }
+
+    constexpr Vector3& operator/=(float scalar) noexcept {
+        x /= scalar;
+        y /= scalar;
+        z /= scalar;
+        return *this;
     }
     
     [[nodiscard]] constexpr Vector3 operator-() const noexcept {

@@ -43,26 +43,44 @@ class BodyDefinition {
 public:
     BodyHandle handle;
     Transform transform;
+    Vector3 position;
+    Quaternion rotation;
     Vector3 linearVelocity;
     Vector3 angularVelocity;
+    Vector3 force;
+    Vector3 torque;
     float mass;
+    float linearDamping;
+    float angularDamping;
+    float gravityScale;
     MotionType motionType;
+    bool isAwake;
     bool sleepingEnabled;
+    float sleepTime;
     float sleepThreshold;
     uint32_t collisionLayer;
     uint32_t collisionMask;
-    
+
     /**
      * @brief Constructor
      */
     BodyDefinition() noexcept
         : handle()
         , transform()
+        , position(0.0f, 0.0f, 0.0f)
+        , rotation(1.0f, 0.0f, 0.0f, 0.0f)
         , linearVelocity(0.0f, 0.0f, 0.0f)
         , angularVelocity(0.0f, 0.0f, 0.0f)
+        , force(0.0f, 0.0f, 0.0f)
+        , torque(0.0f, 0.0f, 0.0f)
         , mass(1.0f)
+        , linearDamping(0.01f)
+        , angularDamping(0.01f)
+        , gravityScale(1.0f)
         , motionType(MotionType::Dynamic)
+        , isAwake(true)
         , sleepingEnabled(true)
+        , sleepTime(0.0f)
         , sleepThreshold(0.01f)
         , collisionLayer(1)
         , collisionMask(0xFFFFFFFF) {}

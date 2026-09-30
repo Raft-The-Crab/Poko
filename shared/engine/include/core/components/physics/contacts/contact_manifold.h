@@ -15,6 +15,7 @@
 #include "core/components/physics/core/handle.h"
 #include "core/components/physics/math/vectors/vector3.h"
 #include <vector>
+#include <cstdint>
 
 namespace poko {
 namespace core {
@@ -24,7 +25,10 @@ namespace contacts {
 
 using narrowphase::ContactPoint;
 using core::ColliderHandle;
+using core::BodyHandle;
 using math::Vector3;
+
+constexpr uint32_t MAX_CONTACTS = 4;
 
 /**
  * @brief Contact point with solver data
@@ -63,29 +67,32 @@ struct SolverContact {
  */
 class ContactManifold {
 public:
-    ColliderHandle colliderA;
-    ColliderHandle colliderB;
+    BodyHandle bodyA;
+    BodyHandle bodyB;
     Vector3 normal;
     std::vector<SolverContact> contacts;
     uint32_t contactCount;
-    
+    float friction;
+    float restitution;
+
     /**
      * @brief Constructor
      */
     ContactManifold() noexcept
-        : colliderA()
-        , colliderB()
+        : bodyA()
+        , bodyB()
         , normal(0.0f, 1.0f, 0.0f)
-        , contactCount(0) {}
-    
+        , contactCount(0)
+        , friction(0.3f)
+        , restitution(0.0f) {
+        contacts.reserve(MAX_CONTACTS);
+    }
+
     /**
      * @brief Clear manifold
      */
-    void clear() noexcept {
-        contacts.clear();
-        contactCount = 0;
-    }
-    
+    void clear() noexcept;
+
     /**
      * @brief Add contact
      */
@@ -97,21 +104,36 @@ public:
         }
         contactCount++;
     }
-    
+
     /**
      * @brief Reduce contacts to maximum
      */
     void reduceContacts(uint32_t maxContacts) noexcept;
-    
+
     /**
      * @brief Match contacts with previous manifold for warm starting
      */
     void matchContacts(const ContactManifold& previous) noexcept;
-    
+
     /**
      * @brief Calculate tangent basis
      */
     void calculateTangentBasis() noexcept;
+
+    /**
+     * @brief Check if manifold is valid
+     */
+    [[nodiscard]] bool isValid() const noexcept;
+
+    /**
+     * @brief Get total penetration
+     */
+    [[nodiscard]] float getTotalPenetration() const noexcept;
+
+    /**
+     * @brief Get average contact position
+     */
+    [[nodiscard]] Vector3 getAverageContactPosition() const noexcept;
 };
 
 } // namespace contacts

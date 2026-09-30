@@ -28,6 +28,7 @@ using transforms::Transform;
 using core::ColliderHandle;
 using core::MaterialHandle;
 using core::ShapeHandle;
+using core::BodyHandle;
 using math::Vector3;
 using math::Quaternion;
 
@@ -40,6 +41,7 @@ using math::Quaternion;
 class ColliderDefinition {
 public:
     ColliderHandle handle;
+    BodyHandle bodyHandle;
     ShapeHandle shapeHandle;
     MaterialHandle materialHandle;
     Transform localTransform;
@@ -47,12 +49,13 @@ public:
     uint32_t collisionMask;
     bool isTrigger;
     bool isSensor;
-    
+
     /**
      * @brief Constructor
      */
     ColliderDefinition() noexcept
         : handle()
+        , bodyHandle()
         , shapeHandle()
         , materialHandle()
         , localTransform()

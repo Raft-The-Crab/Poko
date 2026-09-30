@@ -14,6 +14,7 @@
 #include "core/components/physics/core/handle.h"
 #include "core/components/physics/contacts/contact_manifold.h"
 #include <vector>
+#include <unordered_map>
 
 namespace poko {
 namespace core {
@@ -96,11 +97,20 @@ public:
     void clear() noexcept;
     
 private:
-    std::vector<bool> visited;
+    std::vector<uint32_t> visited;
     std::vector<int32_t> bodyToIsland;
-    
+
     /**
-     * @brief Visit body for graph traversal
+     * @brief DFS visit to collect connected bodies (using uint32_t indices)
+     */
+    void dfsVisitUint32(
+        uint32_t bodyIndex,
+        const std::unordered_map<uint32_t, std::vector<uint32_t>>& adjacency,
+        Island& island
+    );
+
+    /**
+     * @brief Visit body for graph traversal (deprecated, kept for compatibility)
      */
     void visitBody(
         BodyHandle body,

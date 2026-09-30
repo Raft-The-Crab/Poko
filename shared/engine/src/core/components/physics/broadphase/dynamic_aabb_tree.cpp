@@ -22,23 +22,32 @@ namespace broadphase {
 DynamicAABBTree::DynamicAABBTree() noexcept
     : root(-1)
     , freeList(-1)
-    , proxyCount(0) {
+    , proxyCount(0)
+    , fatAABBMargin(0.05f) {
     nodes.reserve(1024);
 }
 
 BroadphaseProxyHandle DynamicAABBTree::insert(const AABB& aabb, ColliderHandle collider) {
     int32_t leaf = allocateNode();
-    nodes[leaf].aabb = aabb;
+
+    // Create fat AABB for reduced updates
+    AABB fatAABB = aabb;
+    Vector3 margin = Vector3(fatAABBMargin, fatAABBMargin, fatAABBMargin);
+    fatAABB.min = fatAABB.min - margin;
+    fatAABB.max = fatAABB.max + margin;
+
+    nodes[leaf].aabb = fatAABB;
+    nodes[leaf].originalAABB = aabb;
     nodes[leaf].collider = collider;
     nodes[leaf].parent = -1;
     nodes[leaf].child1 = -1;
     nodes[leaf].child2 = -1;
     nodes[leaf].height = 0;
     nodes[leaf].isLeaf = true;
-    
+
     insertLeaf(leaf);
     proxyCount++;
-    
+
     return BroadphaseProxyHandle(static_cast<uint32_t>(leaf), 0);
 }
 

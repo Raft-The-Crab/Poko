@@ -56,11 +56,13 @@ struct PhysicsWorldSettings {
     // ============================================================================
     // Collision
     // ============================================================================
-    
+
     float collisionTolerance = 0.001f;
     float penetrationCorrectionPercentage = 0.8f;
     float contactSlop = 0.01f;
     uint32_t maxContactsPerPair = 4;
+    float maxLinearVelocity = 100.0f;
+    float maxAngularVelocity = 100.0f;
     
     // ============================================================================
     // CCD
